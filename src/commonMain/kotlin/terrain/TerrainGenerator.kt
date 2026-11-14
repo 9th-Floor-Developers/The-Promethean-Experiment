@@ -81,11 +81,11 @@ object TerrainGenerator {
         return dist
     }
 
-    /** Picks pond centres on land far from the coast and from each other, spread across the island. */
-    private fun pickPondSites(tiles: Array<TileType>, size: Int, rng: Random): List<Pair<Int, Int>> {
+    /** Picks pond centres (count scaled by [waterAmount], 1.0 = normal) on land far from the coast and from each other, spread across the island. */
+    private fun pickPondSites(tiles: Array<TileType>, size: Int, rng: Random, waterAmount: Double): List<Pair<Int, Int>> {
         val dist = distanceToWater(tiles, size)
         val landCount = tiles.count { it != TileType.WATER }
-        val wanted = (landCount / LAND_TILES_PER_POND).coerceAtLeast(1)
+        val wanted = (landCount * waterAmount / LAND_TILES_PER_POND).toInt().coerceAtLeast(1)
         val candidates = tiles.indices.filter { dist[it] >= POND_MIN_COAST_DISTANCE }.shuffled(rng)
         val sites = mutableListOf<Pair<Int, Int>>()
         for (i in candidates) {
@@ -115,7 +115,8 @@ object TerrainGenerator {
         return changed
     }
 
-    fun generate(seed: Long, size: Int = TERRAIN_SIZE): Terrain {
+    /** Generates the island. [waterAmount] scales how many inland ponds are carved (1.0 = default, at least one pond). */
+    fun generate(seed: Long, size: Int = TERRAIN_SIZE, waterAmount: Double = 1.0): Terrain {
         process("Terrain Generation (${size}x$size, seed=$seed)")
 
         phase("1/3 Noise field")
@@ -165,7 +166,7 @@ object TerrainGenerator {
         phase("3/3 Ponds")
         step("1/4 Pick pond sites")
         val rng = Random(seed xor 0x706F6E64L)
-        val sites = pickPondSites(tiles, size, rng)
+        val sites = pickPondSites(tiles, size, rng, waterAmount)
         println("picked ${sites.size} pond sites (inland, at least $POND_MIN_COAST_DISTANCE tiles from water, $POND_SPACING apart)")
 
         step("2/4 Carve ponds")

@@ -4,6 +4,7 @@ import sim.objects.Carcass
 import sim.objects.Grass
 import sim.objects.Tree
 import sim.world.World
+import sim.world.Resources
 import sim.world.createMockWorld
 import sim.world.createWorld
 import sim.world.parseSpeciesConfig
@@ -36,14 +37,14 @@ private fun q(s: String) = "\"$s\""
 
 /**
  * Creates (or replaces) the simulation and returns its terrain as JSON in the contract documented on
- * [generateTerrainJson]. [speciesConfig] is the Settings text (see [parseSpeciesConfig]); blank = default demo species. The frontend renders exactly this terrain, so visuals and simulation agree.
+ * [generateTerrainJson]. [speciesConfig] is the Settings text (see [parseSpeciesConfig]); blank = default demo species. [water], [trees], [grass] are resource multipliers (1.0 = default). The frontend renders exactly this terrain, so visuals and simulation agree.
  */
 @OptIn(ExperimentalJsExport::class)
 @JsExport
-fun createSimulation(seed: Int, size: Int, speciesConfig: String): String {
+fun createSimulation(seed: Int, size: Int, speciesConfig: String, water: Double, trees: Double, grass: Double): String {
     println("\n########## PROCESS: Create Simulation (seed=$seed, size=$size) ##########")
     val w = if (speciesConfig.isBlank()) createMockWorld(seed.toLong(), size)
-    else createWorld(seed.toLong(), size, parseSpeciesConfig(speciesConfig))
+    else createWorld(seed.toLong(), size, parseSpeciesConfig(speciesConfig), Resources(water, trees, grass))
     world = w
     return terrainToJson(w.terrain)
 }

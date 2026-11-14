@@ -9,6 +9,9 @@ interface TerrainJson {
     tiles: string;
 }
 
+/** Resource amount multipliers (1 = default) for ponds, trees and grass. */
+export interface Resources { water: number; trees: number; grass: number }
+
 /** Handle to the running Kotlin simulation (compiled to WebAssembly). */
 export interface KotlinSimulation {
     readonly terrain: TerrainData;
@@ -27,9 +30,9 @@ export interface KotlinSimulation {
  * `speciesConfig` is the Settings text (see settings/speciesSettings.ts toSpeciesConfig); empty = default species.
  * The terrain returned is the simulation's own terrain, so what is drawn is what the animals walk on.
  */
-export async function createSimulation(seed = 42, size = 200, speciesConfig = ''): Promise<KotlinSimulation> {
+export async function createSimulation(seed = 42, size = 200, speciesConfig = '', resources: Resources = { water: 1, trees: 1, grass: 1 }): Promise<KotlinSimulation> {
     const kotlin = await import('../kotlin-gen/Project-Prometheus-wasm-js.mjs');
-    const json = JSON.parse(kotlin.createSimulation(seed, size, speciesConfig)) as TerrainJson;
+    const json = JSON.parse(kotlin.createSimulation(seed, size, speciesConfig, resources.water, resources.trees, resources.grass)) as TerrainJson;
     return {
         terrain: {
             width: json.width,

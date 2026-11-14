@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-    CATEGORIES, EXTRA_TRAITS, MAP_SIZE, MAX_COUNT, MAX_SPECIES, MIN_COUNT, STATS, carnivoreTemplate, defaultSettings, herbivoreTemplate,
+    CATEGORIES, EXTRA_TRAITS, MAP_SIZE, MAX_COUNT, RESOURCE, MAX_SPECIES, MIN_COUNT, STATS, carnivoreTemplate, defaultSettings, herbivoreTemplate,
     newSpeciesName, type SimSettings, type SpeciesSettings, type StatKey,
 } from '../settings/speciesSettings';
 
@@ -9,6 +9,13 @@ interface Props {
     onChange: (next: SimSettings) => void;
     onDone: () => void;
 }
+
+/** The resource sliders on the World tab. 100% is the normal amount. */
+const RESOURCES = [
+    { key: 'water', label: 'Water', help: 'How many ponds are scattered inland. The coast always has water.' },
+    { key: 'trees', label: 'Trees', help: 'How many trees grow, especially in forests. Plant eaters feed on them.' },
+    { key: 'grass', label: 'Grass', help: 'How much grass grows, mostly on plains. Plant eaters feed on it.' },
+] as const;
 
 /** Formats a stat for display next to its slider. */
 function formatStat(v: number, step: number): string {
@@ -69,7 +76,19 @@ export function SettingsScreen({ settings, onChange, onDone }: Props) {
                         <input id="map-size" className="slider" type="range" min={MAP_SIZE.min} max={MAP_SIZE.max} step={MAP_SIZE.step} value={settings.mapSize}
                             onChange={(e) => onChange({ ...settings, mapSize: Number(e.target.value) })} />
                         <div className="stat__ends"><span>Small island</span><span>Huge island</span></div>
-                        <p className="stat__help">How big the world is. The island is regenerated at the new size when you press Done. Bigger maps give animals more room but may run slower.</p>
+                        <p className="stat__help">How big the world is. The island is regenerated when you press Done. Bigger maps give animals more room but may run slower.</p>
+                    </div>
+                    <h2 className="species-card__title">Food and water</h2>
+                    <div className="stats">
+                        {RESOURCES.map((r) => (
+                            <div key={r.key} className="stat">
+                                <label htmlFor={`res-${r.key}`} className="stat__label">{r.label} <strong>{Math.round(settings[r.key] * 100)}%</strong></label>
+                                <input id={`res-${r.key}`} className="slider" type="range" min={RESOURCE.min} max={RESOURCE.max} step={RESOURCE.step} value={settings[r.key]}
+                                    onChange={(e) => onChange({ ...settings, [r.key]: Number(e.target.value) })} />
+                                <div className="stat__ends"><span>Scarce</span><span>Plentiful</span></div>
+                                <p className="stat__help">{r.help}</p>
+                            </div>
+                        ))}
                     </div>
                 </article>
             )}

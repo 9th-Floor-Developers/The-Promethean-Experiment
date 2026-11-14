@@ -115,7 +115,14 @@ export interface SimSettings {
     species: SpeciesSettings[];
     /** Width and height of the (square) world map, in tiles. */
     mapSize: number;
+    /** Resource amounts as multipliers of the default (1 = normal). */
+    water: number;
+    trees: number;
+    grass: number;
 }
+
+/** Resource amount slider limits (multiplier of the default amount). */
+export const RESOURCE = { min: 0.25, max: 3, step: 0.25 } as const;
 
 /** World map size limits (tiles per side) and default. */
 export const MAP_SIZE = { min: 60, max: 300, step: 10, default: 200 } as const;
@@ -146,7 +153,7 @@ export function carnivoreTemplate(): SpeciesSettings {
 
 /** The settings the simulation starts with: one predator and one prey species. */
 export function defaultSettings(): SimSettings {
-    return { species: [carnivoreTemplate(), herbivoreTemplate()], mapSize: MAP_SIZE.default };
+    return { species: [carnivoreTemplate(), herbivoreTemplate()], mapSize: MAP_SIZE.default, water: 1, trees: 1, grass: 1 };
 }
 
 /** Name for a new species that does not clash with an existing one. */
@@ -172,7 +179,8 @@ export function loadSettings(): SimSettings {
         if (raw) {
             const parsed = JSON.parse(raw) as SimSettings;
             if (Array.isArray(parsed.species) && parsed.species.length > 0) {
-                return { mapSize: Math.max(MAP_SIZE.min, Math.min(MAP_SIZE.max, Number(parsed.mapSize) || MAP_SIZE.default)), species: parsed.species.map((s) => ({ ...s, uid: nextUid++, stats: { ...DEFAULT_STATS, ...s.stats } })) };
+                const res = (v: unknown) => Math.max(RESOURCE.min, Math.min(RESOURCE.max, Number(v) || 1));
+                return { water: res(parsed.water), trees: res(parsed.trees), grass: res(parsed.grass), mapSize: Math.max(MAP_SIZE.min, Math.min(MAP_SIZE.max, Number(parsed.mapSize) || MAP_SIZE.default)), species: parsed.species.map((s) => ({ ...s, uid: nextUid++, stats: { ...DEFAULT_STATS, ...s.stats } })) };
             }
         }
     } catch { /* storage blocked or corrupt: fall back to defaults */ }
