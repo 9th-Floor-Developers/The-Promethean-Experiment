@@ -1,6 +1,8 @@
 SPECIES UNIVERSAL STATS
 these are stats for every species that constant during a life of the animal
 
+when the simulation starts these stats will be of 'initial stats' which is set by the player
+
 These are inherited stats, When an animal spawns it mixes the stats of it parents and a random mutation
 MAX HP
 SPEED
@@ -30,15 +32,13 @@ CONSUMPTION
 CARNIVORE - Eats other animals.
 HERBIVORE - Eats plants.
 OMNIVORE - Eats both plants and animals.
-SCAVENGER - Feeds on dead animals.
+SCAVENGER - Feeds on dead animals does not attack animals.
 
 
 BIRTHING
 
 LIVE BIRTH - Offspring develop inside the parent and are born alive.
 EGG BIRTH - Offspring dev1. Celop inside an egg outside the parent.
-POUCH BIRTH - Offspring are born underdeveloped and continue developing in a pouch.
-
 
 BODY COVERING
 
