@@ -43,7 +43,7 @@ internal class Brain(private val world: World) {
     fun feel(a: Animal): Feelings {
         val s = a.species
         var threat: Animal? = null
-        var best = s.senseRange * s.senseRange
+        var best = s.viewRange * s.viewRange
         if (!s.canHunt) {
             for (o in world.hunters) {
                 if (!o.isAlive || o.species == s) continue
@@ -51,7 +51,7 @@ internal class Brain(private val world: World) {
                 if (d <= best) { best = d; threat = o }
             }
         }
-        val fear = threat?.let { 1 - a.position.distanceTo(it.position) / s.senseRange } ?: 0.0
+        val fear = threat?.let { 1 - a.position.distanceTo(it.position) / s.viewRange } ?: 0.0
         val spare = s.maxNutrition - s.reproductionNutritionThreshold
         val libido = when {
             a.reproductionCooldown > 0 || a.nutrition <= s.reproductionNutritionThreshold -> 0.0
@@ -144,7 +144,7 @@ internal class Brain(private val world: World) {
     /** Best food this species can eat in sense range: trees, carcasses or live prey. */
     private fun findFood(a: Animal): Action? {
         val s = a.species
-        val range = s.senseRange * s.senseRange
+        val range = s.viewRange * s.viewRange
         var n = 0
 
         // Gather in-range candidates into reusable arrays (no per-candidate objects), scored by squared distance.
