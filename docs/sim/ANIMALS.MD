@@ -26,6 +26,10 @@ there is
 'thirst' which makes the animal find water
 'libido' which makes the animal want to reproduce
 
-animals with
+animals with SOFT CODED AI trait will 'feelings'  drive the action like the HARD CODED AI
+but the 'feelings' will be the output in of a neural network
+
+so the neural network will
+world environment inputs → hidden layers → 
 
 
