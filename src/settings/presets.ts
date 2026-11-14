@@ -1,10 +1,10 @@
 /** Presets: named, saved bundles of simulation settings. One preset is active and is what Start Simulation runs. */
 import {
-    MAP_SIZE, RESOURCE, defaultSettings, herbivoreTemplate, loadLegacySettings, sanitizeSettings, type SimSettings,
+    MAP_SIZE, RESOURCE, defaultSettings, herbivoreTemplate, loadLegacySettings, sanitizeSettings, type SimSettings, type SpeciesSettings,
 } from './speciesSettings';
 
 /** Which built-in preset a preset started as (so it can be reset to its original); absent for the user's own. */
-export type BuiltInKey = 'default' | 'paradise';
+export type BuiltInKey = 'default' | 'paradise' | 'savanna';
 
 export interface Preset {
     id: string;
@@ -17,27 +17,57 @@ export interface Preset {
 export interface PresetStore {
     presets: Preset[];
     activeId: string;
+    /** Built-in presets this store has already been given, so a newly added built-in shows up once but a deleted one stays deleted. */
+    seenBuiltIns?: BuiltInKey[];
+}
+
+/** Every built-in preset, in the order they are listed. */
+const BUILT_IN_KEYS: BuiltInKey[] = ['default', 'paradise', 'savanna'];
+
+/**
+ * African savanna, a medium (180 tile) world with four species modelled loosely on real animals:
+ * - Zebra: plentiful herding grazer, the lions' main prey.
+ * - Leopard tortoise: slow, armored, self-healing egg layer; hard to kill, and its eggs feed the meat eaters.
+ * - Lion: a few pack hunters at dawn and dusk; strong bite, sharp eyes.
+ * - Spotted hyena: a nocturnal scavenger living off kills, starved animals and eggs; flees lions.
+ * Herbivores outnumber the hunters about 9 to 1 (the default preset's ratio is 4 to 1) and water is a little
+ * more plentiful, so the slow tortoises can reach it and the lions cannot eat the prey out.
+ */
+function savannaSettings(): SimSettings {
+    const species: SpeciesSettings[] = [
+        { uid: 0, name: 'Zebra', count: 50, stats: { maxHp: 110, speed: 0.08, damage: 1, armor: 2, viewRange: 18 },
+            traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'HERDING', 'SPRINTING', 'ALARM_CALLING'] },
+        { uid: 0, name: 'Leopard tortoise', count: 30, stats: { maxHp: 160, speed: 0.045, damage: 0.5, armor: 50, viewRange: 10 },
+            traits: ['HARD_CODED', 'HERBIVORE', 'EGG_BIRTH', 'SHELL', 'ECTOTHERMIC', 'DIURNAL', 'SOLITARY', 'ARMOR', 'REGENERATION'] },
+        { uid: 0, name: 'Lion', count: 8, stats: { maxHp: 140, speed: 0.09, damage: 4, armor: 3, viewRange: 28 },
+            traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR', 'PACK', 'SPRINTING'] },
+        { uid: 0, name: 'Spotted hyena', count: 8, stats: { maxHp: 90, speed: 0.085, damage: 2, armor: 2, viewRange: 26 },
+            traits: ['HARD_CODED', 'SCAVENGER', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'NOCTURNAL', 'PACK', 'NIGHT_VISION', 'HEARING'] },
+    ];
+    // sanitizeSettings hands out real uids (and clamps every stat to its allowed range).
+    return sanitizeSettings({ species, mapSize: 180, water: 1.25, trees: 1, grass: 1.25 })!;
 }
 
 const STORAGE_KEY = 'prometheus.presets.v1';
 
 /** The settings of a built-in preset, freshly created. */
 export function builtInSettings(key: BuiltInKey): SimSettings {
+    if (key === 'savanna') return savannaSettings();
     if (key === 'paradise') {
         return { species: [{ ...herbivoreTemplate(), name: 'Herbivore', count: 60 }], mapSize: MAP_SIZE.max, water: RESOURCE.max, trees: RESOURCE.max, grass: RESOURCE.max };
     }
     return { ...defaultSettings(), mapSize: 200 };
 }
 
-const BUILT_IN_NAMES: Record<BuiltInKey, string> = { default: 'Default (predator & prey)', paradise: 'Paradise' };
+const BUILT_IN_NAMES: Record<BuiltInKey, string> = { default: 'Default (predator & prey)', paradise: 'Paradise', savanna: 'Savanna (4 species)' };
 
 function builtInPreset(key: BuiltInKey): Preset {
     return { id: `builtin-${key}`, name: BUILT_IN_NAMES[key], settings: builtInSettings(key), builtIn: key };
 }
 
-/** The presets a fresh install starts with: the two-species default and Paradise. */
+/** The presets a fresh install starts with: every built-in preset. */
 export function defaultStore(): PresetStore {
-    return { presets: [builtInPreset('default'), builtInPreset('paradise')], activeId: 'builtin-default' };
+    return { presets: BUILT_IN_KEYS.map(builtInPreset), activeId: 'builtin-default', seenBuiltIns: [...BUILT_IN_KEYS] };
 }
 
 let counter = 0;
@@ -66,7 +96,12 @@ export function loadPresetStore(): PresetStore {
                 const settings = sanitizeSettings(p.settings);
                 return settings && typeof p.id === 'string' ? [{ id: p.id, name: String(p.name ?? 'Preset'), settings, builtIn: p.builtIn }] : [];
             });
-            if (presets.length > 0) return { presets, activeId: presets.some((p) => p.id === parsed.activeId) ? parsed.activeId : presets[0]!.id };
+            if (presets.length > 0) {
+                // Stores saved before seenBuiltIns existed had exactly the default and Paradise built-ins.
+                const seen = Array.isArray(parsed.seenBuiltIns) ? parsed.seenBuiltIns : ['default', 'paradise'] as BuiltInKey[];
+                for (const key of BUILT_IN_KEYS) if (!seen.includes(key)) presets.push(builtInPreset(key));
+                return { presets, activeId: presets.some((p) => p.id === parsed.activeId) ? parsed.activeId : presets[0]!.id, seenBuiltIns: [...BUILT_IN_KEYS] };
+            }
         }
     } catch { /* storage blocked or corrupt: fall back to defaults */ }
     const store = defaultStore();

@@ -36,11 +36,11 @@ export function SettingsScreen({ store, onChange: onStoreChange, onDone }: Props
         onStoreChange({ ...store, presets: store.presets.map((p) => (p.id === preset.id ? { ...p, settings: next } : p)) });
     const select = (id: string) => onStoreChange({ ...store, activeId: id });
     const rename = (name: string) => onStoreChange({ ...store, presets: store.presets.map((p) => (p.id === preset.id ? { ...p, name } : p)) });
-    const addPreset = (p: ReturnType<typeof createPreset>) => onStoreChange({ presets: [...store.presets, p], activeId: p.id });
+    const addPreset = (p: ReturnType<typeof createPreset>) => onStoreChange({ ...store, presets: [...store.presets, p], activeId: p.id });
     const remove = () => {
         if (store.presets.length < 2 || !window.confirm(`Delete the preset "${preset.name}"? This cannot be undone.`)) return;
         const presets = store.presets.filter((p) => p.id !== preset.id);
-        onStoreChange({ presets, activeId: presets[0]!.id });
+        onStoreChange({ ...store, presets, activeId: presets[0]!.id });
     };
 
     const doneRef = useRef<HTMLButtonElement>(null);
