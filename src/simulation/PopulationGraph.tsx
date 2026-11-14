@@ -2,6 +2,8 @@ import { useState, type MouseEvent } from 'react';
 import { A, type SimInfo, type SimSnapshot } from '../sim/types';
 import { TraitRadar } from './TraitRadar';
 import { DeathAgeHistogram } from './DeathAgeHistogram';
+import { DeathCauseCharts } from './DeathCauseCharts';
+import type { DeathCauseSample } from '../sim/useDeathCauses';
 import type { DeathAges } from '../sim/useDeathAges';
 import type { TraitStats } from '../sim/useTraitStats';
 import type { PopulationSample } from '../sim/usePopulationHistory';
@@ -153,7 +155,7 @@ export function PopulationGraph({ onExpand, ...props }: Props & { onExpand?: () 
  * The single statistics page, used both as the live overview (simulation still running behind it) and as the
  * end-of-simulation page. Every graph over the whole run goes in `sim-overview__body`.
  */
-export function StatisticsPage({ ended, onAction, traitStats, deathAges, ...props }: Props & { ended: boolean; onAction: () => void; traitStats: TraitStats; deathAges: DeathAges }) {
+export function StatisticsPage({ ended, onAction, traitStats, deathAges, deathCauses, ...props }: Props & { ended: boolean; onAction: () => void; traitStats: TraitStats; deathAges: DeathAges; deathCauses: DeathCauseSample[] }) {
     return (
         <section className="sim-overview" aria-labelledby="overview-h">
             <h2 id="overview-h" className="panel__header panel__header--row">
@@ -166,6 +168,7 @@ export function StatisticsPage({ ended, onAction, traitStats, deathAges, ...prop
                 </div>
                 <TraitRadar info={props.info} stats={traitStats} />
                 <DeathAgeHistogram info={props.info} deathAges={deathAges} />
+                <DeathCauseCharts samples={deathCauses} />
             </div>
         </section>
     );

@@ -64,6 +64,10 @@ class Animal(
     var causeOfDeath: String? = null
         private set
 
+    /** True when the killing blow came from another animal (predation); false for starvation, thirst and other natural causes. */
+    var killedByAnimal = false
+        private set
+
     fun changeHp(delta: Double) { hp = (hp + delta).coerceIn(0.0, stats.maxHp) }
     fun changeNutrition(delta: Double) { nutrition = (nutrition + delta).coerceIn(0.0, species.maxNutrition) }
     fun changeHydration(delta: Double) { hydration = (hydration + delta).coerceIn(0.0, species.maxHydration) }
@@ -81,11 +85,11 @@ class Animal(
     /** Fraction of full speed available at the current stamina (never fully stops). */
     val speedFactor get() = MIN_SPEED_FACTOR + (1 - MIN_SPEED_FACTOR) * stamina / species.maxStamina
 
-    /** Deals [amount] damage; records [cause] if this kills the animal. */
-    fun hurt(amount: Double, cause: String) {
+    /** Deals [amount] damage; records [cause] (and whether it was an [byAnimal] attack) if this kills the animal. */
+    fun hurt(amount: Double, cause: String, byAnimal: Boolean = false) {
         if (!isAlive) return
         changeHp(-amount)
-        if (!isAlive) causeOfDeath = cause
+        if (!isAlive) { causeOfDeath = cause; killedByAnimal = byAnimal }
     }
 
     /** Reproduction rule from ENDGOAL: enough nutrition and in range of another animal of the same species. */

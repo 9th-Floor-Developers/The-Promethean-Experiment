@@ -173,4 +173,8 @@
 .sim-overview__body > * { flex: none; }
 .radar__legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem 1rem; margin: 0.4rem 0 0; padding: 0; list-style: none; font-size: 0.8rem; }
 .radar__swatch { display: inline-block; width: 0.8rem; height: 0.3rem; margin-right: 0.35rem; vertical-align: middle; border-radius: 2px; }
+.radar--wide { max-width: 44rem; }
+.deathcause { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-start; justify-content: center; }
+.deathcause__fig { flex: 1 1 14rem; margin: 0; min-width: 0; }
+.deathcause__fig > svg { width: 100%; height: auto; max-height: 14rem; }
 .radar__swatch--start { background: repeating-linear-gradient(90deg, #5eb0ff 0 5px, transparent 5px 8px); }

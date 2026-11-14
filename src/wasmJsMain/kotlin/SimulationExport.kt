@@ -89,7 +89,7 @@ fun tickSimulation(ticks: Int) {
  * Current state as JSON:
  * `{"tick","day","timeOfDay","phase",
  * "animals":[[id,speciesIndex,x,y,hp,nutrition,hydration,stamina,age,actionCode,fear,hunger,thirst,libido,targetX,targetY,heading,maxHp,speed,damage,armor,viewRange,baseStaminaUsage,walkingStaminaUsage,elderlyAge]...],
- * "carcasses":[[id,x,y,fractionLeft]...],"eggs":[[id,x,y,hatchProgress]...],"trees":"<one digit per tree, 1 = edible>","grass":"<one digit per grass tuft, 1 = edible>"}`.
+ * "carcasses":[[id,x,y,fractionLeft]...],"eggs":[[id,x,y,hatchProgress]...],"deaths":[predatoryTotal,naturalTotal],"trees":"<one digit per tree, 1 = edible>","grass":"<one digit per grass tuft, 1 = edible>"}`.
  * `targetX`/`targetY` are the tile-unit position the animal is heading for (see [destination]), or -1,-1 when it has none.
  * The last eight columns are the animal's own stats: five inherited and three calculated (see [sim.animal.AnimalStats]).
  * `heading` is the direction (radians, tile axes) a wandering or fleeing animal is moving in, or 999 when it has none.
@@ -116,7 +116,7 @@ fun getSimulationSnapshot(): String {
     val trees = buildString { w.objects.filterIsInstance<Tree>().forEach { append(if (it.isEdible) '1' else '0') } }
     val grass = buildString { w.grasses.forEach { append(if (it.isEdible) '1' else '0') } }
     return """{"tick":${w.clock.tick},"day":${w.clock.day},"timeOfDay":${r2(w.clock.timeOfDay)},""" +
-        """"phase":"${w.clock.phase}","animals":[$animals],"carcasses":[$carcasses],"eggs":[$eggs],"trees":"$trees","grass":"$grass"}"""
+        """"phase":"${w.clock.phase}","animals":[$animals],"carcasses":[$carcasses],"eggs":[$eggs],"deaths":[${w.predatoryDeaths},${w.naturalDeaths}],"trees":"$trees","grass":"$grass"}"""
 }
 
 /** Where the animal is walking to for [action] (its food, water, mate or prey); null when it has no destination. */

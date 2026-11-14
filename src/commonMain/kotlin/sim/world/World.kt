@@ -54,6 +54,14 @@ class World(
     private val pathfinder = Pathfinder(terrain)
     private var nextId = 0
 
+    /** Total animals killed by other animals so far this run. */
+    var predatoryDeaths = 0
+        private set
+
+    /** Total animals that died of starvation, thirst or other non-predatory causes so far this run. */
+    var naturalDeaths = 0
+        private set
+
     /** Living animals that hunt, refreshed each tick; fear only needs to look at these. */
     internal var hunters: List<Animal> = emptyList()
         private set
@@ -280,7 +288,7 @@ class World(
     private fun interact(a: Animal) {
         when (val act = a.action) {
             is Action.AttackTarget -> if (act.target.isAlive && inAttackReach(a, act.target) && a.stats.damage > 0) {
-                act.target.hurt(a.stats.damage * (1 - act.target.stats.armorReduction), "killed by ${a.label}")
+                act.target.hurt(a.stats.damage * (1 - act.target.stats.armorReduction), "killed by ${a.label}", byAnimal = true)
                 attacks++
             }
             is Action.ReproduceWith -> if (a.reproductionCooldown == 0 &&
@@ -408,6 +416,7 @@ class World(
         log.step("2/2 Deaths")
         val dead = animals.filter { !it.isAlive }
         for (a in dead) {
+            if (a.killedByAnimal) predatoryDeaths++ else naturalDeaths++
             simEvent("[${clock.format()}] DEATH ${a.label} at (${fmt1(a.position.x)}, ${fmt1(a.position.y)}): ${a.causeOfDeath ?: "unknown causes"} (was ${a.action})")
             Carcass(nextId++, a.position, a.species.carcassNutrition).also { objects.add(it); carcasses.add(it) }
         }
