@@ -39,7 +39,7 @@ export default function App() {
 
     // The world (terrain, animals, objects) comes from the Kotlin simulation compiled to Wasm, not from TypeScript.
     useEffect(() => {
-        createSimulation(undefined, settingsRef.current.mapSize, toSpeciesConfig(settingsRef.current), settingsRef.current).then(setSim).catch((e) => console.error('Kotlin simulation failed to start', e));
+        createSimulation(undefined, settingsRef.current.mapSize, toSpeciesConfig(settingsRef.current), settingsRef.current, settingsRef.current.species.map((sp) => sp.look)).then(setSim).catch((e) => console.error('Kotlin simulation failed to start', e));
     }, []);
 
     // Ticks only while the simulation screen is open; leaving it pauses the world where it is.
@@ -71,7 +71,7 @@ export default function App() {
         setFollowing(false);
         setEnded(false);
         setSpeed(MIN_SPEED);
-        createSimulation(undefined, settingsRef.current.mapSize, toSpeciesConfig(settingsRef.current), settingsRef.current).then(setSim).catch((e) => console.error('Kotlin simulation failed to restart', e));
+        createSimulation(undefined, settingsRef.current.mapSize, toSpeciesConfig(settingsRef.current), settingsRef.current, settingsRef.current.species.map((sp) => sp.look)).then(setSim).catch((e) => console.error('Kotlin simulation failed to restart', e));
     }, []);
 
     const [cameFromCredits, setCameFromCredits] = useState(false);
@@ -91,7 +91,7 @@ export default function App() {
         setScreen('opening');
         if (!settingsDirty.current) return;
         settingsDirty.current = false;
-        createSimulation(undefined, settingsRef.current.mapSize, toSpeciesConfig(settingsRef.current), settingsRef.current).then(setSim).catch((e) => console.error('Kotlin simulation failed to rebuild', e));
+        createSimulation(undefined, settingsRef.current.mapSize, toSpeciesConfig(settingsRef.current), settingsRef.current, settingsRef.current.species.map((sp) => sp.look)).then(setSim).catch((e) => console.error('Kotlin simulation failed to rebuild', e));
     }, []);
 
     return (

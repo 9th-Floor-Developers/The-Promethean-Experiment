@@ -5,6 +5,8 @@ import {
 } from '../settings/speciesSettings';
 import { activePreset, builtInSettings, createPreset, duplicatePreset, type PresetStore } from '../settings/presets';
 import type { DisplaySettings } from '../settings/displaySettings';
+import { pickDistinctLook } from '../scene/animalLook';
+import { drawAnimalPortrait } from '../scene/animalPortrait';
 
 interface Props {
     store: PresetStore;
@@ -63,7 +65,8 @@ export function SettingsScreen({ store, onChange: onStoreChange, display, onDisp
         onChange({ ...settings, species: settings.species.map((s) => (s.uid === uid ? patch(s) : s)) });
     const add = (make: () => SpeciesSettings) => {
         const s = make();
-        onChange({ ...settings, species: [...settings.species, { ...s, name: newSpeciesName(settings.species) }] });
+        const look = pickDistinctLook(settings.species.map((o) => o.look)); // stands apart from every species already here
+        onChange({ ...settings, species: [...settings.species, { ...s, name: newSpeciesName(settings.species), look }] });
     };
     const canAdd = settings.species.length < MAX_SPECIES;
 
@@ -156,6 +159,7 @@ export function SettingsScreen({ store, onChange: onStoreChange, display, onDisp
             {tab === 'species' && <div className="settings__list" role="tabpanel" id="panel-species" aria-labelledby="tab-species">
                 {settings.species.map((sp, index) => (
                     <SpeciesCard key={sp.uid} sp={sp} index={index} canRemove={settings.species.length > 1}
+                        otherLooks={settings.species.filter((o) => o.uid !== sp.uid).map((o) => o.look)}
                         onPatch={(p) => update(sp.uid, p)}
                         onRemove={() => onChange({ ...settings, species: settings.species.filter((s) => s.uid !== sp.uid) })} />
                 ))}
@@ -177,12 +181,23 @@ interface CardProps {
     sp: SpeciesSettings;
     index: number;
     canRemove: boolean;
+    /** Looks of the other species, so a new look can be picked to stand apart from them. */
+    otherLooks: number[];
     onPatch: (patch: (s: SpeciesSettings) => SpeciesSettings) => void;
     onRemove: () => void;
 }
 
-/** One species: name, starting population, stat sliders, trait dropdowns and optional-trait toggles. */
-function SpeciesCard({ sp, index, canRemove, onPatch, onRemove }: CardProps) {
+/** A still 3/4 view of a species' generated animal, redrawn whenever its look changes. */
+function LookPreview({ look }: { look: number }) {
+    const ref = useRef<HTMLCanvasElement>(null);
+    useEffect(() => {
+        if (ref.current) drawAnimalPortrait(ref.current, look, 0.7, 0);
+    }, [look]);
+    return <canvas ref={ref} className="look-preview__canvas" width={96} height={96} aria-hidden="true" />;
+}
+
+/** One species: name, starting population, look, stat sliders, trait dropdowns and optional-trait toggles. */
+function SpeciesCard({ sp, index, canRemove, otherLooks, onPatch, onRemove }: CardProps) {
     const id = `sp${sp.uid}`;
     const setTrait = (categoryKey: string, traitId: string) => {
         const category = CATEGORIES.find((c) => c.key === categoryKey)!;
@@ -207,6 +222,15 @@ function SpeciesCard({ sp, index, canRemove, onPatch, onRemove }: CardProps) {
                 </label>
                 {canRemove && <button type="button" className="btn species-card__remove" onClick={onRemove} aria-label={`Remove ${sp.name}`}>Remove</button>}
             </header>
+
+            <div className="look-preview">
+                <LookPreview look={sp.look} />
+                <div>
+                    <h2 className="species-card__title">Appearance</h2>
+                    <p className="stat__help">A random, made-up animal chosen to look different from the other species. It has no effect on how the species behaves.</p>
+                    <button type="button" className="btn" onClick={() => onPatch((s) => ({ ...s, look: pickDistinctLook(otherLooks) }))}>New look</button>
+                </div>
+            </div>
 
             <h2 className="species-card__title">Body and abilities</h2>
             <div className="stats">

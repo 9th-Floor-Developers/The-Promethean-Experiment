@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { buildAnimalGeometry, CARNIVORE_COLOR, HERBIVORE_COLOR } from './SimActors';
+import { buildLookGeometry, type Look } from './animalLook';
 
 /** Size in pixels of the shared offscreen render target; portraits are drawn into it, then copied to their own 2D canvas. */
 const SIZE = 128;
@@ -11,7 +11,8 @@ let shared: {
     camera: THREE.PerspectiveCamera;
     mesh: THREE.Mesh;
     rig: THREE.Group;
-    geos: Map<boolean, THREE.BufferGeometry>;
+    /** Built models by look; cleared when it grows large (e.g. after many rerolls in Settings). */
+    geos: Map<Look, THREE.BufferGeometry>;
 } | null = null;
 
 /** Creates the shared renderer, scene, camera and lights on first use. */
@@ -37,16 +38,23 @@ function getShared() {
     return shared;
 }
 
+/** Most cached portrait models before the cache is emptied. */
+const MAX_CACHED = 32;
+
 /**
- * Draws a low-poly animal (same model as the world view) onto a 2D canvas.
+ * Draws a species' low-poly animal (same model as the world view) onto a 2D canvas.
  * `heading` is the world yaw (0 = facing +Z, as in the main scene); `bob` lifts it for a walking animation.
  */
-export function drawAnimalPortrait(canvas: HTMLCanvasElement, carnivore: boolean, heading: number, bob: number): void {
+export function drawAnimalPortrait(canvas: HTMLCanvasElement, look: Look, heading: number, bob: number): void {
     const s = getShared();
-    let geo = s.geos.get(carnivore);
+    let geo = s.geos.get(look);
     if (!geo) {
-        geo = buildAnimalGeometry(carnivore ? CARNIVORE_COLOR : HERBIVORE_COLOR, carnivore);
-        s.geos.set(carnivore, geo);
+        if (s.geos.size >= MAX_CACHED) {
+            s.geos.forEach((g) => g.dispose());
+            s.geos.clear();
+        }
+        geo = buildLookGeometry(look);
+        s.geos.set(look, geo);
     }
     s.mesh.geometry = geo;
     s.rig.rotation.y = heading;

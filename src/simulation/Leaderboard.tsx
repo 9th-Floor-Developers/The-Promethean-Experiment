@@ -108,7 +108,7 @@ export function Leaderboard({ settings, onSettingsChange, snapshot, info, onSele
                             <li key={r[A.id]}>
                                 <button type="button" className="leaderboard__row" onClick={() => onSelect(r[A.id]!)}>
                                     <span className="leaderboard__rank">{i + 1}</span>
-                                    <AnimalPortrait carnivore={sp.canHunt} x={r[A.x]!} y={r[A.y]!} />
+                                    <AnimalPortrait look={sp.look} x={r[A.x]!} y={r[A.y]!} />
                                     <span className="leaderboard__who">
                                         <strong>{sp.name}</strong>
                                         <span className="inspector__id">#{r[A.id]}</span>

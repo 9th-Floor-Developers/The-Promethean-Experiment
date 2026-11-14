@@ -1,6 +1,6 @@
 /** Presets: named, saved bundles of simulation settings. One preset is active and is what Start Simulation runs. */
 import {
-    MAP_SIZE, RESOURCE, defaultSettings, herbivoreTemplate, loadLegacySettings, sanitizeSettings, type SimSettings, type SpeciesSettings,
+    MAP_SIZE, RESOURCE, defaultSettings, herbivoreTemplate, loadLegacySettings, sanitizeSettings, withFixedLooks, type SimSettings, type SpeciesSettings,
 } from './speciesSettings';
 
 /** Which built-in preset a preset started as (so it can be reset to its original); absent for the user's own. */
@@ -36,7 +36,7 @@ const BUILT_IN_KEYS: BuiltInKey[] = ['default', 'paradise', 'savanna'];
  * more plentiful, so the slow tortoises can reach it and the hunters cannot eat the prey out.
  */
 function savannaSettings(): SimSettings {
-    const species: SpeciesSettings[] = [
+    const species: Omit<SpeciesSettings, 'look'>[] = [ // looks are filled in by builtInSettings
         { uid: 0, name: 'Zebra', count: 60, stats: { maxHp: 110, speed: 0.08, damage: 1, armor: 2, viewRange: 18 },
             traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'HERDING', 'SPRINTING', 'ALARM_CALLING'] },
         { uid: 0, name: 'Leopard tortoise', count: 30, stats: { maxHp: 160, speed: 0.045, damage: 0.5, armor: 50, viewRange: 10 },
@@ -52,8 +52,13 @@ function savannaSettings(): SimSettings {
 
 const STORAGE_KEY = 'prometheus.presets.v1';
 
-/** The settings of a built-in preset, freshly created. */
+/** The settings of a built-in preset, freshly created. Built-in species always get the same (name-based) looks. */
 export function builtInSettings(key: BuiltInKey): SimSettings {
+    return withFixedLooks(builtInSettingsRaw(key));
+}
+
+/** The settings of a built-in preset before its fixed looks are applied. */
+function builtInSettingsRaw(key: BuiltInKey): SimSettings {
     if (key === 'savanna') return savannaSettings();
     if (key === 'paradise') {
         return { species: [{ ...herbivoreTemplate(), name: 'Herbivore', count: 60 }], mapSize: MAP_SIZE.max, water: RESOURCE.max, trees: RESOURCE.max, grass: RESOURCE.max };

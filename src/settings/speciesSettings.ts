@@ -1,4 +1,5 @@
 /** User-editable simulation settings: which species run, how many of each, and their stats and traits. */
+import { fillMissingLooks, pickDistinctLook, type Look } from '../scene/animalLook';
 
 /** Key of a universal stat; matches the keys Kotlin's parseSpeciesConfig reads. */
 export type StatKey = 'maxHp' | 'speed' | 'damage' | 'armor' | 'viewRange';
@@ -107,6 +108,8 @@ export interface SpeciesSettings {
     count: number;
     stats: Record<StatKey, number>;
     traits: string[];
+    /** Seed of the species' random fictional appearance (see scene/animalLook.ts); unrelated to its stats. */
+    look: Look;
 }
 
 /** All user-editable simulation settings. */
@@ -134,11 +137,16 @@ export const DEFAULT_STATS: Record<StatKey, number> = { maxHp: 100, speed: 0.1, 
 
 let nextUid = 1;
 
+/** Removes the looks so [fillMissingLooks] hands out fixed, name-based ones (used for built-in presets). */
+export function withFixedLooks(settings: SimSettings): SimSettings {
+    return { ...settings, species: fillMissingLooks(settings.species.map(({ look: _look, ...rest }) => rest)) };
+}
+
 /** A plant-eating species starting point. */
 export function herbivoreTemplate(): SpeciesSettings {
     return {
         uid: nextUid++, name: 'Herbivore', count: 40, stats: { ...DEFAULT_STATS, speed: 0.07, viewRange: 16 },
-        traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'HERDING'],
+        traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'HERDING'], look: pickDistinctLook([]),
     };
 }
 
@@ -146,7 +154,7 @@ export function herbivoreTemplate(): SpeciesSettings {
 export function carnivoreTemplate(): SpeciesSettings {
     return {
         uid: nextUid++, name: 'Carnivore', count: 10, stats: { ...DEFAULT_STATS, speed: 0.09, viewRange: 30 },
-        traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR', 'PACK'],
+        traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR', 'PACK'], look: pickDistinctLook([]),
     };
 }
 
@@ -179,7 +187,7 @@ function clampStats(stats: Record<StatKey, number>): Record<StatKey, number> {
 }
 
 /**
- * Validates settings read from storage (clamping numbers, filling missing stats) and gives every species a fresh uid.
+ * Validates settings read from storage (clamping numbers, filling missing stats and looks) and gives every species a fresh uid.
  * Returns null if `raw` is not usable settings. Also used to deep-copy settings.
  */
 export function sanitizeSettings(raw: unknown): SimSettings | null {
@@ -189,7 +197,7 @@ export function sanitizeSettings(raw: unknown): SimSettings | null {
     return {
         water: res(parsed.water), trees: res(parsed.trees), grass: res(parsed.grass),
         mapSize: Math.max(MAP_SIZE.min, Math.min(MAP_SIZE.max, Number(parsed.mapSize) || MAP_SIZE.default)),
-        species: parsed.species.map((s) => ({ ...s, uid: nextUid++, stats: clampStats({ ...DEFAULT_STATS, ...s.stats }), traits: [...s.traits] })),
+        species: fillMissingLooks(parsed.species).map((s) => ({ ...s, uid: nextUid++, stats: clampStats({ ...DEFAULT_STATS, ...s.stats }), traits: [...s.traits] })),
     };
 }
 

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { buildLookGeometry } from './animalLook';
 import { A, NO_HEADING, type SimInfo, type SimSnapshot } from '../sim/types';
 
 /** Ground height at continuous tile coordinates, see createHeightSampler. */
@@ -11,9 +12,6 @@ const FOLIAGE_READY = new THREE.Color(0x3fbf5f);
 const FOLIAGE_RESTING = new THREE.Color(0x9aa84f);
 const GRASS_READY = new THREE.Color(0x5fd35a);
 const GRASS_RESTING = new THREE.Color(0xb9b86a);
-export const CARNIVORE_COLOR = 0xff7a45;
-export const HERBIVORE_COLOR = 0xfff1d6;
-const OTHER_COLOR = 0xb18cff;
 /** Colour of the destination marker, route line and arrows by the action being carried out. */
 const ROUTE_COLORS: Record<string, number> = {
     ATTACK_TARGET: 0xff4d4d,
@@ -57,34 +55,6 @@ function buildGrassGeometry(): THREE.BufferGeometry {
     });
     const merged = mergeGeometries(blades)!;
     blades.forEach((b) => b.dispose());
-    return merged;
-}
-
-/**
- * Builds one cute low-poly animal (body, head, two ears, two eyes) as a single vertex-coloured geometry,
- * facing +Z. Carnivores get short pointed ears, others tall ones.
- */
-export function buildAnimalGeometry(color: number, carnivore: boolean): THREE.BufferGeometry {
-    const parts: THREE.BufferGeometry[] = [];
-    const part = (geo: THREE.BufferGeometry, hex: number, x: number, y: number, z: number, sx = 1, sy = 1, sz = 1) => {
-        const g = geo.index ? geo.toNonIndexed() : geo; // merging needs every part indexed or none
-        g.scale(sx, sy, sz);
-        g.translate(x, y, z);
-        const c = new THREE.Color(hex);
-        const colors = new Float32Array(g.attributes.position!.count * 3);
-        for (let i = 0; i < colors.length; i += 3) { colors[i] = c.r; colors[i + 1] = c.g; colors[i + 2] = c.b; }
-        g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        parts.push(g);
-    };
-    part(new THREE.IcosahedronGeometry(0.28, 0), color, 0, 0, 0, 1, 0.85, 1.3);
-    part(new THREE.IcosahedronGeometry(0.19, 0), color, 0, 0.16, 0.32);
-    for (const side of [-1, 1]) {
-        if (carnivore) part(new THREE.ConeGeometry(0.07, 0.2, 4), color, side * 0.1, 0.34, 0.3);
-        else part(new THREE.ConeGeometry(0.07, 0.2, 4), color, side * 0.08, 0.42, 0.28, 0.9, 1.6, 0.9);
-        part(new THREE.SphereGeometry(0.035, 5, 4), 0x222222, side * 0.08, 0.21, 0.47);
-    }
-    const merged = mergeGeometries(parts)!;
-    parts.forEach((g) => g.dispose());
     return merged;
 }
 
@@ -536,8 +506,9 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
         this.actionNames = info.actions;
         this.animalGeos.forEach((g) => g.dispose());
         this.animalGeos.length = 0;
-        for (const sp of info.species) this.animalGeos.push(buildAnimalGeometry(sp.canHunt ? CARNIVORE_COLOR : HERBIVORE_COLOR, sp.canHunt));
-        this.animalGeos.push(buildAnimalGeometry(OTHER_COLOR, false));
+        // Every species has its own random fictional model and colours; the last batch is a fallback for unknown species.
+        for (const sp of info.species) this.animalGeos.push(buildLookGeometry(sp.look));
+        this.animalGeos.push(buildLookGeometry(0));
         for (const b of this.batches) { this.animalGroup.remove(b.mesh); b.dispose(); }
         this.actors.clear();
         this.batches = this.animalGeos.map((g) => new AnimalBatch(g, this.animalMat));

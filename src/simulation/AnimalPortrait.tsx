@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react';
 import { drawAnimalPortrait } from '../scene/animalPortrait';
 
 interface Props {
-    carnivore: boolean;
+    /** The species' look seed (scene/animalLook.ts). */
+    look: number;
     /** Latest simulation position (tile units) of the animal. */
     x: number;
     y: number;
@@ -15,7 +16,7 @@ const TURN = 12;
  * A small live view of one animal: the model turns to face the direction it is moving in and bobs while walking.
  * Movement is derived from position changes between snapshots, so it needs no extra data from the simulation.
  */
-export function AnimalPortrait({ carnivore, x, y }: Props) {
+export function AnimalPortrait({ look, x, y }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const pos = useRef({ x, y, moving: false, targetHeading: 0, lastChange: 0 });
 
@@ -46,11 +47,11 @@ export function AnimalPortrait({ carnivore, x, y }: Props) {
             heading += d * (1 - Math.exp(-dt * TURN));
             const moving = now - p.lastChange < 250;
             const bob = moving ? Math.abs(Math.sin(now / 1000 * 12)) * 0.05 : 0;
-            if (canvasRef.current) drawAnimalPortrait(canvasRef.current, carnivore, heading, bob);
+            if (canvasRef.current) drawAnimalPortrait(canvasRef.current, look, heading, bob);
         };
         frame = requestAnimationFrame(loop);
         return () => cancelAnimationFrame(frame);
-    }, [carnivore]);
+    }, [look]);
 
     return <canvas ref={canvasRef} className="portrait" width={72} height={72} aria-hidden="true" />;
 }

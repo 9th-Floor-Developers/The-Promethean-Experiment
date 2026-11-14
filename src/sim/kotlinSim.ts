@@ -32,9 +32,12 @@ export interface KotlinSimulation {
  * `speciesConfig` is the Settings text (see settings/speciesSettings.ts toSpeciesConfig); empty = default species.
  * The terrain returned is the simulation's own terrain, so what is drawn is what the animals walk on.
  */
-export async function createSimulation(seed = 42, size = 200, speciesConfig = '', resources: Resources = { water: 1, trees: 1, grass: 1 }): Promise<KotlinSimulation> {
+export async function createSimulation(seed = 42, size = 200, speciesConfig = '', resources: Resources = { water: 1, trees: 1, grass: 1 }, looks: readonly number[] = []): Promise<KotlinSimulation> {
     const kotlin = await import('../kotlin-gen/Project-Prometheus-wasm-js.mjs');
     const json = JSON.parse(kotlin.createSimulation(seed, size, speciesConfig, resources.water, resources.trees, resources.grass)) as TerrainJson;
+    // Kotlin knows nothing about appearance; species come back in config order, so attach each one's look by index.
+    const info = JSON.parse(kotlin.getSimulationInfo()) as Omit<SimInfo, 'species'> & { species: Omit<SimInfo['species'][number], 'look'>[] };
+    const withLooks: SimInfo = { ...info, species: info.species.map((sp, i) => ({ ...sp, look: looks[i] ?? i })) };
     return {
         terrain: {
             width: json.width,
@@ -42,7 +45,7 @@ export async function createSimulation(seed = 42, size = 200, speciesConfig = ''
             tileTypes: json.tileTypes,
             tiles: Uint8Array.from(json.tiles, (ch) => Number(ch)),
         },
-        info: JSON.parse(kotlin.getSimulationInfo()) as SimInfo,
+        info: withLooks,
         tick: (ticks) => kotlin.tickSimulation(ticks),
         snapshot: () => JSON.parse(kotlin.getSimulationSnapshot()) as SimSnapshot,
         animalPath: (id) => JSON.parse(kotlin.getAnimalPath(id)) as number[],

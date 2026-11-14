@@ -14,6 +14,8 @@ export interface SpeciesInfo {
     viewRange: number;
     /** The species' base (founder) universal stats from Settings, in the order of TRAIT_AXES (max HP, speed, damage, armor, view range, base stamina use, walking stamina use, elderly age). */
     base: number[];
+    /** Seed of the species' random appearance (scene/animalLook.ts), attached from Settings when the world is built. */
+    look: number;
 }
 
 /** Details of a selected non-animal object from Kotlin's getObjectInfo(). Positions are in tile units. */

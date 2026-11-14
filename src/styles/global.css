@@ -187,6 +187,10 @@ h1, h2 { font-family: var(--font-display); margin: 0; }
 .tabs { display: flex; gap: var(--space-1); }
 .tab { font: inherit; font-weight: 700; padding: 0.6rem 1.4rem; border: 0; border-radius: var(--radius) var(--radius) 0 0; background: rgba(255, 255, 255, 0.45); color: var(--color-ink); cursor: pointer; min-height: 44px; }
 .tab--on { background: var(--color-surface); }
+.look-preview { display: flex; align-items: center; gap: var(--space-2); }
+.look-preview > div { display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+.look-preview .species-card__title { margin: 0; }
+.look-preview__canvas { width: 96px; height: 96px; flex: none; border-radius: var(--radius); background: rgba(31, 42, 68, 0.06); }
 .toggle { display: flex; align-items: flex-start; gap: var(--space-1); cursor: pointer; }
 .toggle > span { display: flex; flex-direction: column; gap: 0.2rem; }
 .toggle__box { width: 24px; height: 24px; margin: 0.1rem 0 0; flex: none; accent-color: var(--color-accent); cursor: pointer; }
