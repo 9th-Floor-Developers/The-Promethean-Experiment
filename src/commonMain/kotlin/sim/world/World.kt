@@ -223,15 +223,15 @@ class World(
         } else {
             a.blockedTicks = 0
         }
-        // Stamina: always regenerates slowly; moving with purpose costs it, sprinting most of all.
-        val cost = when {
+        // Stamina: always regenerates slowly and always drains a base amount; walking adds its usage on top, sprinting its own cost.
+        val moveCost = when {
             a.position == before || a.action == Action.Wander -> 0.0
             a.action is Action.RunFromPredator -> s.staminaSprintCost
             // Predators stalk at a walk and only sprint for the final dash.
             a.action is Action.AttackTarget && a.position.distanceTo((a.action as Action.AttackTarget).target.position) <= SPRINT_RANGE -> s.staminaSprintCost
-            else -> s.staminaWalkCost
+            else -> s.walkingStaminaUsage
         }
-        a.changeStamina(a.staminaRegen - cost)
+        a.changeStamina(a.staminaRegen - s.baseStaminaUsage - moveCost)
     }
 
     /** Eats, drinks or attacks if the animal is already within reach of its target. */

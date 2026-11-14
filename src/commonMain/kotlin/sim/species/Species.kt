@@ -21,14 +21,18 @@ class Species(
     val maxStamina: Double = 100.0,
     /** Stamina regained per tick. */
     val staminaRegen: Double = 0.05,
-    /** How strongly age (in days) slows stamina regeneration: regen is divided by 1 + this * age. */
+    /** How strongly time spent elderly (days past [elderlyAge]) slows stamina regeneration: regen is divided by 1 + this * days elderly. */
     val staminaAgeDecay: Double = 0.25,
     /** HP regained per tick while stamina is at least 90% full. */
     val hpRegen: Double = 0.05,
     /** Stamina spent per tick while sprinting (fleeing or chasing). */
     val staminaSprintCost: Double = 0.2,
-    /** Stamina spent per tick while walking to a target. */
-    val staminaWalkCost: Double = 0.05,
+    /** Universal stat WALKING_STAMINA_USAGE: stamina spent per tick while walking, added to [baseStaminaUsage]. */
+    val walkingStaminaUsage: Double = 0.05,
+    /** Universal stat BASE_STAMINA_USAGE: stamina spent every tick regardless of activity. */
+    val baseStaminaUsage: Double = 0.01,
+    /** Universal stat ELDERLY: age (in days) at which negative effects begin (stamina regen starts decaying with age). */
+    val elderlyAge: Double = 5.0,
     /** Tiles moved per tick at full stamina. */
     val speed: Double = 0.06,
     /** Body size (tiles); only used to extend how far an animal can reach to attack. */
@@ -61,6 +65,8 @@ class Species(
     init {
         val dupes = traits.mapNotNull { it.category }.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
         require(dupes.isEmpty()) { "Species '$name' has more than one trait in: $dupes" }
+        require(baseStaminaUsage >= 0 && walkingStaminaUsage >= 0) { "stamina usage must not be negative" }
+        require(elderlyAge >= 0) { "elderlyAge must not be negative" }
         require(reproductionNutritionThreshold <= maxNutrition) { "reproduction threshold above max nutrition" }
     }
 

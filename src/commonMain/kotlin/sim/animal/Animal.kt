@@ -64,8 +64,11 @@ class Animal(
     fun changeHydration(delta: Double) { hydration = (hydration + delta).coerceIn(0.0, species.maxHydration) }
     fun changeStamina(delta: Double) { stamina = (stamina + delta).coerceIn(0.0, species.maxStamina) }
 
-    /** Stamina regained per tick, reduced by [age] (docs/sim/ANIMALS.MD). */
-    val staminaRegen get() = species.staminaRegen / (1 + species.staminaAgeDecay * age)
+    /** Whether the animal has reached its species' [Species.elderlyAge], when negative effects begin. */
+    val isElderly get() = age >= species.elderlyAge
+
+    /** Stamina regained per tick; once [isElderly] it decays with the days spent elderly (docs/sim/ANIMALS.MD). */
+    val staminaRegen get() = species.staminaRegen / (1 + species.staminaAgeDecay * (age - species.elderlyAge).coerceAtLeast(0.0))
 
     /** Whether stamina is high enough (90% of max) for HP to regenerate. */
     val canRegenerateHp get() = stamina >= species.maxStamina * 0.9
