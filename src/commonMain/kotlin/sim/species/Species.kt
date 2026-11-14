@@ -34,11 +34,11 @@ class Species(
     /** Universal stat ELDERLY: age (in days) at which negative effects begin (stamina regen starts decaying with age). */
     val elderlyAge: Double = 5.0,
     /** Tiles moved per tick at full stamina. */
-    val speed: Double = 0.06,
+    val speed: Double = 0.1,
     /** Body size (tiles); only used to extend how far an animal can reach to attack. */
     val bodyRadius: Double = 0.3,
     /** Universal stat VIEW_RANGE: distance (tiles) at which animals notice food, water and other animals. */
-    val viewRange: Double = 12.0,
+    val viewRange: Double = 10.0,
     /** Walking distance (tiles) within which animals know where water is; much larger than [viewRange] because they remember where the water is. */
     val waterSenseRange: Double = 150.0,
     /** Ticks an animal must stick with an action before it may switch to a different kind of action. */
@@ -50,9 +50,9 @@ class Species(
     /** HP lost per tick while nutrition or hydration is 0. */
     val starvationDamage: Double = 0.2,
     /** Founder DAMAGE: damage dealt per tick to a target in reach; 0 means the species cannot attack. */
-    val attackDamage: Double = 0.0,
+    val attackDamage: Double = 3.0,
     /** Founder ARMOR: percent of attack damage absorbed (see [sim.animal.AnimalStats.armorReduction]). */
-    val armor: Double = 0.0,
+    val armor: Double = 1.0,
     /** Extra reach (tiles) beyond body contact for attacks. */
     val attackRange: Double = 0.3,
     /** Nutrition the parent loses when reproducing. */

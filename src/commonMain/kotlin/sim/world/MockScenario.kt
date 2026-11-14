@@ -22,7 +22,7 @@ val MOCK_CARNIVORE = Species(
     reproductionNutritionThreshold = 85.0,
     reproductionNutritionCost = 60.0,
     reproductionCooldownTicks = 6000,
-    nutritionDrain = 0.03,
+    nutritionDrain = 0.027,
 )
 
 /** Mock herbivore used until real species definitions exist. */

@@ -130,14 +130,14 @@ export const MAP_SIZE = { min: 60, max: 300, step: 10, default: 200 } as const;
 export const MAX_SPECIES = 6;
 export const MIN_COUNT = 1;
 export const MAX_COUNT = 150;
-export const DEFAULT_STATS: Record<StatKey, number> = { maxHp: 100, speed: 0.07, damage: 0, armor: 0, viewRange: 16 };
+export const DEFAULT_STATS: Record<StatKey, number> = { maxHp: 100, speed: 0.1, damage: 3, armor: 1, viewRange: 10 };
 
 let nextUid = 1;
 
 /** A plant-eating species starting point. */
 export function herbivoreTemplate(): SpeciesSettings {
     return {
-        uid: nextUid++, name: 'Herbivore', count: 40, stats: { ...DEFAULT_STATS },
+        uid: nextUid++, name: 'Herbivore', count: 40, stats: { ...DEFAULT_STATS, speed: 0.07, viewRange: 16 },
         traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'HERDING'],
     };
 }
@@ -145,7 +145,7 @@ export function herbivoreTemplate(): SpeciesSettings {
 /** A meat-eating species starting point. */
 export function carnivoreTemplate(): SpeciesSettings {
     return {
-        uid: nextUid++, name: 'Carnivore', count: 10, stats: { ...DEFAULT_STATS, speed: 0.09, damage: 3, viewRange: 30 },
+        uid: nextUid++, name: 'Carnivore', count: 10, stats: { ...DEFAULT_STATS, speed: 0.09, viewRange: 30 },
         traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR', 'PACK'],
     };
 }
