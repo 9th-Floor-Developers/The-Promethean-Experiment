@@ -29,20 +29,22 @@ const BUILT_IN_KEYS: BuiltInKey[] = ['default', 'paradise', 'savanna'];
  * - Zebra: plentiful herding grazer, the lions' main prey.
  * - Leopard tortoise: slow, armored, self-healing egg layer; hard to kill, and its eggs feed the meat eaters.
  * - Lion: a few pack hunters at dawn and dusk; strong bite, sharp eyes.
- * - Spotted hyena: a nocturnal scavenger living off kills, starved animals and eggs; flees lions.
- * Herbivores outnumber the hunters about 9 to 1 (the default preset's ratio is 4 to 1) and water is a little
- * more plentiful, so the slow tortoises can reach it and the lions cannot eat the prey out.
+ * - Spotted hyena: a nocturnal carnivore that hunts with a weak bite and prefers carcasses and eggs (hunting
+ *   costs more than scavenging). It is a carnivore, not a pure scavenger, because scavengers breed and starve like
+ *   herbivores and did not find enough carcasses to survive.
+ * Herbivores outnumber the hunters about 5.6 to 1 (the default preset's ratio is 4 to 1) and water is a little
+ * more plentiful, so the slow tortoises can reach it and the hunters cannot eat the prey out.
  */
 function savannaSettings(): SimSettings {
     const species: SpeciesSettings[] = [
-        { uid: 0, name: 'Zebra', count: 50, stats: { maxHp: 110, speed: 0.08, damage: 1, armor: 2, viewRange: 18 },
+        { uid: 0, name: 'Zebra', count: 60, stats: { maxHp: 110, speed: 0.08, damage: 1, armor: 2, viewRange: 18 },
             traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'HERDING', 'SPRINTING', 'ALARM_CALLING'] },
         { uid: 0, name: 'Leopard tortoise', count: 30, stats: { maxHp: 160, speed: 0.045, damage: 0.5, armor: 50, viewRange: 10 },
             traits: ['HARD_CODED', 'HERBIVORE', 'EGG_BIRTH', 'SHELL', 'ECTOTHERMIC', 'DIURNAL', 'SOLITARY', 'ARMOR', 'REGENERATION'] },
         { uid: 0, name: 'Lion', count: 8, stats: { maxHp: 140, speed: 0.09, damage: 4, armor: 3, viewRange: 28 },
             traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR', 'PACK', 'SPRINTING'] },
         { uid: 0, name: 'Spotted hyena', count: 8, stats: { maxHp: 90, speed: 0.085, damage: 2, armor: 2, viewRange: 26 },
-            traits: ['HARD_CODED', 'SCAVENGER', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'NOCTURNAL', 'PACK', 'NIGHT_VISION', 'HEARING'] },
+            traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'NOCTURNAL', 'PACK', 'NIGHT_VISION', 'HEARING'] },
     ];
     // sanitizeSettings hands out real uids (and clamps every stat to its allowed range).
     return sanitizeSettings({ species, mapSize: 180, water: 1.25, trees: 1, grass: 1.25 })!;
