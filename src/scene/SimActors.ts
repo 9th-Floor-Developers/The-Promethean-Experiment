@@ -14,9 +14,6 @@ const GRASS_RESTING = new THREE.Color(0xb9b86a);
 export const CARNIVORE_COLOR = 0xff7a45;
 export const HERBIVORE_COLOR = 0xfff1d6;
 const OTHER_COLOR = 0xb18cff;
-/** How quickly drawn animals catch up to the simulation (higher = snappier). */
-const FOLLOW = 14;
-const TURN = 12;
 /** Colour of the destination marker, route line and arrows by the action being carried out. */
 const ROUTE_COLORS: Record<string, number> = {
     ATTACK_TARGET: 0xff4d4d,
@@ -115,8 +112,107 @@ interface Popup {
     baseY: number;
 }
 
+/** Seconds after which the scene clock is shifted back, so float32 timestamps in the shader never lose precision. */
+const CLOCK_REBASE = 1800;
+/** Radius (world units) within which a click selects an animal; generous so small animals are easy to hit. */
+const PICK_RADIUS = 0.7 * ANIMAL_SCALE;
+
+/**
+ * All animals of one species drawn with a single instanced draw call. Each animal's previous and current simulation
+ * position, headings and update time live in per-instance GPU attributes; the vertex shader interpolates between them
+ * every frame (see the material in SimActors), so the CPU only writes data when a new snapshot arrives.
+ */
+class AnimalBatch {
+    readonly mesh: THREE.Mesh;
+    /** Animal id stored in each slot, so a swap-removal can tell which animal moved. */
+    readonly ids: number[] = [];
+    private readonly geo = new THREE.InstancedBufferGeometry();
+    private capacity = 0;
+    from = new Float32Array(0);
+    to = new Float32Array(0);
+    /** Per instance: update time, interpolation duration, heading before, heading after. */
+    info = new Float32Array(0);
+    seed = new Float32Array(0);
+    dirty = false;
+
+    constructor(source: THREE.BufferGeometry, material: THREE.Material) {
+        this.geo.copy(source as unknown as THREE.InstancedBufferGeometry);
+        this.geo.instanceCount = 0;
+        this.grow(256);
+        this.mesh = new THREE.Mesh(this.geo, material);
+        this.mesh.frustumCulled = false; // positions are computed in the shader, so the CPU-side bounds do not apply
+    }
+
+    get count(): number { return this.ids.length; }
+
+    /** Reallocates the instance buffers with room for at least `cap` animals, keeping the existing data. */
+    private grow(cap: number): void {
+        const keep = (old: Float32Array, size: number) => { const a = new Float32Array(cap * size); a.set(old.subarray(0, this.ids.length * size)); return a; };
+        this.from = keep(this.from, 3); this.to = keep(this.to, 3); this.info = keep(this.info, 4); this.seed = keep(this.seed, 1);
+        const attr = (name: string, data: Float32Array, size: number) => {
+            const a = new THREE.InstancedBufferAttribute(data, size);
+            a.setUsage(THREE.DynamicDrawUsage);
+            this.geo.setAttribute(name, a);
+        };
+        attr('aFrom', this.from, 3); attr('aTo', this.to, 3); attr('aInfo', this.info, 4); attr('aSeed', this.seed, 1);
+        this.capacity = cap;
+    }
+
+    /** Reserves a slot for animal `id` and returns its index. */
+    add(id: number): number {
+        if (this.ids.length >= this.capacity) this.grow(this.capacity * 2);
+        this.ids.push(id);
+        this.dirty = true;
+        return this.ids.length - 1;
+    }
+
+    /** Frees `slot` by moving the last animal into it; returns the id that moved (or undefined if none did). */
+    remove(slot: number): number | undefined {
+        const last = this.ids.length - 1;
+        let moved: number | undefined;
+        if (slot !== last) {
+            this.from.copyWithin(slot * 3, last * 3, last * 3 + 3);
+            this.to.copyWithin(slot * 3, last * 3, last * 3 + 3);
+            this.info.copyWithin(slot * 4, last * 4, last * 4 + 4);
+            this.seed[slot] = this.seed[last]!;
+            moved = this.ids[last]!;
+            this.ids[slot] = moved;
+        }
+        this.ids.pop();
+        this.dirty = true;
+        return moved;
+    }
+
+    /** Writes one animal's interpolation state into its slot. */
+    write(slot: number, id: number, from: THREE.Vector3, to: THREE.Vector3, t0: number, dur: number, headFrom: number, headTo: number): void {
+        this.from[slot * 3] = from.x; this.from[slot * 3 + 1] = from.y; this.from[slot * 3 + 2] = from.z;
+        this.to[slot * 3] = to.x; this.to[slot * 3 + 1] = to.y; this.to[slot * 3 + 2] = to.z;
+        this.info[slot * 4] = t0; this.info[slot * 4 + 1] = dur; this.info[slot * 4 + 2] = headFrom; this.info[slot * 4 + 3] = headTo;
+        this.seed[slot] = id % 997;
+        this.dirty = true;
+    }
+
+    /** Uploads changed data to the GPU and sets how many animals are drawn. */
+    flush(): void {
+        if (!this.dirty) return;
+        for (const name of ['aFrom', 'aTo', 'aInfo', 'aSeed']) (this.geo.getAttribute(name) as THREE.InstancedBufferAttribute).needsUpdate = true;
+        this.geo.instanceCount = this.ids.length;
+        this.dirty = false;
+    }
+
+    dispose(): void { this.geo.dispose(); }
+}
+
 interface Actor {
-    obj: THREE.Group;
+    /** Which AnimalBatch draws this animal, and its slot in it. */
+    batch: number;
+    slot: number;
+    /** Where the interpolation started (the animal's drawn position when the last snapshot arrived) and where it ends. */
+    from: THREE.Vector3;
+    /** Scene-clock time of the last snapshot for this animal, and how long the interpolation to it lasts. */
+    t0: number;
+    dur: number;
+    fromHeading: number;
     hp: number;
     action: number;
     /** Damage taken since the last damage popup. */
@@ -124,7 +220,6 @@ interface Actor {
     /** Value of the scene clock when the last damage popup was shown. */
     lastDamagePopup: number;
     target: THREE.Vector3;
-    heading: number;
     targetHeading: number;
     seen: number;
 }
@@ -153,13 +248,23 @@ export class SimActors {
     private clockTime = 0;
     private readonly owned: { dispose(): void }[] = [];
 
-    /** One merged mesh geometry per species (body, head, ears and eyes baked together): one draw call per animal. */
+    /** One merged mesh geometry per species (body, head, ears and eyes baked together). */
     private readonly animalGeos: THREE.BufferGeometry[] = [];
-    private readonly animalMat = this.own(new THREE.MeshStandardMaterial({
-        vertexColors: true, flatShading: true, emissive: new THREE.Color(0xffe9a8), emissiveIntensity: 0,
-    }));
-    private readonly hitGeo = this.own(new THREE.SphereGeometry(0.7, 6, 4));
-    private readonly hitMat = this.own(new THREE.MeshBasicMaterial({ visible: false }));
+    /** One instanced draw call per species. */
+    private batches: AnimalBatch[] = [];
+    /** Scene clock (seconds) shared with the animal shader, which interpolates positions from it. */
+    private readonly uNow = { value: 0 };
+    private lastUpdateClock = 0;
+    /** Smoothed seconds between snapshots; animals take this long to glide to their new position. */
+    private updateInterval = 1 / 30;
+    private readonly tmpV = new THREE.Vector3();
+    private readonly tmpV2 = new THREE.Vector3();
+    private readonly pickSphere = new THREE.Sphere();
+    private readonly pickRay = new THREE.Ray();
+    private readonly pickInv = new THREE.Matrix4();
+    /** Follows the selected animal and carries the selection ring (animals are no longer separate objects to hold it). */
+    private readonly ringHolder = new THREE.Group();
+    private readonly animalMat = this.own(this.makeAnimalMaterial());
     private readonly ringGeo = this.own(new THREE.RingGeometry(0.42, 0.56, 24));
     private readonly ringMat = this.own(new THREE.MeshBasicMaterial({
         color: 0xffd23f, side: THREE.DoubleSide, depthTest: false, transparent: true,
@@ -216,6 +321,10 @@ export class SimActors {
         private readonly heightAt: HeightFn,
     ) {
         this.group.add(this.sceneryGroup, this.animalGroup, this.destMarker, this.destLine, this.routeArrows);
+        this.ringHolder.scale.setScalar(ANIMAL_SCALE);
+        this.ringHolder.visible = false;
+        this.ringHolder.add(this.ring);
+        this.animalGroup.add(this.ringHolder);
         for (const o of [this.destMarker, this.destLine, this.routeArrows]) { o.visible = false; o.renderOrder = 11; o.frustumCulled = false; }
         this.routeArrows.count = 0;
         this.ring.rotation.x = -Math.PI / 2;
@@ -226,9 +335,8 @@ export class SimActors {
     /** Highlights the animal with this id (null clears). The ring follows the animal and disappears if it dies. */
     setSelected(id: number | null): void {
         this.selectedId = id;
-        this.ring.removeFromParent();
         const actor = id === null ? undefined : this.actors.get(id);
-        if (actor) actor.obj.add(this.ring);
+        this.ringHolder.visible = !!actor;
         this.selectedRow = null;
         this.selectedDest = null;
         this.selectedHeading = null;
@@ -278,18 +386,63 @@ export class SimActors {
     getWorldPosition(id: number, out: THREE.Vector3): boolean {
         const actor = this.actors.get(id);
         if (!actor) return false;
-        actor.obj.getWorldPosition(out);
+        this.pose(actor, out);
+        this.group.localToWorld(out);
         return true;
     }
 
     /** Id of the animal under the ray, or null. Uses generous invisible hit spheres so small animals are easy to click. */
     pick(raycaster: THREE.Raycaster): number | null {
-        const hit = raycaster.intersectObjects(this.animalGroup.children, true)[0];
-        for (let o: THREE.Object3D | null = hit?.object ?? null; o; o = o.parent) {
-            const id = o.userData.animalId as number | undefined;
-            if (id !== undefined) return id;
+        if (!this.animalGroup.visible) return null;
+        this.group.updateWorldMatrix(true, false);
+        this.pickRay.copy(raycaster.ray).applyMatrix4(this.pickInv.copy(this.group.matrixWorld).invert());
+        let best: number | null = null;
+        let bestDist = Infinity;
+        for (const [id, actor] of this.actors) {
+            this.pose(actor, this.tmpV);
+            this.pickSphere.set(this.tmpV, PICK_RADIUS);
+            if (!this.pickRay.intersectSphere(this.pickSphere, this.tmpV2)) continue;
+            const d = this.tmpV2.distanceToSquared(this.pickRay.origin);
+            if (d < bestDist) { bestDist = d; best = id; }
         }
-        return null;
+        return best;
+    }
+
+    /**
+     * Material for animals: standard lighting, but the position, heading and walking bob come from per-instance
+     * attributes interpolated in the vertex shader (the same formula as [pose]), so no per-animal CPU work per frame.
+     */
+    private makeAnimalMaterial(): THREE.MeshStandardMaterial {
+        const mat = new THREE.MeshStandardMaterial({
+            vertexColors: true, flatShading: true, emissive: new THREE.Color(0xffe9a8), emissiveIntensity: 0,
+        });
+        mat.onBeforeCompile = (shader) => {
+            shader.uniforms.uNow = this.uNow;
+            shader.uniforms.uScale = { value: ANIMAL_SCALE };
+            shader.vertexShader = shader.vertexShader
+                .replace('#include <common>', `#include <common>
+attribute vec3 aFrom; attribute vec3 aTo; attribute vec4 aInfo; attribute float aSeed;
+uniform float uNow; uniform float uScale;`)
+                .replace('#include <beginnormal_vertex>', `float aK = clamp((uNow - aInfo.x) / aInfo.y, 0.0, 1.0);
+float aHead = mix(aInfo.z, aInfo.w, aK);
+float aC = cos(aHead); float aS = sin(aHead);
+mat3 aRot = mat3(aC, 0.0, -aS, 0.0, 1.0, 0.0, aS, 0.0, aC);
+vec3 objectNormal = aRot * vec3(normal);
+#ifdef USE_TANGENT
+vec3 objectTangent = vec3(tangent.xyz);
+#endif`)
+                .replace('#include <begin_vertex>', `float aMoving = (aK < 0.999 && distance(aFrom, aTo) > 0.001) ? 1.0 : 0.0;
+float aBob = aMoving * abs(sin(uNow * 12.0 + aSeed)) * 0.05;
+vec3 transformed = aRot * (position + vec3(0.0, aBob, 0.0)) * uScale + mix(aFrom, aTo, aK);`);
+        };
+        return mat;
+    }
+
+    /** The animal's drawn position right now (written to `out`) and heading (returned); mirrors the animal vertex shader. */
+    private pose(a: Actor, out: THREE.Vector3): number {
+        const k = Math.min(1, Math.max(0, (this.clockTime - a.t0) / a.dur));
+        out.lerpVectors(a.from, a.target, k);
+        return a.fromHeading + (a.targetHeading - a.fromHeading) * k;
     }
 
     private own<T extends { dispose(): void }>(resource: T): T {
@@ -321,6 +474,10 @@ export class SimActors {
         this.animalGeos.length = 0;
         for (const sp of info.species) this.animalGeos.push(buildAnimalGeometry(sp.canHunt ? CARNIVORE_COLOR : HERBIVORE_COLOR, sp.canHunt));
         this.animalGeos.push(buildAnimalGeometry(OTHER_COLOR, false));
+        for (const b of this.batches) { this.animalGroup.remove(b.mesh); b.dispose(); }
+        this.actors.clear();
+        this.batches = this.animalGeos.map((g) => new AnimalBatch(g, this.animalMat));
+        for (const b of this.batches) this.animalGroup.add(b.mesh);
 
         this.viewRanges = info.species.map((sp) => sp.viewRange);
         if (this.viewOverlay) {
@@ -407,24 +564,38 @@ export class SimActors {
     /** Applies a new simulation snapshot: new animal targets, tree readiness and carcasses. */
     update(snap: SimSnapshot): void {
         const stamp = ++this.updateCount;
+        const since = this.clockTime - this.lastUpdateClock;
+        this.lastUpdateClock = this.clockTime;
+        this.updateInterval = Math.min(0.4, Math.max(1 / 60, 0.7 * this.updateInterval + 0.3 * since));
         for (const row of snap.animals) {
             const id = row[A.id]!;
             let actor = this.actors.get(id);
             const target = this.place(row[A.x]!, row[A.y]!, 0.2 * ANIMAL_SCALE);
             if (!actor) {
+                const batch = Math.min(row[A.species]!, this.batches.length - 1);
                 actor = {
-                    obj: this.buildAnimal(row[A.species]!), target: target.clone(), heading: 0, targetHeading: 0, seen: stamp,
+                    batch, slot: this.batches[batch]!.add(id), from: target.clone(), target: target.clone(), t0: this.clockTime - 10, dur: 1,
+                    fromHeading: 0, targetHeading: 0, seen: stamp,
                     hp: row[A.hp]!, action: row[A.action]!, pendingDamage: 0, lastDamagePopup: -DAMAGE_POPUP_GAP,
                 };
-                actor.obj.userData.animalId = id;
-                actor.obj.position.copy(target);
-                this.animalGroup.add(actor.obj);
+                this.writeActor(id, actor);
                 this.actors.set(id, actor);
-                if (id === this.selectedId) actor.obj.add(this.ring);
+                if (id === this.selectedId) this.ringHolder.visible = true;
             } else {
                 const dx = target.x - actor.target.x, dz = target.z - actor.target.z;
-                if (dx * dx + dz * dz > 1e-6) actor.targetHeading = Math.atan2(dx, dz);
-                actor.target.copy(target);
+                if (dx * dx + dz * dz > 1e-12) {
+                    // Glide on from wherever the animal is drawn right now, towards the new position.
+                    const head = this.pose(actor, actor.from);
+                    actor.t0 = this.clockTime;
+                    actor.dur = this.updateInterval;
+                    actor.fromHeading = head;
+                    if (dx * dx + dz * dz > 1e-6) {
+                        const want = Math.atan2(dx, dz);
+                        actor.targetHeading = head + Math.atan2(Math.sin(want - head), Math.cos(want - head));
+                    } else actor.targetHeading = head;
+                    actor.target.copy(target);
+                    this.writeActor(id, actor);
+                }
                 this.showEvents(actor, row[A.hp]!, row[A.action]!);
             }
             actor.seen = stamp;
@@ -449,10 +620,12 @@ export class SimActors {
         for (const [id, actor] of this.actors) {
             if (actor.seen !== stamp) {
                 if (id === this.selectedId) {
-                    this.ring.removeFromParent(); this.selectedRow = null; this.selectedDest = null; this.selectedHeading = null;
+                    this.ringHolder.visible = false; this.selectedRow = null; this.selectedDest = null; this.selectedHeading = null;
                     this.setRouteVisible(false); this.hideViewRange();
                 }
-                this.animalGroup.remove(actor.obj);
+                const batch = this.batches[actor.batch]!;
+                const moved = batch.remove(actor.slot);
+                if (moved !== undefined) this.actors.get(moved)!.slot = actor.slot;
                 this.actors.delete(id);
                 this.lastRows.delete(id);
             }
@@ -474,6 +647,8 @@ export class SimActors {
             if (this.grassMesh.instanceColor) this.grassMesh.instanceColor.needsUpdate = true;
             this.lastGrass = snap.grass;
         }
+
+        for (const b of this.batches) b.flush();
 
         const live = new Set<number>();
         for (const [id, x, y, left] of snap.carcasses) {
@@ -498,14 +673,15 @@ export class SimActors {
         if (hp < actor.hp) actor.pendingDamage += actor.hp - hp;
         actor.hp = hp;
         if (actor.pendingDamage > 0 && this.clockTime - actor.lastDamagePopup >= DAMAGE_POPUP_GAP) {
-            this.spawnPopup(`-${Math.max(1, Math.round(actor.pendingDamage))}`, DAMAGE_COLOR, actor.obj.position);
+            this.pose(actor, this.tmpV);
+            this.spawnPopup(`-${Math.max(1, Math.round(actor.pendingDamage))}`, DAMAGE_COLOR, this.tmpV);
             actor.pendingDamage = 0;
             actor.lastDamagePopup = this.clockTime;
         }
         if (action !== actor.action) {
             actor.action = action;
             const name = this.actionNames[action];
-            if (name) this.spawnPopup(actionLabel(name), ACTION_COLOR, actor.obj.position);
+            if (name) { this.pose(actor, this.tmpV); this.spawnPopup(actionLabel(name), ACTION_COLOR, this.tmpV); }
         }
     }
 
@@ -564,24 +740,35 @@ export class SimActors {
         }
     }
 
-    /** Per-frame smoothing between simulation ticks, plus a small walking bob. */
+    /** Writes an animal's interpolation state into its batch (called when it appears or its target changes). */
+    private writeActor(id: number, a: Actor): void {
+        this.batches[a.batch]!.write(a.slot, id, a.from, a.target, a.t0, a.dur, a.fromHeading, a.targetHeading);
+    }
+
+    /** Per-frame work: advance the shader clock and move the selection ring and route. Animals themselves move on the GPU. */
     animate(dt: number): void {
         this.clockTime += dt;
+        if (this.clockTime > CLOCK_REBASE) this.rebaseClock();
+        this.uNow.value = this.clockTime;
         this.updatePopups(dt);
-        const follow = 1 - Math.exp(-dt * FOLLOW);
-        const turn = 1 - Math.exp(-dt * TURN);
-        for (const actor of this.actors.values()) {
-            actor.obj.position.lerp(actor.target, follow);
-            let d = actor.targetHeading - actor.heading;
-            d = Math.atan2(Math.sin(d), Math.cos(d));
-            actor.heading += d * turn;
-            actor.obj.rotation.y = actor.heading;
-            const moving = actor.obj.position.distanceToSquared(actor.target) > 1e-4;
-            const bob = moving ? Math.abs(Math.sin(this.clockTime * 12 + actor.obj.id)) * 0.05 : 0;
-            actor.obj.children[0]!.position.y = bob;
-        }
         const sel = this.selectedId === null ? undefined : this.actors.get(this.selectedId);
-        if (sel && (this.selectedDest || this.selectedHeading !== null) && this.destLine.visible) this.drawRoute(sel.obj.position);
+        if (sel) {
+            this.pose(sel, this.tmpV);
+            this.ringHolder.position.copy(this.tmpV);
+            if ((this.selectedDest || this.selectedHeading !== null) && this.destLine.visible) this.drawRoute(this.tmpV);
+        }
+    }
+
+    /** Shifts every timestamp back by CLOCK_REBASE so the float32 values in the shader stay small and precise. */
+    private rebaseClock(): void {
+        this.clockTime -= CLOCK_REBASE;
+        this.lastUpdateClock -= CLOCK_REBASE;
+        for (const [id, a] of this.actors) {
+            a.t0 -= CLOCK_REBASE;
+            a.lastDamagePopup -= CLOCK_REBASE;
+            this.writeActor(id, a);
+        }
+        for (const b of this.batches) b.flush();
     }
 
     /** Recolours the destination marker, route line and arrowheads. */
@@ -653,17 +840,6 @@ export class SimActors {
         this.routeArrows.instanceMatrix.needsUpdate = true;
     }
 
-    /** One animal facing +Z: a bobbing rig holding the merged body mesh, plus an invisible click target. */
-    private buildAnimal(species: number): THREE.Group {
-        const geo = this.animalGeos[Math.min(species, this.animalGeos.length - 1)]!;
-        const root = new THREE.Group();
-        const rig = new THREE.Group(); // bobs, so the root keeps the ground position
-        rig.add(new THREE.Mesh(geo, this.animalMat));
-        root.add(rig, new THREE.Mesh(this.hitGeo, this.hitMat));
-        root.scale.setScalar(ANIMAL_SCALE);
-        return root;
-    }
-
     /** Releases everything this class created. */
     dispose(): void {
         for (const p of this.popups) p.sprite.material.dispose();
@@ -673,6 +849,7 @@ export class SimActors {
         this.clearScenery();
         this.viewOverlay?.geometry.dispose();
         this.routeArrows.dispose();
+        this.batches.forEach((b) => b.dispose());
         this.animalGeos.forEach((g) => g.dispose());
         this.owned.forEach((r) => r.dispose());
     }
