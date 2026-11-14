@@ -11,9 +11,13 @@ interface Props {
     snapshot?: SimSnapshot | null;
     selectedId?: number | null;
     onSelect?: (id: number | null) => void;
+    /** Lock the camera onto the selected animal. */
+    followSelected?: boolean;
+    /** Called when manual camera movement breaks the lock. */
+    onFollowRelease?: () => void;
 }
 
-export function SceneCanvas({ screen, terrain, simInfo, snapshot, selectedId, onSelect }: Props) {
+export function SceneCanvas({ screen, terrain, simInfo, snapshot, selectedId, onSelect, followSelected, onFollowRelease }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const sceneRef = useRef<WorldScene | null>(null);
 
@@ -50,6 +54,14 @@ export function SceneCanvas({ screen, terrain, simInfo, snapshot, selectedId, on
     useEffect(() => {
         sceneRef.current?.setSelectedAnimal(selectedId ?? null);
     }, [selectedId, simInfo, terrain]);
+
+    useEffect(() => {
+        sceneRef.current?.setFollowSelected(followSelected ?? false);
+    }, [followSelected]);
+
+    useEffect(() => {
+        sceneRef.current?.setFollowReleaseHandler(onFollowRelease ?? null);
+    }, [onFollowRelease]);
 
     return <canvas ref={canvasRef} className="scene-canvas" aria-hidden="true" />;
 }

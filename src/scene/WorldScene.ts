@@ -75,6 +75,9 @@ export class WorldScene {
     private readonly raycaster = new THREE.Raycaster();
     private selectionHandler: ((id: number | null) => void) | null = null;
     private selectedId: number | null = null;
+    private followSelected = false;
+    private followReleaseHandler: (() => void) | null = null;
+    private readonly followPos = new THREE.Vector3();
     private drag: { id: number; x: number; y: number; startX: number; startY: number; mode: 'pan' | 'rotate' } | null = null;
     private spinning = true; // menus spin the island; the simulation view holds still
     private readonly motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -183,6 +186,32 @@ export class WorldScene {
     /** Called with the clicked animal's id, or null when empty ground is clicked. */
     setSelectionHandler(handler: ((id: number | null) => void) | null): void {
         this.selectionHandler = handler;
+    }
+
+    /** While true (and an animal is selected) the camera focus tracks that animal every frame. */
+    setFollowSelected(follow: boolean): void {
+        this.followSelected = follow;
+    }
+
+    /** Called when the user pans manually, which releases the camera lock. */
+    setFollowReleaseHandler(handler: (() => void) | null): void {
+        this.followReleaseHandler = handler;
+    }
+
+    /** Stops following because the user took manual control of the camera. */
+    private releaseFollow(): void {
+        if (!this.followSelected) return;
+        this.followSelected = false;
+        this.followReleaseHandler?.();
+    }
+
+    /** Moves the focus onto the followed animal; the camera's damping smooths the motion. */
+    private applyFollow(): void {
+        if (!this.followSelected || this.selectedId === null || this.screen !== 'simulation') return;
+        if (!this.actors?.getWorldPosition(this.selectedId, this.followPos)) return;
+        this.simFocus.set(this.followPos.x, 0, this.followPos.z);
+        this.simTouched = true;
+        this.updateSimTarget();
     }
 
     /** Highlights the selected animal in the scene (null clears). */
@@ -312,6 +341,7 @@ export class WorldScene {
         const f = (this.keys.has('w') ? 1 : 0) - (this.keys.has('s') ? 1 : 0);
         const r = (this.keys.has('d') ? 1 : 0) - (this.keys.has('a') ? 1 : 0);
         if (f === 0 && r === 0) return;
+        this.releaseFollow();
         const { forward, right } = this.groundAxes();
         const view = 2 * this.simDist * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2);
         const step = SIM_KEY_SPEED * view * dt;
@@ -341,6 +371,7 @@ export class WorldScene {
         const dy = e.clientY - this.drag.y;
         this.drag.x = e.clientX;
         this.drag.y = e.clientY;
+        if (this.drag.mode === 'pan') this.releaseFollow();
         if (this.drag.mode === 'rotate') {
             this.simYaw -= dx * SIM_ROTATE_SPEED;
             this.simTouched = true;
@@ -417,6 +448,7 @@ export class WorldScene {
         const dt = Math.min(this.clock.getDelta(), 0.1);
         const k = 1 - Math.exp(-dt * (this.screen === 'simulation' ? SIM_DAMPING : CAMERA_DAMPING));
         this.applyKeys(dt);
+        this.applyFollow();
         this.camera.position.lerp(this.goalPosition(), k);
         this.lookAt.lerp(this.target.lookAt, k);
         this.camera.lookAt(this.lookAt);

@@ -164,6 +164,14 @@ export class SimActors {
         if (actor) actor.obj.add(this.ring);
     }
 
+    /** Writes the animal's current drawn (smoothed) world-space position into `out`; false if it is not alive. */
+    getWorldPosition(id: number, out: THREE.Vector3): boolean {
+        const actor = this.actors.get(id);
+        if (!actor) return false;
+        actor.obj.getWorldPosition(out);
+        return true;
+    }
+
     /** Id of the animal under the ray, or null. Uses generous invisible hit spheres so small animals are easy to click. */
     pick(raycaster: THREE.Raycaster): number | null {
         const hit = raycaster.intersectObjects(this.animalGroup.children, true)[0];

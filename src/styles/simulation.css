@@ -117,3 +117,9 @@
 .portrait { width: 3rem; height: 3rem; }
 .leaderboard__who { display: flex; flex-direction: column; font-size: 0.85rem; }
 .leaderboard__value { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 1rem; }
+
+/* Camera-lock button (sniper scope icon) in the inspector title row */
+.inspector__lock { display: grid; place-items: center; width: 1.6rem; height: 1.6rem; margin-left: 0.5rem; padding: 0; border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 50%; background: transparent; color: #e8eefc; cursor: pointer; }
+.inspector__lock:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.inspector__lock--on { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-accent-ink); }
+.inspector__lock--on:hover { color: var(--color-accent-ink); }

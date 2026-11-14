@@ -7,6 +7,9 @@ interface Props {
     selectedId: number | null;
     /** Selects an animal by id, or clears the selection with null. */
     onSelect: (id: number | null) => void;
+    /** Whether the camera is locked onto the selected animal. */
+    following: boolean;
+    onFollowChange: (following: boolean) => void;
 }
 
 /** "RUN_FROM_PREDATOR" -> "Run from predator". */
@@ -30,7 +33,7 @@ function Meter({ label, value, max, tone }: { label: string; value: number; max:
 }
 
 /** Shows the selected animal's status values (HP, stamina, nutrition, hydration, age), feelings and current action. */
-export function IndividualInspector({ snapshot, info, selectedId, onSelect }: Props) {
+export function IndividualInspector({ snapshot, info, selectedId, onSelect, following, onFollowChange }: Props) {
     const row = selectedId === null ? undefined : snapshot?.animals.find((r) => r[A.id] === selectedId);
     const species = row && info ? info.species[row[A.species]!] : undefined;
 
@@ -45,6 +48,15 @@ export function IndividualInspector({ snapshot, info, selectedId, onSelect }: Pr
                 <div className="inspector__title">
                     <strong>{species.name}</strong>
                     <span className="inspector__id">#{selectedId}</span>
+                    <button type="button" className={`inspector__lock${following ? ' inspector__lock--on' : ''}`}
+                            aria-pressed={following} aria-label="Lock camera on this animal"
+                            title={following ? 'Unlock camera' : 'Lock camera on this animal'}
+                            onClick={() => onFollowChange(!following)}>
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="6.5" />
+                            <path d="M12 2v6M12 16v6M2 12h6M16 12h6" />
+                        </svg>
+                    </button>
                     <button type="button" className="inspector__back" onClick={() => onSelect(null)}>← Leaderboard</button>
                 </div>
                 <div className="inspector__action">

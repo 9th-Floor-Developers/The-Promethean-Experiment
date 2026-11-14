@@ -12,6 +12,7 @@ import {CreditsScreen} from "./screen/CreditsScreen.tsx";
 export default function App() {
     const [screen, setScreen] = useState<Screen>('landing');
     const [selectedId, setSelectedId] = useState<number | null>(null);
+    const [following, setFollowing] = useState(false);
     const [sim, setSim] = useState<KotlinSimulation | null>(null);
 
     // The world (terrain, animals, objects) comes from the Kotlin simulation compiled to Wasm, not from TypeScript.
@@ -29,6 +30,12 @@ export default function App() {
     }, [snapshot]);
     const history = usePopulationHistory(snapshot, sim?.info ?? null);
 
+    // The camera lock only makes sense while an animal is selected.
+    useEffect(() => {
+        if (selectedId === null) setFollowing(false);
+    }, [selectedId]);
+    const releaseFollow = useCallback(() => setFollowing(false), []);
+
     const [cameFromCredits, setCameFromCredits] = useState(false);
     const closeCredits = useCallback(() => {
         setCameFromCredits(true);
@@ -38,7 +45,7 @@ export default function App() {
     return (
         <>
             {/* Persistent: never unmounted, so the same 3D scene lives across screens. */}
-            <SceneCanvas screen={screen} terrain={sim?.terrain ?? null} simInfo={sim?.info ?? null} snapshot={snapshot} selectedId={selectedId} onSelect={setSelectedId} />
+            <SceneCanvas screen={screen} terrain={sim?.terrain ?? null} simInfo={sim?.info ?? null} snapshot={snapshot} selectedId={selectedId} onSelect={setSelectedId} followSelected={following} onFollowRelease={releaseFollow} />
             <main className="ui-layer">
                 {screen === 'landing' && <LandingScreen onStart={() => setScreen('opening')} />}
                 {screen === 'opening' && (
@@ -48,7 +55,7 @@ export default function App() {
                         focusCredits={cameFromCredits}
                     />
                 )}
-                {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} onSelect={setSelectedId} history={history} ended={ended} speed={speed} onSpeedChange={setSpeed} />}
+                {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} onSelect={setSelectedId} following={following} onFollowChange={setFollowing} history={history} ended={ended} speed={speed} onSpeedChange={setSpeed} />}
                 {screen === 'credits' && <CreditsScreen onBack={closeCredits} />}
             </main>
         </>
