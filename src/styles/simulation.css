@@ -123,3 +123,7 @@
 .inspector__lock:hover { border-color: var(--color-accent); color: var(--color-accent); }
 .inspector__lock--on { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-accent-ink); }
 .inspector__lock--on:hover { color: var(--color-accent-ink); }
+
+/* Back button at the left of the simulation header */
+.sim__back { margin-right: var(--space-2); padding: 0.25rem 0.8rem; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 999px; background: transparent; color: #fff; font: inherit; font-size: 0.85rem; cursor: pointer; }
+.sim__back:hover { background: var(--color-accent); border-color: var(--color-accent); }

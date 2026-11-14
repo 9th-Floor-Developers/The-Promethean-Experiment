@@ -39,6 +39,19 @@ export default function App() {
     }, [selectedId]);
     const releaseFollow = useCallback(() => setFollowing(false), []);
 
+    /**
+     * Back from the simulation: stops it, throws the world away and builds a fresh one (same seed, so the same terrain),
+     * clears everything tied to the old run and returns to the opening screen, which shows just the terrain.
+     */
+    const endSimulation = useCallback(() => {
+        setScreen('opening');
+        setSelectedId(null);
+        setFollowing(false);
+        setEnded(false);
+        setSpeed(MIN_SPEED);
+        createSimulation().then(setSim).catch((e) => console.error('Kotlin simulation failed to restart', e));
+    }, []);
+
     const [cameFromCredits, setCameFromCredits] = useState(false);
     const closeCredits = useCallback(() => {
         setCameFromCredits(true);
@@ -58,7 +71,7 @@ export default function App() {
                         focusCredits={cameFromCredits}
                     />
                 )}
-                {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} onSelect={setSelectedId} following={following} onFollowChange={setFollowing}
+                {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} onSelect={setSelectedId} following={following} onFollowChange={setFollowing} onBack={endSimulation}
                     leaderboardSettings={leaderboardSettings} onLeaderboardSettingsChange={setLeaderboardSettings} history={history} ended={ended} speed={speed} onSpeedChange={setSpeed} />}
                 {screen === 'credits' && <CreditsScreen onBack={closeCredits} />}
             </main>

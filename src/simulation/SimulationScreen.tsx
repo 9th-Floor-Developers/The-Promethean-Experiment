@@ -18,6 +18,8 @@ interface Props {
     onSelect: (id: number | null) => void;
     /** Whether the camera is locked onto the selected animal. */
     following: boolean;
+    /** Ends the simulation and returns to the previous screen. */
+    onBack: () => void;
     leaderboardSettings: LeaderboardSettings;
     onLeaderboardSettingsChange: (settings: LeaderboardSettings) => void;
     onFollowChange: (following: boolean) => void;
@@ -28,11 +30,11 @@ interface Props {
     onSpeedChange: (speed: number) => void;
 }
 
-export function SimulationScreen({ snapshot, info, selectedId, onSelect, following, onFollowChange, leaderboardSettings, onLeaderboardSettingsChange, history, ended, speed, onSpeedChange }: Props) {
+export function SimulationScreen({ snapshot, info, selectedId, onSelect, following, onFollowChange, onBack, leaderboardSettings, onLeaderboardSettingsChange, history, ended, speed, onSpeedChange }: Props) {
     const [summaryClosed, setSummaryClosed] = useState(false);
     return (
         <div className="sim">
-            <SimulationHeader snapshot={snapshot} speed={speed} onSpeedChange={onSpeedChange} />
+            <SimulationHeader snapshot={snapshot} onBack={onBack} speed={speed} onSpeedChange={onSpeedChange} />
             <SimulationViewport />
             {ended && !summaryClosed && (
                 <SimulationSummary history={history} info={info} snapshot={snapshot} onClose={() => setSummaryClosed(true)} />
