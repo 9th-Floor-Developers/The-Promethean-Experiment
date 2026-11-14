@@ -183,11 +183,11 @@ export class SimActors {
     /** Line along the selected animal's route: from the animal, around obstacles, to its destination. */
     private readonly destLine = new THREE.Line(
         this.own(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(ROUTE_MAX_POINTS * 3), 3))),
-        this.own(new THREE.LineBasicMaterial({ color: this.routeColor, depthTest: false, transparent: true, opacity: 0.85 })));
+        this.own(new THREE.LineBasicMaterial({ color: this.routeColor, depthTest: false, transparent: false })));
     /** Arrowheads along the route showing which way it leads. */
     private readonly routeArrows = new THREE.InstancedMesh(
         this.own(new THREE.ConeGeometry(0.13, 0.4, 6).rotateX(Math.PI / 2)),
-        this.own(new THREE.MeshBasicMaterial({ color: this.routeColor, depthTest: false, transparent: true, opacity: 0.95 })), ARROW_MAX);
+        this.own(new THREE.MeshBasicMaterial({ color: this.routeColor, depthTest: false, transparent: false })), ARROW_MAX);
     /** Destination of the selected animal in tile units, or null when it has none. */
     private selectedDest: { x: number; y: number } | null = null;
     /** Direction (radians, tile axes) the selected animal is wandering or fleeing in, or null when it has none. */
