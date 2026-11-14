@@ -30,6 +30,9 @@ animals with SOFT CODED AI trait will 'feelings'  drive the action like the HARD
 but the 'feelings' will be the output in of a neural network
 
 so the neural network will
-world environment inputs → hidden layers → 
+world environment inputs → hidden layers → 'feelings'
 
+this will use a version of Q learning where actions get rewarded and recorded per animal
+and every time the animal rest it uses that data to train the neural network
 
+the size of each hidden layers and the amount are inherited from their parents, 
