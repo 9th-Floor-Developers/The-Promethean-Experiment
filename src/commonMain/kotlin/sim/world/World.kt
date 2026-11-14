@@ -50,6 +50,21 @@ class World(
     internal var hunters: List<Animal> = emptyList()
         private set
 
+    /** Living animals by map cell, rebuilt each tick, so searches only visit animals within view range. */
+    internal val animalGrid = SpatialGrid<Animal>(terrain.width, terrain.height)
+
+    /** Living hunters by map cell, rebuilt each tick, for fear checks. */
+    internal val hunterGrid = SpatialGrid<Animal>(terrain.width, terrain.height)
+
+    /** Carcasses by map cell, rebuilt each tick. */
+    internal val carcassGrid = SpatialGrid<Carcass>(terrain.width, terrain.height)
+
+    /** Trees by map cell (trees never move). */
+    internal val treeGrid = SpatialGrid<Tree>(terrain.width, terrain.height)
+
+    /** Grass tufts by map cell (grass never moves). */
+    internal val grassGrid = SpatialGrid<Grass>(terrain.width, terrain.height)
+
     /** Where animals can drink and how to walk there. */
     internal val water = shoreField(terrain)
 
@@ -106,8 +121,8 @@ class World(
         require(terrain.isWalkable(floor(at.x).toInt(), floor(at.y).toInt())) { "cannot place object at $at: tile not walkable" }
         return create(nextId++, at).also {
             objects.add(it)
-            if (it is Tree) trees.add(it)
-            if (it is Grass) grasses.add(it)
+            if (it is Tree) { trees.add(it); treeGrid.add(it, it.position) }
+            if (it is Grass) { grasses.add(it); grassGrid.add(it, it.position) }
         }
     }
 
@@ -165,6 +180,9 @@ class World(
         log.phase("2/4 Decide")
         log.step("1/2 Update feelings")
         hunters = animals.filter { it.isAlive && it.species.canHunt }
+        animalGrid.clear(); hunterGrid.clear(); carcassGrid.clear()
+        for (a in animals) if (a.isAlive) { animalGrid.add(a, a.position); if (a.species.canHunt) hunterGrid.add(a, a.position) }
+        for (c in carcasses) if (!c.isRemoved) carcassGrid.add(c, c.position)
         for (a in animals) a.feelings = brain.feel(a)
         log.info { "updated feelings of ${animals.size} animals" }
 

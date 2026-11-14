@@ -39,9 +39,7 @@ class Species(
     val bodyRadius: Double = 0.3,
     /** Universal stat VIEW_RANGE: distance (tiles) at which animals notice food, water and other animals. */
     val viewRange: Double = 12.0,
-    /** Distance (tiles) within which an animal looks for a mate; much larger than [viewRange] so rare animals can still find each other. */
-    val mateSenseRange: Double = 80.0,
-    /** Walking distance (tiles) within which animals know where water is; much larger than [viewRange] because they remember the land. */
+    /** Walking distance (tiles) within which animals know where water is; much larger than [viewRange] because they remember where the water is. */
     val waterSenseRange: Double = 150.0,
     /** Ticks an animal must stick with an action before it may switch to a different kind of action. */
     val actionCooldownTicks: Int = 20,

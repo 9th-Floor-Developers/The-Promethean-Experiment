@@ -45,10 +45,11 @@ internal class Brain(private val world: World) {
         var threat: Animal? = null
         var best = s.viewRange * s.viewRange
         if (!s.canHunt) {
-            for (o in world.hunters) {
-                if (!o.isAlive || o.species == s) continue
-                val d = a.position.distanceSquaredTo(o.position)
-                if (d <= best) { best = d; threat = o }
+            world.hunterGrid.forEachNear(a.position, s.viewRange) { o ->
+                if (o.isAlive && o.species != s) {
+                    val d = a.position.distanceSquaredTo(o.position)
+                    if (d <= best) { best = d; threat = o }
+                }
             }
         }
         val fear = threat?.let { 1 - a.position.distanceTo(it.position) / s.viewRange } ?: 0.0
@@ -126,12 +127,18 @@ internal class Brain(private val world: World) {
         }
     }
 
-    /** Nearest living, off-cooldown animal of the same species within the species' mate sense range. */
+    /** Nearest living, off-cooldown animal of the same species within view range. */
     private fun findMate(a: Animal): Animal? {
-        val range = a.species.mateSenseRange * a.species.mateSenseRange
-        return world.animals
-            .filter { it !== a && it.isAlive && it.species == a.species && it.reproductionCooldown == 0 && a.position.distanceSquaredTo(it.position) <= range }
-            .minByOrNull { a.position.distanceSquaredTo(it.position) }
+        val range = a.species.viewRange * a.species.viewRange
+        var best: Animal? = null
+        var bestD = Double.MAX_VALUE
+        world.animalGrid.forEachNear(a.position, a.species.viewRange) { o ->
+            if (o !== a && o.isAlive && o.species == a.species && o.reproductionCooldown == 0) {
+                val d = a.position.distanceSquaredTo(o.position)
+                if (d <= range && d < bestD) { bestD = d; best = o }
+            }
+        }
+        return best
     }
 
     /** Nearest reachable drinking spot (walkable tile next to water), within the species' water sense range. */
@@ -141,7 +148,7 @@ internal class Brain(private val world: World) {
         return Action.DrinkWater(world.water.nearestSourceFrom(a.position) ?: return null)
     }
 
-    /** Best food this species can eat in sense range: trees, carcasses or live prey. */
+    /** Best food this species can eat in view range: trees, carcasses or live prey. */
     private fun findFood(a: Animal): Action? {
         val s = a.species
         val range = s.viewRange * s.viewRange
@@ -156,10 +163,11 @@ internal class Brain(private val world: World) {
             targetBuf[n] = target
             n++
         }
-        if (s.eatsPlants) for (t in world.trees) if (t.isEdible) add(t, t.position, 1.0)
-        if (s.eatsPlants) for (g in world.grasses) if (g.isEdible) add(g, g.position, 1.0)
-        if (s.eatsCarcasses) for (c in world.carcasses) if (!c.isRemoved) add(c, c.position, 1.0)
-        if (s.canHunt) for (o in world.animals) if (o.isAlive && o.species != s) add(o, o.position, HUNT_PENALTY)
+        val view = s.viewRange
+        if (s.eatsPlants) world.treeGrid.forEachNear(a.position, view) { t -> if (t.isEdible) add(t, t.position, 1.0) }
+        if (s.eatsPlants) world.grassGrid.forEachNear(a.position, view) { g -> if (g.isEdible) add(g, g.position, 1.0) }
+        if (s.eatsCarcasses) world.carcassGrid.forEachNear(a.position, view) { c -> if (!c.isRemoved) add(c, c.position, 1.0) }
+        if (s.canHunt) world.animalGrid.forEachNear(a.position, view) { o -> if (o.isAlive && o.species != s) add(o, o.position, HUNT_PENALTY) }
 
         // Nearest first, skipping targets that sit across water (a straight walk must be possible).
         for (attempt in 0 until MAX_REACH_CHECKS) {
