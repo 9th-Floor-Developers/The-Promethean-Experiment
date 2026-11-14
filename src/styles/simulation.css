@@ -41,6 +41,10 @@
 .sim-clock { display: flex; gap: var(--space-1); align-items: baseline; font-variant-numeric: tabular-nums; }
 .sim-clock__label { opacity: 0.7; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .sim-clock__value { font-weight: 700; }
+.sim-clock__icon { align-self: center; flex: none; }
+.sim-clock__icon--sun { color: #ffd23f; }
+.sim-clock__icon--low { color: #ffa36b; }
+.sim-clock__icon--moon { color: #b9c6ff; }
 .sim-speed { display: flex; gap: var(--space-1); align-items: center; margin-left: var(--space-3, 1.5rem); }
 .sim-speed input { width: 7rem; }
 

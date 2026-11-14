@@ -22,6 +22,14 @@ const PRESETS: Record<Screen, CameraPreset> = {
 };
 
 const SKY = 0xbfe9ff;
+/** Day-night cycle colours: the sky at night, and the warm tint near sunrise and sunset. */
+const NIGHT_SKY = new THREE.Color(0x0b1330);
+const DAY_SKY = new THREE.Color(SKY);
+const HORIZON_TINT = new THREE.Color(0xffa36b);
+const SUN_COLOR = new THREE.Color(0xffffff);
+const MOON_COLOR = new THREE.Color(0x7f93d6);
+const DAY_GROUND = new THREE.Color(0x88aa88);
+const NIGHT_GROUND = new THREE.Color(0x1d2a45);
 /** Open ocean = opaque seabed + one translucent water surface spanning island and sea (no overlapping meshes). */
 const OCEAN_SIZE = 6000;
 const FOG_NEAR = 220;
@@ -58,6 +66,9 @@ export class WorldScene {
     private actors: SimActors | null = null;
     private simInfo: SimInfo | null = null;
     private snapshot: SimSnapshot | null = null;
+    private readonly hemiLight = new THREE.HemisphereLight(0xffffff, 0x88aa88, 1.1);
+    private readonly sunLight = new THREE.DirectionalLight(0xffffff, 1.6);
+    private readonly skyColor = new THREE.Color();
     private pathProvider: ((id: number) => number[]) | null = null;
     private target: CameraPreset = PRESETS.landing;
     private readonly lookAt = PRESETS.landing.lookAt.clone();
@@ -120,12 +131,11 @@ export class WorldScene {
         this.camera.position.copy(PRESETS.landing.position);
 
         this.scene.add(
-            new THREE.HemisphereLight(0xffffff, 0x88aa88, 1.1),
+            this.hemiLight,
             this.world,
         );
-        const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-        sun.position.set(60, 100, 40);
-        this.scene.add(sun);
+        this.sunLight.position.set(60, 100, 40);
+        this.scene.add(this.sunLight);
 
         this.setTerrain(null);
 
@@ -151,6 +161,8 @@ export class WorldScene {
         this.measureInsets();
         this.spinning = screen !== 'simulation';
         this.actors?.setAnimalsVisible(screen === 'simulation');
+        if (screen !== 'simulation') this.applyTimeOfDay(0.5); // menus are always bright midday
+        else if (this.snapshot) this.applyTimeOfDay(this.snapshot.timeOfDay);
         if (screen === 'simulation') {
             this.simTouched = false;
             this.simYaw = 0;
@@ -224,6 +236,27 @@ export class WorldScene {
         this.updateSimTarget();
     }
 
+    /**
+     * Day-night cycle: moves the sun across the sky and blends sky, fog and light colours from bright blue at noon
+     * through an orange horizon glow to dark blue at midnight. `timeOfDay` is 0 (midnight) to 1; 0.5 is noon.
+     */
+    private applyTimeOfDay(timeOfDay: number): void {
+        const angle = (timeOfDay - 0.25) * Math.PI * 2; // sun rises at 06:00, sets at 18:00
+        const elevation = Math.sin(angle); // 1 at noon, -1 at midnight
+        const daylight = THREE.MathUtils.smoothstep(elevation, -0.15, 0.35);
+        const glow = Math.max(0, 1 - Math.abs(elevation) / 0.3) * 0.65; // strongest right at sunrise and sunset
+
+        this.skyColor.copy(NIGHT_SKY).lerp(DAY_SKY, daylight).lerp(HORIZON_TINT, glow);
+        (this.scene.background as THREE.Color).copy(this.skyColor);
+        (this.scene.fog as THREE.Fog).color.copy(this.skyColor);
+
+        this.hemiLight.intensity = 0.4 + 0.7 * daylight;
+        this.hemiLight.groundColor.copy(NIGHT_GROUND).lerp(DAY_GROUND, daylight);
+        this.sunLight.intensity = 0.25 + 1.35 * daylight; // dim moonlight at night
+        this.sunLight.color.copy(MOON_COLOR).lerp(SUN_COLOR, daylight).lerp(HORIZON_TINT, glow * 0.5);
+        this.sunLight.position.set(Math.cos(angle) * 100, Math.max(elevation, 0.2) * 100, 40);
+    }
+
     /** Highlights the selected animal in the scene (null clears). */
     setSelectedAnimal(id: number | null): void {
         this.selectedId = id;
@@ -234,6 +267,7 @@ export class WorldScene {
     setSnapshot(snapshot: SimSnapshot | null): void {
         this.snapshot = snapshot;
         if (snapshot) this.actors?.update(snapshot);
+        if (snapshot && this.screen === 'simulation') this.applyTimeOfDay(snapshot.timeOfDay);
     }
 
     /** (Re)creates the actor layer whenever terrain or simulation info changes. */
