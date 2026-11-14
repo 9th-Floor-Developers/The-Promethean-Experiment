@@ -38,12 +38,16 @@ const BUILT_IN_KEYS: BuiltInKey[] = ['default', 'paradise', 'savanna'];
 function savannaSettings(): SimSettings {
     const species: Omit<SpeciesSettings, 'look'>[] = [ // looks are filled in by builtInSettings
         { uid: 0, name: 'Zebra', count: 60, stats: { maxHp: 110, speed: 0.08, damage: 1, armor: 2, viewRange: 18 },
+            mutationRate: 5,
             traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'HERDING', 'SPRINTING', 'ALARM_CALLING'] },
         { uid: 0, name: 'Leopard tortoise', count: 30, stats: { maxHp: 160, speed: 0.045, damage: 0.5, armor: 50, viewRange: 10 },
+            mutationRate: 5,
             traits: ['HARD_CODED', 'HERBIVORE', 'EGG_BIRTH', 'SHELL', 'ECTOTHERMIC', 'DIURNAL', 'SOLITARY', 'ARMOR', 'REGENERATION'] },
         { uid: 0, name: 'Lion', count: 8, stats: { maxHp: 140, speed: 0.09, damage: 4, armor: 3, viewRange: 28 },
+            mutationRate: 5,
             traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR', 'PACK', 'SPRINTING'] },
         { uid: 0, name: 'Spotted hyena', count: 8, stats: { maxHp: 90, speed: 0.085, damage: 2, armor: 2, viewRange: 26 },
+            mutationRate: 5,
             traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'NOCTURNAL', 'PACK', 'NIGHT_VISION', 'HEARING'] },
     ];
     // sanitizeSettings hands out real uids (and clamps every stat to its allowed range).

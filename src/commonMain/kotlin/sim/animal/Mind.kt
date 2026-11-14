@@ -1,6 +1,7 @@
 package sim.animal
 
 import kotlin.random.Random
+import sim.species.Species
 
 /**
  * What a SOFT_CODED animal can choose to pursue (docs/sim/ANIMALS.MD). The network outputs one value (feeling)
@@ -44,6 +45,8 @@ class Mind(val net: NeuralNet) {
         /** Stamina spent per tick for every hidden neuron, so bigger brains must earn their keep. */
         const val NEURON_STAMINA_COST = 0.0003
 
+        // The mutation constants below apply at the default mutation rate; Species.mutationRate scales them.
+
         /** Chance at birth that a hidden layer is added, and separately that one is removed. */
         const val LAYER_MUTATION_CHANCE = 0.05
         /** Chance at birth that each hidden layer gains or loses up to [MAX_NEURON_CHANGE] neurons. */
@@ -63,20 +66,23 @@ class Mind(val net: NeuralNet) {
         /**
          * A newborn's mind: hidden layers taken from a random parent, each sized as the parents' average where both
          * have that layer, then mutated (layers added/removed, neurons added/removed); weights mixed from both parents.
+         * All mutation chances and sizes are the constants above scaled by the species' mutation rate relative to the
+         * default ([Species.mutationRate] / [AnimalStats.DEFAULT_MUTATION]), so a rate of 0 copies the parents exactly.
          */
-        fun inherit(a: Mind, b: Mind, rng: Random): Mind {
+        fun inherit(species: Species, a: Mind, b: Mind, rng: Random): Mind {
+            val scale = species.mutationRate / AnimalStats.DEFAULT_MUTATION
             val shapeParent = if (rng.nextBoolean()) a else b
             val ha = a.net.hiddenSizes; val hb = b.net.hiddenSizes
             val hidden = shapeParent.net.hiddenSizes.indices.map { i ->
                 if (i < ha.size && i < hb.size) (ha[i] + hb[i] + rng.nextInt(2)) / 2 else shapeParent.net.hiddenSizes[i]
             }.toMutableList()
-            for (i in hidden.indices) if (rng.nextDouble() < NEURON_MUTATION_CHANCE) {
+            for (i in hidden.indices) if (rng.nextDouble() < NEURON_MUTATION_CHANCE * scale) {
                 hidden[i] = (hidden[i] + rng.nextInt(-MAX_NEURON_CHANGE, MAX_NEURON_CHANGE + 1)).coerceIn(MIN_LAYER_SIZE, MAX_LAYER_SIZE)
             }
-            if (hidden.size < MAX_HIDDEN_LAYERS && rng.nextDouble() < LAYER_MUTATION_CHANCE) hidden.add(NEW_LAYER_SIZE)
-            if (hidden.size > 1 && rng.nextDouble() < LAYER_MUTATION_CHANCE) hidden.removeAt(rng.nextInt(hidden.size))
+            if (hidden.size < MAX_HIDDEN_LAYERS && rng.nextDouble() < LAYER_MUTATION_CHANCE * scale) hidden.add(NEW_LAYER_SIZE)
+            if (hidden.size > 1 && rng.nextDouble() < LAYER_MUTATION_CHANCE * scale) hidden.removeAt(rng.nextInt(hidden.size))
             val sizes = intArrayOf(INPUTS, *hidden.toIntArray(), OUTPUTS)
-            return Mind(NeuralNet.inherit(sizes, a.net, b.net, WEIGHT_MUTATION, rng))
+            return Mind(NeuralNet.inherit(sizes, a.net, b.net, WEIGHT_MUTATION * scale, rng))
         }
     }
 

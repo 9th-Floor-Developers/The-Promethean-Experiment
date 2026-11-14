@@ -108,6 +108,11 @@ export interface SpeciesSettings {
     count: number;
     stats: Record<StatKey, number>;
     traits: string[];
+    /**
+     * Percent by which offspring may differ from their parents (each inherited stat, and brain changes for neural-network
+     * species). A setting of the species itself: it is never inherited or mutated.
+     */
+    mutationRate: number;
     /** Seed of the species' random fictional appearance (see scene/animalLook.ts); unrelated to its stats. */
     look: Look;
 }
@@ -134,6 +139,14 @@ export const MAX_SPECIES = 6;
 export const MIN_COUNT = 1;
 export const MAX_COUNT = 150;
 export const DEFAULT_STATS: Record<StatKey, number> = { maxHp: 100, speed: 0.1, damage: 3, armor: 1, viewRange: 10 };
+/** Mutation rate slider limits and default, in percent; matches Kotlin's AnimalStats.DEFAULT_MUTATION and MAX_MUTATION. */
+export const MUTATION_RATE = { min: 0, max: 50, step: 1, default: 5 } as const;
+
+/** Keeps a mutation rate within its slider range, using the default when it is missing or not a number. */
+function clampMutationRate(v: unknown): number {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.max(MUTATION_RATE.min, Math.min(MUTATION_RATE.max, n)) : MUTATION_RATE.default;
+}
 
 let nextUid = 1;
 
@@ -146,7 +159,7 @@ export function withFixedLooks(settings: SimSettings): SimSettings {
 export function herbivoreTemplate(): SpeciesSettings {
     return {
         uid: nextUid++, name: 'Herbivore', count: 40, stats: { ...DEFAULT_STATS, speed: 0.07, viewRange: 16 },
-        traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'HERDING'], look: pickDistinctLook([]),
+        traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'HERDING'], mutationRate: MUTATION_RATE.default, look: pickDistinctLook([]),
     };
 }
 
@@ -154,7 +167,7 @@ export function herbivoreTemplate(): SpeciesSettings {
 export function carnivoreTemplate(): SpeciesSettings {
     return {
         uid: nextUid++, name: 'Carnivore', count: 10, stats: { ...DEFAULT_STATS, speed: 0.09, viewRange: 30 },
-        traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR', 'PACK'], look: pickDistinctLook([]),
+        traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR', 'PACK'], mutationRate: MUTATION_RATE.default, look: pickDistinctLook([]),
     };
 }
 
@@ -168,11 +181,11 @@ export function newSpeciesName(existing: SpeciesSettings[]): string {
     for (let i = existing.length + 1; ; i++) if (!existing.some((s) => s.name === `Species ${i}`)) return `Species ${i}`;
 }
 
-/** Serialises settings into the line format Kotlin's parseSpeciesConfig reads: `name|count|key=value,...|TRAIT,...`. */
+/** Serialises settings into the line format Kotlin's parseSpeciesConfig reads: `name|count|key=value,...|TRAIT,...` (mutationRate travels with the stats). */
 export function toSpeciesConfig(settings: SimSettings): string {
     return settings.species.map((s) => {
         const name = (s.name.replace(/[|"\\\n]/g, '').trim() || 'Species');
-        const stats = (Object.keys(s.stats) as StatKey[]).map((k) => `${k}=${s.stats[k]}`).join(',');
+        const stats = [...(Object.keys(s.stats) as StatKey[]).map((k) => `${k}=${s.stats[k]}`), `mutationRate=${clampMutationRate(s.mutationRate)}`].join(',');
         return `${name}|${Math.max(MIN_COUNT, Math.min(MAX_COUNT, Math.round(s.count)))}|${stats}|${s.traits.join(',')}`;
     }).join('\n');
 }
@@ -187,7 +200,7 @@ function clampStats(stats: Record<StatKey, number>): Record<StatKey, number> {
 }
 
 /**
- * Validates settings read from storage (clamping numbers, filling missing stats and looks) and gives every species a fresh uid.
+ * Validates settings read from storage (clamping numbers, filling missing stats, mutation rates and looks) and gives every species a fresh uid.
  * Returns null if `raw` is not usable settings. Also used to deep-copy settings.
  */
 export function sanitizeSettings(raw: unknown): SimSettings | null {
@@ -197,7 +210,7 @@ export function sanitizeSettings(raw: unknown): SimSettings | null {
     return {
         water: res(parsed.water), trees: res(parsed.trees), grass: res(parsed.grass),
         mapSize: Math.max(MAP_SIZE.min, Math.min(MAP_SIZE.max, Number(parsed.mapSize) || MAP_SIZE.default)),
-        species: fillMissingLooks(parsed.species).map((s) => ({ ...s, uid: nextUid++, stats: clampStats({ ...DEFAULT_STATS, ...s.stats }), traits: [...s.traits] })),
+        species: fillMissingLooks(parsed.species).map((s) => ({ ...s, uid: nextUid++, stats: clampStats({ ...DEFAULT_STATS, ...s.stats }), mutationRate: clampMutationRate(s.mutationRate), traits: [...s.traits] })),
     };
 }
 

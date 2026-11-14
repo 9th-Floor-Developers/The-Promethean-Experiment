@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-    CATEGORIES, EXTRA_TRAITS, MAP_SIZE, MAX_COUNT, RESOURCE, MAX_SPECIES, MIN_COUNT, STATS, carnivoreTemplate, herbivoreTemplate,
+    CATEGORIES, EXTRA_TRAITS, MAP_SIZE, MAX_COUNT, RESOURCE, MAX_SPECIES, MIN_COUNT, MUTATION_RATE, STATS, carnivoreTemplate, herbivoreTemplate,
     newSpeciesName, type SimSettings, type SpeciesSettings, type StatKey,
 } from '../settings/speciesSettings';
 import { activePreset, builtInSettings, createPreset, duplicatePreset, type PresetStore } from '../settings/presets';
@@ -245,6 +245,15 @@ function SpeciesCard({ sp, index, canRemove, otherLooks, onPatch, onRemove }: Ca
                         <p className="stat__help">{d.help}</p>
                     </div>
                 ))}
+                <div className="stat">
+                    <label htmlFor={`${id}-mutationRate`} className="stat__label">
+                        Mutation rate <strong>{sp.mutationRate}%</strong>
+                    </label>
+                    <input id={`${id}-mutationRate`} className="slider" type="range" min={MUTATION_RATE.min} max={MUTATION_RATE.max} step={MUTATION_RATE.step}
+                        value={sp.mutationRate} onChange={(e) => onPatch((s) => ({ ...s, mutationRate: Number(e.target.value) }))} />
+                    <div className="stat__ends"><span>Like parents</span><span>Wild changes</span></div>
+                    <p className="stat__help">How much babies can differ from their parents. This setting itself is never passed on or changed.</p>
+                </div>
             </div>
 
             <h2 className="species-card__title">Traits</h2>

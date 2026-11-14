@@ -488,7 +488,7 @@ class World(
     private fun reproduce(a: Animal, mate: Animal) {
         val s = a.species
         val stats = AnimalStats.inherit(s, a.stats, mate.stats, rng)
-        val mind = if (a.mind != null && mate.mind != null) Mind.inherit(a.mind, mate.mind, rng) else null
+        val mind = if (a.mind != null && mate.mind != null) Mind.inherit(s, a.mind, mate.mind, rng) else null
         a.mind?.let { it.pendingReward += BIRTH_REWARD }
         mate.mind?.let { it.pendingReward += BIRTH_REWARD }
         a.reproductionCooldown = s.reproductionCooldownTicks

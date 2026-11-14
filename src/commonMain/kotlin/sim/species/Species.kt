@@ -66,6 +66,12 @@ class Species(
     val eggNutrition: Double = 25.0,
     /** Nutrition contained in the carcass left behind on death. */
     val carcassNutrition: Double = 60.0,
+    /**
+     * How strongly offspring differ from their parents: each inherited stat changes by up to this fraction either way,
+     * and SOFT_CODED brain mutations scale with it (see [sim.animal.Mind.inherit]). A species setting; it is never
+     * inherited or mutated itself.
+     */
+    val mutationRate: Double = AnimalStats.DEFAULT_MUTATION,
 ) {
     init {
         val dupes = traits.mapNotNull { it.category }.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
@@ -74,6 +80,7 @@ class Species(
             armor >= AnimalStats.MIN_ARMOR && viewRange >= AnimalStats.MIN_VIEW_RANGE) { "Species '$name' has an inherited stat below its minimum" }
         require(baseStaminaUsage >= 0 && walkingStaminaUsage >= 0) { "stamina usage must not be negative" }
         require(elderlyAge >= 0) { "elderlyAge must not be negative" }
+        require(mutationRate in 0.0..AnimalStats.MAX_MUTATION) { "mutationRate must be between 0 and ${AnimalStats.MAX_MUTATION}" }
         require(reproductionNutritionThreshold <= maxNutrition) { "reproduction threshold above max nutrition" }
     }
 

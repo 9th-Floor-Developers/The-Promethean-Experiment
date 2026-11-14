@@ -10,6 +10,9 @@ DAMAGE (DEF: 3, MIN: 0.1)
 ARMOR (DEF: 1, MIN: 0.1)
 VIEW_RANGE - animals can only see things this distance in tiles (DEF: 10, MIN 3)
 
+MUTATION RATE (DEF: 5%, 0% to 50%) - a species setting (set in Settings or a preset), not an inherited stat: it is never inherited or mutated itself
+each inherited stat of a newborn changes by up to this percent either way, and SOFT CODED brain mutations scale with it (0% = exact copy of the parents)
+
 These are calculated stats calculated from the inherited stats
 BASE_STAMINA_USAGE - increase when MAX HP increases and VIEW RANGE increases
 WALKING_STAMINA_USAGE - increase when SPEED increases

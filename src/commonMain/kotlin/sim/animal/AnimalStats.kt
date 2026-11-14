@@ -28,8 +28,10 @@ class AnimalStats(
     val armorReduction: Double get() = (armor / 100).coerceIn(0.0, MAX_ARMOR_REDUCTION)
 
     companion object {
-        /** Each inherited stat is multiplied by a random factor within this fraction either side of 1 at birth. */
-        const val MUTATION = 0.05
+        /** Default [Species.mutationRate]: each inherited stat is multiplied by a random factor within this fraction either side of 1 at birth. */
+        const val DEFAULT_MUTATION = 0.05
+        /** Highest allowed [Species.mutationRate]. */
+        const val MAX_MUTATION = 0.5
 
         /** Inherited stats stay between these multiples of the species' founder value, so lines cannot run away. */
         const val MIN_RATIO = 0.5
@@ -59,11 +61,11 @@ class AnimalStats(
             )
         }
 
-        /** Stats of a newborn: each inherited stat is the parents' average, randomly mutated, kept near the founder value. */
+        /** Stats of a newborn: each inherited stat is the parents' average, mutated by up to the species' [Species.mutationRate], kept near the founder value. */
         fun inherit(s: Species, a: AnimalStats, b: AnimalStats, rng: Random): AnimalStats {
             fun mix(x: Double, y: Double, founder: Double, min: Double): Double {
                 if (founder == 0.0) return 0.0 // a stat the species lacks (no attack, no armor) cannot appear by mutation
-                val mutated = (x + y) / 2 * (1 + (rng.nextDouble() * 2 - 1) * MUTATION)
+                val mutated = (x + y) / 2 * (1 + (rng.nextDouble() * 2 - 1) * s.mutationRate)
                 return mutated.coerceIn(maxOf(founder * MIN_RATIO, min), maxOf(founder * MAX_RATIO, min))
             }
             return derive(
