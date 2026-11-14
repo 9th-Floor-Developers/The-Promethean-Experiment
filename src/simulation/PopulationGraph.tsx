@@ -1,3 +1,4 @@
+import { useState, type MouseEvent } from 'react';
 import { A, type SimInfo, type SimSnapshot } from '../sim/types';
 import type { PopulationSample } from '../sim/usePopulationHistory';
 
@@ -49,6 +50,7 @@ interface ChartProps extends Props {
  * x is simulation days, y is living animals. The full `history` is never trimmed; `windowDays` only picks what is drawn.
  */
 export function PopulationChart({ history: stored, info, snapshot, windowDays, width = 300, height = 140 }: ChartProps) {
+    const [hover, setHover] = useState<{ cx: number; cy: number; idx: number } | null>(null);
     const all = withLivePoint(stored, info, snapshot);
     if (all.length < 2 || !info) return <div className="panel__empty">Collecting data…</div>;
 
@@ -64,9 +66,23 @@ export function PopulationChart({ history: stored, info, snapshot, windowDays, w
     const path = (vals: number[]) => vals.map((v, i) => `${i ? 'L' : 'M'}${x(history[i]!.tick).toFixed(1)},${y(v).toFixed(1)}`).join('');
     const days = (tick: number) => (tick / TICKS_PER_DAY + 1).toFixed(1);
     const latest = history[history.length - 1]!;
+
+    /** Finds the sample nearest the mouse's x position and remembers where the mouse is for the tooltip. */
+    const onMove = (e: MouseEvent<SVGSVGElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const tick = t0 + (((e.clientX - rect.left) / rect.width) * W - PAD.l) / (W - PAD.l - PAD.r) * span;
+        let idx = 0;
+        for (let i = 1; i < history.length; i++) {
+            if (Math.abs(history[i]!.tick - tick) < Math.abs(history[idx]!.tick - tick)) idx = i;
+        }
+        setHover({ cx: e.clientX, cy: e.clientY, idx });
+    };
+    const hs = hover ? history[Math.min(hover.idx, history.length - 1)] : undefined;
+    const flip = hover !== undefined && hover !== null && hover.cx > window.innerWidth - 200;
     return (
         <>
-            <svg className="popgraph" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Population over time">
+            <svg className="popgraph" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Population over time"
+                 onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
                 {[0, 0.5, 1].map((f) => (
                     <g key={f}>
                         <line x1={PAD.l} x2={W - PAD.r} y1={y(yMax * f)} y2={y(yMax * f)} stroke={GRID} strokeWidth={1} />
@@ -80,7 +96,27 @@ export function PopulationChart({ history: stored, info, snapshot, windowDays, w
                           stroke={LINE_COLORS[i % LINE_COLORS.length]} strokeWidth={1.8} strokeLinejoin="round" />
                 ))}
                 <path d={path(totals)} fill="none" stroke={TOTAL_COLOR} strokeWidth={1.2} strokeDasharray="4 3" />
+                {hs && (
+                    <g pointerEvents="none">
+                        <line x1={x(hs.tick)} x2={x(hs.tick)} y1={PAD.t} y2={H - PAD.b} stroke={TOTAL_COLOR} strokeOpacity={0.5} strokeWidth={1} />
+                        {info.species.map((_, i) => (
+                            <circle key={i} cx={x(hs.tick)} cy={y(hs.counts[i] ?? 0)} r={2.5} fill={LINE_COLORS[i % LINE_COLORS.length]} />
+                        ))}
+                    </g>
+                )}
             </svg>
+            {hover && hs && (
+                <div className="popgraph__tip" style={{ left: hover.cx, top: hover.cy, transform: `translate(${flip ? 'calc(-100% - 14px)' : '14px'}, 14px)` }}>
+                    <div className="popgraph__tip-day">Day {days(hs.tick)}</div>
+                    {info.species.map((sp, i) => (
+                        <div key={sp.name}>
+                            <span className="popgraph__swatch" style={{ background: LINE_COLORS[i % LINE_COLORS.length] }} />
+                            {sp.name} <strong>{hs.counts[i] ?? 0}</strong>
+                        </div>
+                    ))}
+                    <div><span className="popgraph__swatch popgraph__swatch--total" />Total <strong>{hs.counts.reduce((a, b) => a + b, 0)}</strong></div>
+                </div>
+            )}
             <ul className="popgraph__legend">
                 {info.species.map((s, i) => (
                     <li key={s.name}>
