@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Screen } from './app/screens';
 import { createSimulation, type KotlinSimulation } from './sim/kotlinSim';
 import { useSimulation, MIN_SPEED } from './sim/useSimulation';
@@ -9,6 +9,8 @@ import {LandingScreen} from "./screen/LandingScreen.tsx";
 import {OpeningScreen} from "./screen/OpeningScreen.tsx";
 import {SimulationScreen} from "./simulation/SimulationScreen.tsx";
 import {CreditsScreen} from "./screen/CreditsScreen.tsx";
+import {SettingsScreen} from "./screen/SettingsScreen.tsx";
+import { loadSettings, saveSettings, toSpeciesConfig, type SimSettings } from './settings/speciesSettings';
 
 export default function App() {
     const [screen, setScreen] = useState<Screen>('landing');
@@ -17,10 +19,15 @@ export default function App() {
     const [leaderboardSettings, setLeaderboardSettings] = useState<LeaderboardSettings>(DEFAULT_LEADERBOARD_SETTINGS);
     const [following, setFollowing] = useState(false);
     const [sim, setSim] = useState<KotlinSimulation | null>(null);
+    // Which species run, how many, their stats and traits; edited on the Settings screen, used whenever a world is built.
+    const [settings, setSettings] = useState<SimSettings>(loadSettings);
+    const settingsRef = useRef(settings);
+    settingsRef.current = settings;
+    const settingsDirty = useRef(false);
 
     // The world (terrain, animals, objects) comes from the Kotlin simulation compiled to Wasm, not from TypeScript.
     useEffect(() => {
-        createSimulation().then(setSim).catch((e) => console.error('Kotlin simulation failed to start', e));
+        createSimulation(undefined, undefined, toSpeciesConfig(settingsRef.current)).then(setSim).catch((e) => console.error('Kotlin simulation failed to start', e));
     }, []);
 
     // Ticks only while the simulation screen is open; leaving it pauses the world where it is.
@@ -49,13 +56,26 @@ export default function App() {
         setFollowing(false);
         setEnded(false);
         setSpeed(MIN_SPEED);
-        createSimulation().then(setSim).catch((e) => console.error('Kotlin simulation failed to restart', e));
+        createSimulation(undefined, undefined, toSpeciesConfig(settingsRef.current)).then(setSim).catch((e) => console.error('Kotlin simulation failed to restart', e));
     }, []);
 
     const [cameFromCredits, setCameFromCredits] = useState(false);
     const closeCredits = useCallback(() => {
         setCameFromCredits(true);
         setScreen('opening');
+    }, []);
+
+    const changeSettings = useCallback((next: SimSettings) => {
+        settingsDirty.current = true;
+        setSettings(next);
+    }, []);
+    /** Leaves Settings; if anything changed, saves it and rebuilds the world so the next run uses it. */
+    const closeSettings = useCallback(() => {
+        setScreen('opening');
+        if (!settingsDirty.current) return;
+        settingsDirty.current = false;
+        saveSettings(settingsRef.current);
+        createSimulation(undefined, undefined, toSpeciesConfig(settingsRef.current)).then(setSim).catch((e) => console.error('Kotlin simulation failed to rebuild', e));
     }, []);
 
     return (
@@ -68,11 +88,13 @@ export default function App() {
                     <OpeningScreen
                         onStartSimulation={() => setScreen('simulation')}
                         onOpenCredits={() => setScreen('credits')}
+                        onOpenSettings={() => setScreen('settings')}
                         focusCredits={cameFromCredits}
                     />
                 )}
                 {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} onSelect={setSelectedId} following={following} onFollowChange={setFollowing} onBack={endSimulation}
                     leaderboardSettings={leaderboardSettings} onLeaderboardSettingsChange={setLeaderboardSettings} history={history} ended={ended} speed={speed} onSpeedChange={setSpeed} />}
+                {screen === 'settings' && <SettingsScreen settings={settings} onChange={changeSettings} onDone={closeSettings} />}
                 {screen === 'credits' && <CreditsScreen onBack={closeCredits} />}
             </main>
         </>

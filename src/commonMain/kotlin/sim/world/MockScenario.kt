@@ -46,20 +46,27 @@ const val GRASS_ON_PLAIN = 0.12
 const val GRASS_ON_FOREST = 0.03
 
 /**
- * Builds the demo world shared by the JVM entry point and the Wasm export: generated terrain, the two
+ * Builds the default demo world shared by the JVM entry point and the Wasm export: generated terrain, the two
  * mock species spread over random land tiles, then grass and trees (dense in forests).
  */
-fun createMockWorld(seed: Long, size: Int = TERRAIN_SIZE): World {
+fun createMockWorld(seed: Long, size: Int = TERRAIN_SIZE): World =
+    createWorld(seed, size, listOf(SpeciesSetup(MOCK_CARNIVORE, START_CARNIVORES), SpeciesSetup(MOCK_HERBIVORE, START_HERBIVORES)))
+
+/**
+ * Builds a world from user-chosen [setups]: generated terrain, each species spread over random land tiles
+ * (as many as fit), then grass and trees. The terrain depends only on [seed] and [size].
+ */
+fun createWorld(seed: Long, size: Int, setups: List<SpeciesSetup>): World {
     val terrain = TerrainGenerator.generate(seed, size)
-    val world = World(terrain, listOf(MOCK_CARNIVORE, MOCK_HERBIVORE), seed)
+    val world = World(terrain, setups.map { it.species }, seed)
     val rng = Random(seed)
 
     val spots = (0 until terrain.width * terrain.height)
         .map { Vector2((it % terrain.width) + 0.5, (it / terrain.width) + 0.5) }
         .filter { terrain.at(it.x.toInt(), it.y.toInt()) != TileType.WATER }
         .shuffled(rng)
-    repeat(START_CARNIVORES) { world.spawn(MOCK_CARNIVORE, spots[it]) }
-    repeat(START_HERBIVORES) { world.spawn(MOCK_HERBIVORE, spots[START_CARNIVORES + it]) }
+    var next = 0
+    for (setup in setups) repeat(setup.count) { if (next < spots.size) world.spawn(setup.species, spots[next++]) }
     scatterObjects(world, rng)
     return world
 }

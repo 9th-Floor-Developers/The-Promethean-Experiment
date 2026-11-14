@@ -137,3 +137,48 @@ h1, h2 { font-family: var(--font-display); margin: 0; }
     color: #fff;
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
 }
+
+/* Settings: scrollable panel of species cards over the dimmed world. */
+.settings {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    pointer-events: auto;
+    padding: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    background: rgba(31, 42, 68, 0.55);
+    animation: ui-in 0.5s ease-out both;
+}
+.settings > * { width: min(100%, 1100px); margin-inline: auto; }
+.settings__top { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: space-between; align-items: flex-start; color: #fff; }
+.settings__heading { font-size: clamp(2rem, 5vw, 3rem); color: #fff; }
+.settings__intro { margin: 0.25rem 0 0; max-width: 46ch; }
+.settings__actions { display: flex; gap: var(--space-1); flex-wrap: wrap; }
+.settings__list { display: grid; gap: var(--space-2); }
+.settings__add { display: flex; gap: var(--space-1); flex-wrap: wrap; align-items: center; }
+.settings__hint { font-size: 0.9rem; font-weight: 400; color: inherit; opacity: 0.85; }
+.settings > .settings__hint { color: #fff; }
+
+.species-card { background: var(--color-surface); color: var(--color-ink); border-radius: var(--radius); padding: var(--space-3); display: grid; gap: var(--space-2); }
+.species-card__head { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: flex-end; }
+.species-card__badge { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--color-accent); color: var(--color-accent-ink); display: grid; place-items: center; font-weight: 700; }
+.species-card__title { font-size: 1.15rem; margin-top: var(--space-1); }
+.species-card__remove { margin-left: auto; }
+.field { display: grid; gap: 0.25rem; }
+.field--grow { flex: 1 1 12rem; }
+.field__label, .trait__label { font-weight: 700; font-size: 0.9rem; }
+.input { font: inherit; padding: 0.55rem 0.75rem; border-radius: 10px; border: 2px solid rgba(31, 42, 68, 0.25); background: #fff; color: var(--color-ink); min-height: 44px; width: 100%; }
+.input--num { width: 8rem; }
+.input:focus-visible, .slider:focus-visible, .chip:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 2px; }
+.stats, .traits { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-2) var(--space-3); }
+.stat, .trait { display: grid; gap: 0.2rem; align-content: start; }
+.stat__label { font-weight: 700; display: flex; justify-content: space-between; gap: var(--space-1); }
+.stat__ends { display: flex; justify-content: space-between; font-size: 0.8rem; opacity: 0.7; }
+.stat__help { margin: 0; font-size: 0.85rem; opacity: 0.8; }
+.slider { width: 100%; accent-color: var(--color-accent); min-height: 28px; cursor: pointer; }
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.chip { font: inherit; font-weight: 700; padding: 0.4rem 0.9rem; border-radius: 999px; border: 2px solid rgba(31, 42, 68, 0.3); background: #fff; color: var(--color-ink); cursor: pointer; min-height: 40px; }
+.chip--on { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-accent-ink); }
+@media (prefers-reduced-motion: reduce) { .settings { animation: none; } }

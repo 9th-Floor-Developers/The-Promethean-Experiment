@@ -14,6 +14,7 @@ interface CameraPreset {
 
 const PRESETS: Record<Screen, CameraPreset> = {
     landing: { position: new THREE.Vector3(0, 80, 135), lookAt: new THREE.Vector3(0, 0, 0) },
+    settings: { position: new THREE.Vector3(0, 40, 72), lookAt: new THREE.Vector3(0, 0, 0) },
     credits: { position: new THREE.Vector3(0, 30, 56), lookAt: new THREE.Vector3(0, 0, 0) },
     // 'simulation' is driven by the user-controlled camera below; this entry only supplies the fixed view direction.
     simulation: { position: new THREE.Vector3(0, 60, 62), lookAt: new THREE.Vector3(0, 0, 0) },

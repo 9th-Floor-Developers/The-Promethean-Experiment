@@ -22,11 +22,12 @@ export interface KotlinSimulation {
 /**
  * Creates the simulation by running the Kotlin code in WebAssembly. The Wasm module is loaded lazily.
  * Requires `src/kotlin-gen`, which `npm run dev` / `npm run build` create via `./gradlew syncKotlinWasm`.
+ * `speciesConfig` is the Settings text (see settings/speciesSettings.ts toSpeciesConfig); empty = default species.
  * The terrain returned is the simulation's own terrain, so what is drawn is what the animals walk on.
  */
-export async function createSimulation(seed = 42, size = 200): Promise<KotlinSimulation> {
+export async function createSimulation(seed = 42, size = 200, speciesConfig = ''): Promise<KotlinSimulation> {
     const kotlin = await import('../kotlin-gen/Project-Prometheus-wasm-js.mjs');
-    const json = JSON.parse(kotlin.createSimulation(seed, size)) as TerrainJson;
+    const json = JSON.parse(kotlin.createSimulation(seed, size, speciesConfig)) as TerrainJson;
     return {
         terrain: {
             width: json.width,

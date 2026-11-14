@@ -8,16 +8,17 @@ function ignoreRepeat(e: React.KeyboardEvent): void {
 interface Props {
     onStartSimulation: () => void;
     onOpenCredits: () => void;
+    onOpenSettings: () => void;
     /** True when returning from Credits: focus the Credits button instead of Start. */
     focusCredits?: boolean;
 }
 
 /**
  * Opening / main-menu screen: title top-left, then Start Simulation,
- * Settings (disabled stub; future Settings screen plugs in here) and Credits.
+ * Settings and Credits.
  * Moves keyboard focus on mount, since the previous screen's control has unmounted.
  */
-export function OpeningScreen({ onStartSimulation, onOpenCredits, focusCredits }: Props) {
+export function OpeningScreen({ onStartSimulation, onOpenCredits, focusCredits, onOpenSettings }: Props) {
     const startRef = useRef<HTMLButtonElement>(null);
     const creditsRef = useRef<HTMLButtonElement>(null);
 
@@ -32,8 +33,7 @@ export function OpeningScreen({ onStartSimulation, onOpenCredits, focusCredits }
                 <button ref={startRef} type="button" className="btn btn--primary" onClick={onStartSimulation}>
                     Start Simulation
                 </button>
-                {/* Settings intentionally not implemented; deferred to a later phase. */}
-                <button type="button" className="btn" disabled title="Coming soon">
+                <button type="button" className="btn" onClick={onOpenSettings}>
                     Settings
                 </button>
                 <button ref={creditsRef} type="button" className="btn" onClick={onOpenCredits}>
