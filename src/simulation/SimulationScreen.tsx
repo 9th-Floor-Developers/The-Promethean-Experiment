@@ -1,7 +1,8 @@
 import { SimulationHeader } from './SimulationHeader';
 import { SimulationViewport } from './SimulationViewport';
 import { IndividualInspector } from './IndividualInspector';
-import { PopulationGraph } from './PopulationGraph';
+import { useState } from 'react';
+import { PopulationGraph, SimulationSummary } from './PopulationGraph';
 import type { SimInfo, SimSnapshot } from '../sim/types';
 import type { PopulationSample } from '../sim/usePopulationHistory';
 
@@ -14,15 +15,21 @@ interface Props {
     info: SimInfo | null;
     selectedId: number | null;
     history: PopulationSample[];
+    /** True once every animal has died; shows the full-run graph. */
+    ended: boolean;
     speed: number;
     onSpeedChange: (speed: number) => void;
 }
 
-export function SimulationScreen({ snapshot, info, selectedId, history, speed, onSpeedChange }: Props) {
+export function SimulationScreen({ snapshot, info, selectedId, history, ended, speed, onSpeedChange }: Props) {
+    const [summaryClosed, setSummaryClosed] = useState(false);
     return (
         <div className="sim">
             <SimulationHeader snapshot={snapshot} speed={speed} onSpeedChange={onSpeedChange} />
             <SimulationViewport />
+            {ended && !summaryClosed && (
+                <SimulationSummary history={history} info={info} snapshot={snapshot} onClose={() => setSummaryClosed(true)} />
+            )}
             <aside className="sim__sidebar" aria-label="Simulation panels">
                 <IndividualInspector snapshot={snapshot} info={info} selectedId={selectedId} />
                 <PopulationGraph history={history} info={info} snapshot={snapshot} />

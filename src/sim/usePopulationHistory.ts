@@ -10,7 +10,7 @@ export interface PopulationSample {
 /** Record a sample every this many ticks (30 ticks = 1 real second, so about 3 samples per second). */
 const SAMPLE_EVERY_TICKS = 10;
 /** When the history grows past this, every second sample is dropped and the sampling interval doubles. */
-const MAX_SAMPLES = 600;
+const MAX_SAMPLES = 20000;
 
 /**
  * Accumulates population-over-time samples from the live snapshot stream.

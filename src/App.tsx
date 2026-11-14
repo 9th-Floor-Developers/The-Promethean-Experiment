@@ -21,7 +21,12 @@ export default function App() {
 
     // Ticks only while the simulation screen is open; leaving it pauses the world where it is.
     const [speed, setSpeed] = useState(MIN_SPEED);
-    const snapshot = useSimulation(sim, screen === 'simulation', speed);
+    const [ended, setEnded] = useState(false);
+    const snapshot = useSimulation(sim, screen === 'simulation' && !ended, speed);
+    // The simulation ends when every animal has died; ticking stops and the full history is shown.
+    useEffect(() => {
+        if (snapshot && snapshot.tick > 0 && snapshot.animals.length === 0) setEnded(true);
+    }, [snapshot]);
     const history = usePopulationHistory(snapshot, sim?.info ?? null);
 
     const [cameFromCredits, setCameFromCredits] = useState(false);
@@ -43,7 +48,7 @@ export default function App() {
                         focusCredits={cameFromCredits}
                     />
                 )}
-                {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} history={history} speed={speed} onSpeedChange={setSpeed} />}
+                {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} history={history} ended={ended} speed={speed} onSpeedChange={setSpeed} />}
                 {screen === 'credits' && <CreditsScreen onBack={closeCredits} />}
             </main>
         </>
