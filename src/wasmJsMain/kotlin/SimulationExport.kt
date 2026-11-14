@@ -46,7 +46,7 @@ fun createSimulation(seed: Int, size: Int): String {
 
 /**
  * Static facts the frontend needs once:
- * `{"actions":[name...],"species":[{"name","canHunt","traits":[..],"maxHp","maxNutrition","maxHydration","maxStamina"}...],
+ * `{"actions":[name...],"species":[{"name","canHunt","traits":[..],"maxHp","maxNutrition","maxHydration","maxStamina","viewRange"}...],
  * "scenery":[[id,type,x,y]...]}`. `actions` is indexed by an animal row's action code.
  * Scenery `type` is 1 = tree, 2 = grass; trees and grass appear in the same order as the `trees` and `grass`
  * strings of [getSimulationSnapshot]. Positions are in tile units (the tile under it is floor(x), floor(y)).
@@ -57,7 +57,7 @@ fun getSimulationInfo(): String {
     val w = current()
     val species = w.species.joinToString(",") { s ->
         "{" + """"name":${q(s.name)},"canHunt":${s.canHunt},"traits":[${s.traits.joinToString(",") { q(it.name) }}],""" +
-            """"maxHp":${s.maxHp},"maxNutrition":${s.maxNutrition},"maxHydration":${s.maxHydration},"maxStamina":${s.maxStamina}}"""
+            """"maxHp":${s.maxHp},"maxNutrition":${s.maxNutrition},"maxHydration":${s.maxHydration},"maxStamina":${s.maxStamina},"viewRange":${s.viewRange}}"""
     }
     val scenery = w.objects.filter { it is Grass || it is Tree }.joinToString(",") {
         "[${it.id},${if (it is Tree) 1 else 2},${r2(it.position.x)},${r2(it.position.y)}]"

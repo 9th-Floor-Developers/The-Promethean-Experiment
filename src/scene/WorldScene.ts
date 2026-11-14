@@ -35,7 +35,7 @@ const SIM_MIN_ZOOM = 0.03; // closest allowed distance, as a fraction of the fit
 const SIM_MAX_ZOOM = 1.4; // farthest allowed distance, as a fraction of the fit distance
 const SIM_PAN_LIMIT = 0.6; // focus may stray this fraction of the island half-extent from the center
 /** The simulation opens this fraction of the way in from the whole-island view (1 = whole island in frame, smaller = closer). */
-const SIM_START_ZOOM = 0.55;
+const SIM_START_ZOOM = .15;
 const SIM_ROTATE_SPEED = 0.006; // radians per pixel of right-drag
 const SIM_KEY_SPEED = 0.9; // WASD pan, in view-heights per second
 const SIM_ZOOM_SPEED = 0.0012; // per wheel delta unit (exponential)

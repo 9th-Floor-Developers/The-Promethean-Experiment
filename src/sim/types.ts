@@ -10,6 +10,8 @@ export interface SpeciesInfo {
     maxNutrition: number;
     maxHydration: number;
     maxStamina: number;
+    /** Distance in tiles at which animals of this species see food, mates and predators. */
+    viewRange: number;
 }
 
 export interface SimInfo {
