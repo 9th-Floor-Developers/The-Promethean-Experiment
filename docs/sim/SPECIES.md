@@ -1,4 +1,13 @@
+SPECIES UNIVERSAL STATS
 
+MAX HEALTH
+SPEED
+BASE_STAMINA_USAGE
+WALKING_STAMINA_USAGE (if the animal is walking the 2 stats are combined)
+ELDERLY - when age reaches this point the negative effects starts to occur
+
+
+SPECIES TRAITS
 
 CONTROLLER
 
