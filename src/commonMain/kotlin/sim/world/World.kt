@@ -103,6 +103,12 @@ class World(
         const val WANDER_SPEED = 0.4
         /** Chance per tick that a wandering animal picks a new direction. */
         const val WANDER_TURN_CHANCE = 0.03
+
+        /** A fleeing animal runs within this many radians either side of straight away from the predator (about 60 degrees). */
+        const val FLEE_SPREAD = 1.05
+
+        /** Chance per tick that a fleeing animal picks a new direction within [FLEE_SPREAD]. */
+        const val FLEE_TURN_CHANCE = 0.03
         /** HP regained per tick by REGENERATION animals that are not starving. */
         const val REGEN_RATE = 0.1
         /** Angles (radians) tried, in order, when the straight path is blocked. */
@@ -220,7 +226,10 @@ class World(
             Action.Wander -> wander(a)
             is Action.RunFromPredator -> {
                 val p = act.predator.position
-                tryMove(a, atan2(a.position.y - p.y, a.position.x - p.x), speed)
+                // Generally away from the predator, but not exactly: veer by a random offset that is only re-rolled occasionally.
+                if (rng.nextDouble() < FLEE_TURN_CHANCE) a.fleeOffset = (rng.nextDouble() * 2 - 1) * FLEE_SPREAD
+                val away = atan2(a.position.y - p.y, a.position.x - p.x)
+                if (!tryMove(a, away + a.fleeOffset, speed)) a.fleeOffset = (rng.nextDouble() * 2 - 1) * FLEE_SPREAD
             }
             is Action.AttackTarget -> if (!inAttackReach(a, act.target)) moveToward(a, act.target.position, speed)
             is Action.DrinkWater -> if (!canDrink(a, act.target)) moveToward(a, act.target, speed)

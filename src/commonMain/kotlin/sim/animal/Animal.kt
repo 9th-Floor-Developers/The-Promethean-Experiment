@@ -55,6 +55,9 @@ class Animal(
     /** Direction (radians) of the current wander. */
     var wanderHeading = 0.0
 
+    /** Angle (radians) the animal veers off the exact direction away from its predator; re-rolled now and then. */
+    var fleeOffset = 0.0
+
     /** Why the animal died, set when [hp] hits 0. */
     var causeOfDeath: String? = null
         private set
