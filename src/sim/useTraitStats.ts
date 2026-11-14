@@ -2,16 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { A, type SimInfo, type SimSnapshot } from './types';
 
 /** The universal per-animal stats (docs/sim/SPECIES.md), as radar axes: label and the column of an animal row. */
-export const TRAIT_AXES = [
+/** `invert` axes are drawn flipped (low usage = far out), since a lower value is the better one. */
+export const TRAIT_AXES: readonly { label: string; col: number; invert?: boolean }[] = [
     { label: 'Max HP', col: A.maxHp },
     { label: 'Speed', col: A.speed },
     { label: 'Damage', col: A.damage },
     { label: 'Armor', col: A.armor },
     { label: 'View range', col: A.viewRange },
-    { label: 'Base stamina use', col: A.baseStaminaUsage },
-    { label: 'Walking stamina use', col: A.walkingStaminaUsage },
+    { label: 'Base stamina use', col: A.baseStaminaUsage, invert: true },
+    { label: 'Walking stamina use', col: A.walkingStaminaUsage, invert: true },
     { label: 'Elderly age', col: A.elderlyAge },
-] as const;
+];
 
 /** Min / mean / max of one stat over every animal of a species seen during the run. */
 export interface TraitRange { min: number; avg: number; max: number }

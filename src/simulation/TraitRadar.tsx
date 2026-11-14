@@ -43,21 +43,21 @@ export function TraitRadar({ info, stats }: Props) {
                     ))}
                     {TRAIT_AXES.map((_, i) => <line key={i} x1={C} y1={C} x2={pt(i, 1)[0]} y2={pt(i, 1)[1]} stroke="rgba(255,255,255,0.14)" />)}
                     <polygon fill="rgba(255,159,90,0.35)" stroke="#ff9f5a" strokeWidth={2}
-                             points={poly((i) => { const t = data.traits[i]!; return t.max > t.min ? (t.avg - t.min) / (t.max - t.min) : 0.5; })} />
+                             points={poly((i) => { const t = data.traits[i]!; if (t.max <= t.min) return 0.5; const f = (t.avg - t.min) / (t.max - t.min); return TRAIT_AXES[i]!.invert ? 1 - f : f; })} />
                     {TRAIT_AXES.map((ax, i) => {
                         const t = data.traits[i]!;
                         const [x, y] = pt(i, 1.2);
                         const anchor = Math.abs(x - C) < 8 ? 'middle' : x > C ? 'start' : 'end';
                         return (
                             <text key={ax.label} x={x} y={y} textAnchor={anchor} className="radar__label">
-                                <tspan x={x} dy="-0.2em">{ax.label}</tspan>
+                                <tspan x={x} dy="-0.2em">{ax.label}{ax.invert ? ' (inverted)' : ''}</tspan>
                                 <tspan x={x} dy="1.15em" className="radar__sub">avg {fmt(t.avg)} · {fmt(t.min)}–{fmt(t.max)}</tspan>
                             </text>
                         );
                     })}
                 </svg>
             )}
-            {data && <p className="radar__note">{data.count} animals seen · axis = lowest to highest value found, shape = average</p>}
+            {data && <p className="radar__note">{data.count} animals seen · axis = lowest to highest value found, shape = average; stamina axes inverted (lower use plots further out)</p>}
         </section>
     );
 }

@@ -157,7 +157,7 @@
 .panel__action:hover { background: var(--color-accent); color: var(--color-accent-ink); }
 .sim-overview { grid-row: 2; grid-column: 1 / -1; z-index: var(--z-ui); display: flex; flex-direction: column; min-height: 0; background: #2a3656; color: #e8eefc; pointer-events: auto; }
 .sim-overview__body { flex: 1; min-height: 0; overflow: auto; padding: var(--space-3); }
-.sim-overview__chart { max-width: 70rem; margin: 0 auto; }
+.sim-overview__chart { width: 100%; max-width: 70rem; margin: 0 auto; }
 .sim__end { margin-left: var(--space-2); padding: 0.2rem 0.8rem; border: 1px solid var(--color-accent); border-radius: 999px; background: transparent; color: inherit; font: inherit; font-size: 0.8rem; cursor: pointer; }
 .sim__end:hover { background: var(--color-accent); color: var(--color-accent-ink); }
 
@@ -170,3 +170,4 @@
 .radar__label { font-size: 10px; fill: #e8eefc; }
 .radar__sub { font-size: 8px; fill: #93a1c4; font-variant-numeric: tabular-nums; }
 .radar__note { margin: 0.3rem 0 0; font-size: 0.75rem; color: #93a1c4; }
+.sim-overview__body > * { flex: none; }
