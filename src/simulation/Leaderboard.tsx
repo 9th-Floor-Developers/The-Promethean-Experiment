@@ -44,7 +44,7 @@ const STATS: Stat[] = [
 ];
 
 /** How many ranked animals are shown (each has a live portrait). */
-const ROWS = 8;
+const ROWS = 10;
 
 /** A species filter choice: either a group (herbivores / carnivores) or one species. */
 interface Filter {
