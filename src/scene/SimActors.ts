@@ -11,8 +11,8 @@ const FOLIAGE_READY = new THREE.Color(0x3fbf5f);
 const FOLIAGE_RESTING = new THREE.Color(0x9aa84f);
 const GRASS_READY = new THREE.Color(0x5fd35a);
 const GRASS_RESTING = new THREE.Color(0xb9b86a);
-const CARNIVORE_COLOR = 0xff7a45;
-const HERBIVORE_COLOR = 0xfff1d6;
+export const CARNIVORE_COLOR = 0xff7a45;
+export const HERBIVORE_COLOR = 0xfff1d6;
 const OTHER_COLOR = 0xb18cff;
 /** How quickly drawn animals catch up to the simulation (higher = snappier). */
 const FOLLOW = 14;
@@ -43,7 +43,7 @@ function buildGrassGeometry(): THREE.BufferGeometry {
  * Builds one cute low-poly animal (body, head, two ears, two eyes) as a single vertex-coloured geometry,
  * facing +Z. Carnivores get short pointed ears, others tall ones.
  */
-function buildAnimalGeometry(color: number, carnivore: boolean): THREE.BufferGeometry {
+export function buildAnimalGeometry(color: number, carnivore: boolean): THREE.BufferGeometry {
     const parts: THREE.BufferGeometry[] = [];
     const part = (geo: THREE.BufferGeometry, hex: number, x: number, y: number, z: number, sx = 1, sy = 1, sz = 1) => {
         const g = geo.index ? geo.toNonIndexed() : geo; // merging needs every part indexed or none

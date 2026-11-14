@@ -101,3 +101,19 @@
 .popgraph { cursor: crosshair; }
 .popgraph__tip { position: fixed; z-index: 10; pointer-events: none; padding: 0.4rem 0.6rem; border-radius: 10px; background: #1a233b; border: 1px solid var(--color-accent); color: #e8eefc; font-size: 0.8rem; line-height: 1.35; white-space: nowrap; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); }
 .popgraph__tip-day { font-weight: 700; color: var(--color-accent); margin-bottom: 0.15rem; }
+
+/* Leaderboard (shown in the inspector panel when nothing is selected) */
+.inspector__back { margin-left: 0.75rem; padding: 0.15rem 0.6rem; border: 1px solid var(--color-accent); border-radius: 999px; background: transparent; color: var(--color-accent); font-size: 0.7rem; cursor: pointer; }
+.inspector__back:hover { background: var(--color-accent); color: var(--color-accent-ink); }
+.inspector__title .inspector__id { margin-right: auto; margin-left: 0.5rem; }
+.leaderboard { display: flex; flex-direction: column; gap: 0.5rem; min-height: 0; }
+.leaderboard__controls { display: flex; flex-wrap: wrap; gap: 0.4rem 0.6rem; align-items: end; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #93a1c4; }
+.leaderboard__controls label { display: flex; flex-direction: column; gap: 0.15rem; }
+.leaderboard__controls select, .leaderboard__controls button { padding: 0.25rem 0.5rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: #1a233b; color: #e8eefc; font-size: 0.8rem; text-transform: none; letter-spacing: 0; cursor: pointer; }
+.leaderboard__list { display: flex; flex-direction: column; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
+.leaderboard__row { display: grid; grid-template-columns: 1.2rem 3rem 1fr auto; align-items: center; gap: 0.5rem; width: 100%; padding: 0.2rem 0.6rem 0.2rem 0.4rem; border: 1px solid transparent; border-radius: 10px; background: #1a233b; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.leaderboard__row:hover { border-color: var(--color-accent); }
+.leaderboard__rank { font-weight: 700; color: var(--color-accent); text-align: center; }
+.portrait { width: 3rem; height: 3rem; }
+.leaderboard__who { display: flex; flex-direction: column; font-size: 0.85rem; }
+.leaderboard__value { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 1rem; }

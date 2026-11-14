@@ -1,9 +1,12 @@
+import { Leaderboard } from './Leaderboard';
 import { A, type SimInfo, type SimSnapshot } from '../sim/types';
 
 interface Props {
     snapshot: SimSnapshot | null;
     info: SimInfo | null;
     selectedId: number | null;
+    /** Selects an animal by id, or clears the selection with null. */
+    onSelect: (id: number | null) => void;
 }
 
 /** "RUN_FROM_PREDATOR" -> "Run from predator". */
@@ -27,13 +30,13 @@ function Meter({ label, value, max, tone }: { label: string; value: number; max:
 }
 
 /** Shows the selected animal's status values (HP, stamina, nutrition, hydration, age), feelings and current action. */
-export function IndividualInspector({ snapshot, info, selectedId }: Props) {
+export function IndividualInspector({ snapshot, info, selectedId, onSelect }: Props) {
     const row = selectedId === null ? undefined : snapshot?.animals.find((r) => r[A.id] === selectedId);
     const species = row && info ? info.species[row[A.species]!] : undefined;
 
     let body;
     if (selectedId === null) {
-        body = <div className="panel__empty">No individual selected. Click an animal.</div>;
+        body = null; // the leaderboard is shown instead, see below
     } else if (!row || !species || !info) {
         body = <div className="panel__empty">Animal #{selectedId} is no longer alive.</div>;
     } else {
@@ -42,6 +45,7 @@ export function IndividualInspector({ snapshot, info, selectedId }: Props) {
                 <div className="inspector__title">
                     <strong>{species.name}</strong>
                     <span className="inspector__id">#{selectedId}</span>
+                    <button type="button" className="inspector__back" onClick={() => onSelect(null)}>← Leaderboard</button>
                 </div>
                 <div className="inspector__action">
                     <span className="meter__label">Action</span>
@@ -65,8 +69,10 @@ export function IndividualInspector({ snapshot, info, selectedId }: Props) {
 
     return (
         <section className="panel" aria-labelledby="inspector-h">
-            <h2 id="inspector-h" className="panel__header">Individual Inspector</h2>
-            <div className="panel__body inspector">{body}</div>
+            <h2 id="inspector-h" className="panel__header">{selectedId === null ? 'Leaderboard' : 'Individual Inspector'}</h2>
+            <div className="panel__body inspector">
+                {selectedId === null ? <Leaderboard snapshot={snapshot} info={info} onSelect={onSelect} /> : body}
+            </div>
         </section>
     );
 }

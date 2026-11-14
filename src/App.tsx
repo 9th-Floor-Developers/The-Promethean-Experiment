@@ -48,7 +48,7 @@ export default function App() {
                         focusCredits={cameFromCredits}
                     />
                 )}
-                {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} history={history} ended={ended} speed={speed} onSpeedChange={setSpeed} />}
+                {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} onSelect={setSelectedId} history={history} ended={ended} speed={speed} onSpeedChange={setSpeed} />}
                 {screen === 'credits' && <CreditsScreen onBack={closeCredits} />}
             </main>
         </>

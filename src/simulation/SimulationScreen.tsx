@@ -14,6 +14,7 @@ interface Props {
     snapshot: SimSnapshot | null;
     info: SimInfo | null;
     selectedId: number | null;
+    onSelect: (id: number | null) => void;
     history: PopulationSample[];
     /** True once every animal has died; shows the full-run graph. */
     ended: boolean;
@@ -21,7 +22,7 @@ interface Props {
     onSpeedChange: (speed: number) => void;
 }
 
-export function SimulationScreen({ snapshot, info, selectedId, history, ended, speed, onSpeedChange }: Props) {
+export function SimulationScreen({ snapshot, info, selectedId, onSelect, history, ended, speed, onSpeedChange }: Props) {
     const [summaryClosed, setSummaryClosed] = useState(false);
     return (
         <div className="sim">
@@ -31,7 +32,7 @@ export function SimulationScreen({ snapshot, info, selectedId, history, ended, s
                 <SimulationSummary history={history} info={info} snapshot={snapshot} onClose={() => setSummaryClosed(true)} />
             )}
             <aside className="sim__sidebar" aria-label="Simulation panels">
-                <IndividualInspector snapshot={snapshot} info={info} selectedId={selectedId} />
+                <IndividualInspector snapshot={snapshot} info={info} selectedId={selectedId} onSelect={onSelect} />
                 <PopulationGraph history={history} info={info} snapshot={snapshot} />
             </aside>
         </div>
