@@ -449,6 +449,7 @@ export class WorldScene {
         this.frame = requestAnimationFrame(this.loop);
         const dt = Math.min(this.clock.getDelta(), 0.1);
         const k = 1 - Math.exp(-dt * (this.screen === 'simulation' ? SIM_DAMPING : CAMERA_DAMPING));
+        if (this.screen === 'simulation') this.measureInsets(); // the sidebar can be toggled without a canvas resize
         this.applyKeys(dt);
         this.applyFollow();
         this.camera.position.lerp(this.goalPosition(), k);

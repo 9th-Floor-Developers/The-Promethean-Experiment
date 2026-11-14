@@ -127,3 +127,10 @@
 /* Back button at the left of the simulation header */
 .sim__back { margin-right: var(--space-2); padding: 0.25rem 0.8rem; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 999px; background: transparent; color: #fff; font: inherit; font-size: 0.85rem; cursor: pointer; }
 .sim__back:hover { background: var(--color-accent); border-color: var(--color-accent); }
+
+/* Sidebar toggle (top-right of the header) and the collapsed layout */
+.sim__sidebar-toggle { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; margin-left: auto; padding: 0; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 8px; background: transparent; color: #fff; cursor: pointer; }
+.sim__sidebar-toggle:hover { background: var(--color-accent); border-color: var(--color-accent); }
+.sim.sim--no-sidebar { grid-template-columns: 1fr; grid-template-areas: "header" "viewport"; grid-template-rows: var(--sim-header-h) 1fr; }
+.sim--no-sidebar .sim__sidebar { display: none; }
+.sim--no-sidebar .sim__viewport { border-right: 0; }

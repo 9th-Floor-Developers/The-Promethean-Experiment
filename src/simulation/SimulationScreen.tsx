@@ -31,10 +31,11 @@ interface Props {
 }
 
 export function SimulationScreen({ snapshot, info, selectedId, onSelect, following, onFollowChange, onBack, leaderboardSettings, onLeaderboardSettingsChange, history, ended, speed, onSpeedChange }: Props) {
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const [summaryClosed, setSummaryClosed] = useState(false);
     return (
-        <div className="sim">
-            <SimulationHeader snapshot={snapshot} onBack={onBack} speed={speed} onSpeedChange={onSpeedChange} />
+        <div className={`sim${sidebarOpen ? '' : ' sim--no-sidebar'}`}>
+            <SimulationHeader snapshot={snapshot} onBack={onBack} sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((o) => !o)} speed={speed} onSpeedChange={onSpeedChange} />
             <SimulationViewport />
             {ended && !summaryClosed && (
                 <SimulationSummary history={history} info={info} snapshot={snapshot} onClose={() => setSummaryClosed(true)} />
