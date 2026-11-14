@@ -1,11 +1,17 @@
-SPECIES UNIVERSAL STATSaustrian displomat
+SPECIES UNIVERSAL STATS
+these are stats for every species that constant during a life of the animal
 
-MAX HEALTH
+These are inherited stats, When an animal spawns it mixes the stats of it parents and a random mutation
+MAX HP
 SPEED
-BASE_STAMINA_USAGE
-WALKING_STAMINA_USAGE (if the animal is walking the 2 stats are combined)
-ELDERLY - when age reaches this point the negative effects starts to occur
-VIEW_RANGE - animals can only see things this distance in tiles 
+DAMAGE  
+ARMOR
+VIEW_RANGE - animals can only see things this distance in tiles
+
+These are calculated stats calculated from the inherited stats
+BASE_STAMINA_USAGE - increase when MAX HP increases and VIEW RANGE increases
+WALKING_STAMINA_USAGE - increase when SPEED increases
+ELDERLY - decreases when VIEW RANGE increases
 
 SPECIES TRAITS
 
