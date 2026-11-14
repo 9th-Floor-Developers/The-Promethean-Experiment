@@ -4,11 +4,11 @@ these are stats for every species that constant during a life of the animal
 when the simulation starts these stats will be of 'initial stats' which is set by the player
 
 These are inherited stats, When an animal spawns it mixes the stats of it parents and a random mutation
-MAX HP
-SPEED
-DAMAGE  
-ARMOR
-VIEW_RANGE - animals can only see things this distance in tiles
+MAX HP(DEF: 100, MIN: 1)
+SPEED (DEF: 0.1, MIN: 0.01)
+DAMAGE (DEF: 3, MIN: 0.1) 
+ARMOR (DEF: 1, MIN: 0.1)
+VIEW_RANGE - animals can only see things this distance in tiles (DEF: 10, MIN 3)
 
 These are calculated stats calculated from the inherited stats
 BASE_STAMINA_USAGE - increase when MAX HP increases and VIEW RANGE increases
