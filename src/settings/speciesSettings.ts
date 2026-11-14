@@ -113,7 +113,12 @@ export interface SpeciesSettings {
 /** All user-editable simulation settings. */
 export interface SimSettings {
     species: SpeciesSettings[];
+    /** Width and height of the (square) world map, in tiles. */
+    mapSize: number;
 }
+
+/** World map size limits (tiles per side) and default. */
+export const MAP_SIZE = { min: 60, max: 300, step: 10, default: 200 } as const;
 
 /** Most species allowed; the graph and legends have six distinct colours. */
 export const MAX_SPECIES = 6;
@@ -141,7 +146,7 @@ export function carnivoreTemplate(): SpeciesSettings {
 
 /** The settings the simulation starts with: one predator and one prey species. */
 export function defaultSettings(): SimSettings {
-    return { species: [carnivoreTemplate(), herbivoreTemplate()] };
+    return { species: [carnivoreTemplate(), herbivoreTemplate()], mapSize: MAP_SIZE.default };
 }
 
 /** Name for a new species that does not clash with an existing one. */
@@ -167,7 +172,7 @@ export function loadSettings(): SimSettings {
         if (raw) {
             const parsed = JSON.parse(raw) as SimSettings;
             if (Array.isArray(parsed.species) && parsed.species.length > 0) {
-                return { species: parsed.species.map((s) => ({ ...s, uid: nextUid++, stats: { ...DEFAULT_STATS, ...s.stats } })) };
+                return { mapSize: Math.max(MAP_SIZE.min, Math.min(MAP_SIZE.max, Number(parsed.mapSize) || MAP_SIZE.default)), species: parsed.species.map((s) => ({ ...s, uid: nextUid++, stats: { ...DEFAULT_STATS, ...s.stats } })) };
             }
         }
     } catch { /* storage blocked or corrupt: fall back to defaults */ }

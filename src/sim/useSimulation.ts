@@ -7,9 +7,10 @@ export const TICKS_PER_SECOND = 30;
 /** Cap per frame so a slow frame or a background tab cannot trigger a long freeze catching up. */
 const MAX_TICKS_PER_FRAME = 20;
 
-/** Allowed simulation speed multipliers (1 = base speed). */
-export const MIN_SPEED = 1;
-export const MAX_SPEED = 5;
+/** Allowed simulation speed multipliers (1 = base speed), spaced roughly geometrically so fast speeds are reachable. */
+export const SPEEDS = [1, 2, 5, 10, 20] as const;
+export const MIN_SPEED = SPEEDS[0];
+export const MAX_SPEED = SPEEDS[SPEEDS.length - 1]!;
 
 /**
  * Drives the Kotlin simulation in real time while `running` and returns its latest snapshot.

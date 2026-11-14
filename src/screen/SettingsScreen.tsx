@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-    CATEGORIES, EXTRA_TRAITS, MAX_COUNT, MAX_SPECIES, MIN_COUNT, STATS, carnivoreTemplate, defaultSettings, herbivoreTemplate,
+    CATEGORIES, EXTRA_TRAITS, MAP_SIZE, MAX_COUNT, MAX_SPECIES, MIN_COUNT, STATS, carnivoreTemplate, defaultSettings, herbivoreTemplate,
     newSpeciesName, type SimSettings, type SpeciesSettings, type StatKey,
 } from '../settings/speciesSettings';
 
@@ -22,6 +22,7 @@ function formatStat(v: number, step: number): string {
  */
 export function SettingsScreen({ settings, onChange, onDone }: Props) {
     const doneRef = useRef<HTMLButtonElement>(null);
+    const [tab, setTab] = useState<'species' | 'world'>('species');
 
     useEffect(() => {
         doneRef.current?.focus();
@@ -33,10 +34,10 @@ export function SettingsScreen({ settings, onChange, onDone }: Props) {
     }, [onDone]);
 
     const update = (uid: number, patch: (s: SpeciesSettings) => SpeciesSettings) =>
-        onChange({ species: settings.species.map((s) => (s.uid === uid ? patch(s) : s)) });
+        onChange({ ...settings, species: settings.species.map((s) => (s.uid === uid ? patch(s) : s)) });
     const add = (make: () => SpeciesSettings) => {
         const s = make();
-        onChange({ species: [...settings.species, { ...s, name: newSpeciesName(settings.species) }] });
+        onChange({ ...settings, species: [...settings.species, { ...s, name: newSpeciesName(settings.species) }] });
     };
     const canAdd = settings.species.length < MAX_SPECIES;
 
@@ -53,22 +54,42 @@ export function SettingsScreen({ settings, onChange, onDone }: Props) {
                 </div>
             </header>
 
-            <div className="settings__list">
+            <div className="tabs" role="tablist" aria-label="Settings sections">
+                <button type="button" role="tab" id="tab-species" aria-selected={tab === 'species'} aria-controls="panel-species"
+                    className={`tab${tab === 'species' ? ' tab--on' : ''}`} onClick={() => setTab('species')}>Species</button>
+                <button type="button" role="tab" id="tab-world" aria-selected={tab === 'world'} aria-controls="panel-world"
+                    className={`tab${tab === 'world' ? ' tab--on' : ''}`} onClick={() => setTab('world')}>World</button>
+            </div>
+
+            {tab === 'world' && (
+                <article className="species-card" role="tabpanel" id="panel-world" aria-labelledby="tab-world">
+                    <h2 className="species-card__title">The island</h2>
+                    <div className="stat">
+                        <label htmlFor="map-size" className="stat__label">Map size <strong>{settings.mapSize} × {settings.mapSize} tiles</strong></label>
+                        <input id="map-size" className="slider" type="range" min={MAP_SIZE.min} max={MAP_SIZE.max} step={MAP_SIZE.step} value={settings.mapSize}
+                            onChange={(e) => onChange({ ...settings, mapSize: Number(e.target.value) })} />
+                        <div className="stat__ends"><span>Small island</span><span>Huge island</span></div>
+                        <p className="stat__help">How big the world is. The island is regenerated at the new size when you press Done. Bigger maps give animals more room but may run slower.</p>
+                    </div>
+                </article>
+            )}
+
+            {tab === 'species' && <div className="settings__list" role="tabpanel" id="panel-species" aria-labelledby="tab-species">
                 {settings.species.map((sp, index) => (
                     <SpeciesCard key={sp.uid} sp={sp} index={index} canRemove={settings.species.length > 1}
                         onPatch={(p) => update(sp.uid, p)}
-                        onRemove={() => onChange({ species: settings.species.filter((s) => s.uid !== sp.uid) })} />
+                        onRemove={() => onChange({ ...settings, species: settings.species.filter((s) => s.uid !== sp.uid) })} />
                 ))}
-            </div>
+            </div>}
 
-            <div className="settings__add">
+            {tab === 'species' && <div className="settings__add">
                 <button type="button" className="btn" disabled={!canAdd} onClick={() => add(herbivoreTemplate)}>+ Add a plant eater</button>
                 <button type="button" className="btn" disabled={!canAdd} onClick={() => add(carnivoreTemplate)}>+ Add a meat eater</button>
                 {!canAdd && <span className="settings__hint">You can have up to {MAX_SPECIES} species.</span>}
-            </div>
-            <p className="settings__hint">
+            </div>}
+            {tab === 'species' && <p className="settings__hint">
                 Diet, daily schedule and self-healing change how animals behave right now; the other traits are recorded for future updates.
-            </p>
+            </p>}
         </section>
     );
 }
