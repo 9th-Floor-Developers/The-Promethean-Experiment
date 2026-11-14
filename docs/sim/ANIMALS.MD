@@ -8,6 +8,9 @@ age - (in days) starts as 0 as animal age increases their stamina regeneration d
 
 every animal is an Action which it is currently doing, these change based on the situation 
 including
+REST - do nothing
+WANDER - move randomly 
+EXPLORE - move far from the original possible location
 RUN_FROM_PREDATOR - runs away from a predator
 ATTACK_TARGET <target> - attacks the target if it is an animal it deals 
 DRINK_WATER <target position>
