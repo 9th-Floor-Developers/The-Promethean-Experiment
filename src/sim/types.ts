@@ -49,6 +49,8 @@ export interface SimSnapshot {
     animals: number[][];
     /** [id, x, y, fractionOfNutritionLeft] */
     carcasses: [number, number, number, number][];
+    /** [id, x, y, hatchProgress 0..1] of eggs that have not hatched or been eaten. */
+    eggs: [number, number, number, number][];
     /** One char per tree, '1' = edible, '0' = cooling down. */
     trees: string;
     /** One char per grass tuft, '1' = edible, '0' = cooling down. */

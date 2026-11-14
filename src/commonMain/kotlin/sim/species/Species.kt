@@ -59,6 +59,10 @@ class Species(
     val reproductionNutritionCost: Double = 30.0,
     /** Ticks before an animal can reproduce again. */
     val reproductionCooldownTicks: Int = 300,
+    /** Ticks an egg takes to hatch (EGG_BIRTH species only). */
+    val eggHatchTicks: Int = 600,
+    /** Nutrition an egg contains for animals that eat it (EGG_BIRTH species only). */
+    val eggNutrition: Double = 25.0,
     /** Nutrition contained in the carcass left behind on death. */
     val carcassNutrition: Double = 60.0,
 ) {

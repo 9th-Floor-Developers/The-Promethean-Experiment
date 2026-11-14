@@ -11,6 +11,7 @@ import sim.animal.Animal
 import sim.animal.AnimalStats
 import sim.animal.Brain
 import sim.objects.Carcass
+import sim.objects.Egg
 import sim.objects.SimObject
 import sim.objects.Grass
 import sim.objects.Plant
@@ -42,6 +43,9 @@ class World(
     /** The carcasses in [objects]. */
     internal val carcasses = ArrayList<Carcass>()
 
+    /** The eggs in [objects] that have not hatched or been eaten yet. */
+    internal val eggs = ArrayList<Egg>()
+
     /** The world clock and day-night cycle. */
     val clock = Clock()
 
@@ -59,6 +63,9 @@ class World(
 
     /** Living hunters by map cell, rebuilt each tick, for fear checks. */
     internal val hunterGrid = SpatialGrid<Animal>(terrain.width, terrain.height)
+
+    /** Eggs by map cell, rebuilt each tick. */
+    internal val eggGrid = SpatialGrid<Egg>(terrain.width, terrain.height)
 
     /** Carcasses by map cell, rebuilt each tick. */
     internal val carcassGrid = SpatialGrid<Carcass>(terrain.width, terrain.height)
@@ -139,6 +146,7 @@ class World(
     /** Removes objects that report [SimObject.isRemoved] (e.g. fully eaten carcasses). */
     fun removeFinishedObjects(): Boolean {
         carcasses.removeAll { it.isRemoved }
+        eggs.removeAll { it.isRemoved }
         return objects.removeAll { it.isRemoved }
     }
 
@@ -182,6 +190,7 @@ class World(
         log.step("2/2 Tick objects")
         objects.forEach { it.tick() }
         log.info { "ticked ${objects.size} objects" }
+        hatchEggs()
     }
 
     // ============================================================ 2/4 Decide
@@ -190,9 +199,10 @@ class World(
         log.phase("2/4 Decide")
         log.step("1/2 Update feelings")
         hunters = animals.filter { it.isAlive && it.species.canHunt }
-        animalGrid.clear(); hunterGrid.clear(); carcassGrid.clear()
+        animalGrid.clear(); hunterGrid.clear(); carcassGrid.clear(); eggGrid.clear()
         for (a in animals) if (a.isAlive) { animalGrid.add(a, a.position); if (a.species.canHunt) hunterGrid.add(a, a.position) }
         for (c in carcasses) if (!c.isRemoved) carcassGrid.add(c, c.position)
+        for (e in eggs) if (!e.isRemoved) eggGrid.add(e, e.position)
         for (a in animals) a.feelings = brain.feel(a)
         log.info { "updated feelings of ${animals.size} animals" }
 
@@ -289,6 +299,7 @@ class World(
                     val gained = when (t) {
                         is Plant -> t.eat()
                         is Carcass -> t.eat(EAT_RATE)
+                        is Egg -> t.eat(EAT_RATE)
                         else -> 0.0
                     }
                     if (gained > 0) { a.changeNutrition(gained); ate++ }
@@ -408,15 +419,37 @@ class World(
         log.info { "${dead.size} deaths" }
     }
 
-    /** [a] and [mate] reproduce: a newborn appears at [a]'s position, parent [a] pays the nutrition cost, both go on cooldown. */
+    /** Hatches every egg whose cooldown is over: the egg is removed and the animal with the stats it carried appears. */
+    private fun hatchEggs() {
+        for (egg in eggs.toList()) {
+            if (!egg.readyToHatch) continue
+            egg.hatch()
+            val s = egg.species
+            val child = Animal(nextId++, s, egg.position, egg.stats, nutrition = s.maxNutrition / 2)
+            child.reproductionCooldown = s.reproductionCooldownTicks
+            animals.add(child)
+            simEvent("[${clock.format()}] HATCH ${child.label} hatched from an egg")
+        }
+    }
+
+    /**
+     * [a] and [mate] reproduce: parent [a] pays the nutrition cost and both go on cooldown. A LIVE_BIRTH newborn appears
+     * at [a]'s position at once; an EGG_BIRTH species lays an [Egg] there instead, which hatches later.
+     */
     private fun reproduce(a: Animal, mate: Animal) {
         val s = a.species
-        val child = Animal(nextId++, s, a.position, AnimalStats.inherit(s, a.stats, mate.stats, rng), nutrition = s.maxNutrition / 2)
-        animals.add(child)
-        child.reproductionCooldown = s.reproductionCooldownTicks
+        val stats = AnimalStats.inherit(s, a.stats, mate.stats, rng)
         a.reproductionCooldown = s.reproductionCooldownTicks
         mate.reproductionCooldown = s.reproductionCooldownTicks
         a.changeNutrition(-s.reproductionNutritionCost)
+        if (Trait.EGG_BIRTH in s.traits) {
+            Egg(nextId++, a.position, s, stats, s.eggHatchTicks, s.eggNutrition).also { objects.add(it); eggs.add(it) }
+            simEvent("[${clock.format()}] EGG laid by ${a.label} and ${mate.label}")
+            return
+        }
+        val child = Animal(nextId++, s, a.position, stats, nutrition = s.maxNutrition / 2)
+        animals.add(child)
+        child.reproductionCooldown = s.reproductionCooldownTicks
         simEvent("[${clock.format()}] BIRTH ${child.label} born to ${a.label} and ${mate.label}")
     }
 }

@@ -244,6 +244,7 @@ export class SimActors {
     private readonly textures = new Map<string, THREE.CanvasTexture>();
     private actionNames: string[] = [];
     private readonly carcasses = new Map<number, THREE.Mesh>();
+    private readonly eggs = new Map<number, THREE.Mesh>();
     private foliage: THREE.InstancedMesh | null = null;
     private lastTrees = '';
     private grassMesh: THREE.InstancedMesh | null = null;
@@ -316,6 +317,8 @@ export class SimActors {
     private readonly arrowDir = new THREE.Vector3();
     private readonly arrowForward = new THREE.Vector3(0, 0, 1);
     private readonly arrowScale = new THREE.Vector3(1, 1, 1);
+    private readonly eggGeo = this.own(new THREE.SphereGeometry(0.2, 10, 8));
+    private readonly eggMat = this.own(new THREE.MeshStandardMaterial({ color: 0xfff4dc, flatShading: true }));
     private readonly carcassGeo = this.own(new THREE.IcosahedronGeometry(0.3, 0));
     private readonly carcassMat = this.own(new THREE.MeshStandardMaterial({ color: 0xd9a6a6, flatShading: true }));
 
@@ -561,6 +564,7 @@ vec3 transformed = aRot * (position + vec3(0.0, aBob, 0.0)) * uScale + mix(aFrom
             child.dispose();
         }
         this.carcasses.clear();
+        this.eggs.clear();
         this.foliage = null;
         this.grassMesh = null;
     }
@@ -673,6 +677,24 @@ vec3 transformed = aRot * (position + vec3(0.0, aBob, 0.0)) * uScale + mix(aFrom
         }
         for (const [id, mesh] of this.carcasses) {
             if (!live.has(id)) { this.sceneryGroup.remove(mesh); this.carcasses.delete(id); }
+        }
+
+        // Eggs grow a little as they near hatching.
+        const liveEggs = new Set<number>();
+        for (const [id, x, y, progress] of snap.eggs ?? []) {
+            liveEggs.add(id);
+            let mesh = this.eggs.get(id);
+            if (!mesh) {
+                mesh = new THREE.Mesh(this.eggGeo, this.eggMat);
+                this.sceneryGroup.add(mesh);
+                this.eggs.set(id, mesh);
+            }
+            this.place(x, y, 0.2, mesh.position);
+            const s = 0.8 + 0.4 * progress;
+            mesh.scale.set(s, s * 1.3, s);
+        }
+        for (const [id, mesh] of this.eggs) {
+            if (!liveEggs.has(id)) { this.sceneryGroup.remove(mesh); this.eggs.delete(id); }
         }
     }
 
