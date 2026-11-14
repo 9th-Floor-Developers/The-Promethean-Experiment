@@ -2,6 +2,7 @@ import { SimulationHeader } from './SimulationHeader';
 import { SimulationViewport } from './SimulationViewport';
 import { IndividualInspector } from './IndividualInspector';
 import { useState } from 'react';
+import { TitleEffects } from './TitleEffects';
 import { PopulationGraph, SimulationSummary } from './PopulationGraph';
 import type { LeaderboardSettings } from './Leaderboard';
 import type { SimInfo, SimSnapshot } from '../sim/types';
@@ -37,6 +38,7 @@ export function SimulationScreen({ snapshot, info, selectedId, onSelect, followi
         <div className={`sim${sidebarOpen ? '' : ' sim--no-sidebar'}`}>
             <SimulationHeader snapshot={snapshot} onBack={onBack} sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((o) => !o)} speed={speed} onSpeedChange={onSpeedChange} />
             <SimulationViewport />
+            <TitleEffects snapshot={snapshot} info={info} />
             {ended && !summaryClosed && (
                 <SimulationSummary history={history} info={info} snapshot={snapshot} onClose={() => setSummaryClosed(true)} />
             )}

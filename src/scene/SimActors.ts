@@ -104,6 +104,10 @@ const MAX_POPUPS = 120;
 const DAMAGE_POPUP_GAP = 0.5;
 const DAMAGE_COLOR = '#ff4d4d';
 const ACTION_COLOR = '#ffffff';
+/** Spawning and dying popups are drawn this many times larger than damage and action popups so they stand out. */
+const EVENT_POPUP_SCALE = 1.9;
+const BIRTH_COLOR = '#8dffa8';
+const DEATH_COLOR = '#ff8a8a';
 
 /** A floating text sprite that rises and fades out. */
 interface Popup {
@@ -580,6 +584,8 @@ vec3 transformed = aRot * (position + vec3(0.0, aBob, 0.0)) * uScale + mix(aFrom
                 };
                 this.writeActor(id, actor);
                 this.actors.set(id, actor);
+                // The very first snapshot holds the starting population, which is not a birth.
+                if (stamp > 1) this.spawnPopup('Born!', BIRTH_COLOR, target, EVENT_POPUP_SCALE);
                 if (id === this.selectedId) this.ringHolder.visible = true;
             } else {
                 const dx = target.x - actor.target.x, dz = target.z - actor.target.z;
@@ -623,6 +629,8 @@ vec3 transformed = aRot * (position + vec3(0.0, aBob, 0.0)) * uScale + mix(aFrom
                     this.ringHolder.visible = false; this.selectedRow = null; this.selectedDest = null; this.selectedHeading = null;
                     this.setRouteVisible(false); this.hideViewRange();
                 }
+                this.pose(actor, this.tmpV);
+                this.spawnPopup('Died', DEATH_COLOR, this.tmpV, EVENT_POPUP_SCALE);
                 const batch = this.batches[actor.batch]!;
                 const moved = batch.remove(actor.slot);
                 if (moved !== undefined) this.actors.get(moved)!.slot = actor.slot;
@@ -711,14 +719,14 @@ vec3 transformed = aRot * (position + vec3(0.0, aBob, 0.0)) * uScale + mix(aFrom
     }
 
     /** Pops [text] up above [at]; it rises and fades out, then removes itself. */
-    private spawnPopup(text: string, color: string, at: THREE.Vector3): void {
+    private spawnPopup(text: string, color: string, at: THREE.Vector3, scale = 1): void {
         if (this.popups.length >= MAX_POPUPS) return;
         const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
             map: this.textTexture(text, color), transparent: true, depthTest: false,
         }));
-        sprite.scale.set(POPUP_HEIGHT * 4, POPUP_HEIGHT, 1);
+        sprite.scale.set(POPUP_HEIGHT * 4 * scale, POPUP_HEIGHT * scale, 1);
         sprite.renderOrder = 20; // above terrain, trees and animals
-        const baseY = at.y + 1.1;
+        const baseY = at.y + 1.1 + (scale - 1) * 0.4;
         sprite.position.set(at.x, baseY, at.z);
         this.animalGroup.add(sprite);
         this.popups.push({ sprite, age: 0, baseY });

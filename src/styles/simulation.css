@@ -139,3 +139,17 @@
 .sim.sim--no-sidebar { grid-template-columns: 1fr; grid-template-areas: "header" "viewport"; grid-template-rows: var(--sim-header-h) 1fr; }
 .sim--no-sidebar .sim__sidebar { display: none; }
 .sim--no-sidebar .sim__viewport { border-right: 0; }
+
+/* Title effects: world-event text over the top of the page that fades out (see TitleEffects). */
+.title-effects { position: fixed; top: calc(var(--sim-header-h) + 0.75rem); left: 50%; transform: translateX(-50%); z-index: 30; display: flex; flex-direction: column; align-items: center; gap: 0.35rem; pointer-events: none; width: max-content; max-width: 90vw; }
+.title-effects__item { color: #fff; text-align: center; text-shadow: 0 2px 8px rgba(10, 14, 30, 0.85); animation: title-effect-fade 3.6s ease-out forwards; }
+.title-effects__item--major { font-size: 1.9rem; font-weight: 800; letter-spacing: 0.02em; }
+.title-effects__item--minor { font-size: 1rem; font-weight: 600; opacity: 0.9; }
+@keyframes title-effect-fade {
+    0% { opacity: 0; transform: translateY(-6px); }
+    10% { opacity: 1; transform: translateY(0); }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .title-effects__item { animation-name: title-effect-fade-static; } }
+@keyframes title-effect-fade-static { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
