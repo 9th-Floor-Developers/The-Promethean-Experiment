@@ -15,6 +15,7 @@ import {CreditsScreen} from "./screen/CreditsScreen.tsx";
 import {SettingsScreen} from "./screen/SettingsScreen.tsx";
 import { toSpeciesConfig } from './settings/speciesSettings';
 import { activePreset, loadPresetStore, savePresetStore, type PresetStore } from './settings/presets';
+import { loadDisplaySettings, saveDisplaySettings, type DisplaySettings } from './settings/displaySettings';
 
 export default function App() {
     const [screen, setScreen] = useState<Screen>('landing');
@@ -26,6 +27,12 @@ export default function App() {
     // Which species run, how many, their stats and traits; edited on the Settings screen, used whenever a world is built.
     const [presetStore, setPresetStore] = useState<PresetStore>(loadPresetStore);
     const settings = activePreset(presetStore).settings;
+    // Viewer-side display options (e.g. always-day lighting); global, not part of any preset, applied immediately.
+    const [display, setDisplay] = useState<DisplaySettings>(loadDisplaySettings);
+    const changeDisplay = useCallback((next: DisplaySettings) => {
+        setDisplay(next);
+        saveDisplaySettings(next);
+    }, []);
     const settingsRef = useRef(settings);
     settingsRef.current = settings;
     const settingsDirty = useRef(false);
@@ -90,7 +97,7 @@ export default function App() {
     return (
         <>
             {/* Persistent: never unmounted, so the same 3D scene lives across screens. */}
-            <SceneCanvas screen={screen} terrain={sim?.terrain ?? null} simInfo={sim?.info ?? null} snapshot={snapshot} pathOf={sim?.animalPath ?? null} selectedId={selectedId} onSelect={setSelectedId} followSelected={following} onFollowRelease={releaseFollow} />
+            <SceneCanvas screen={screen} terrain={sim?.terrain ?? null} simInfo={sim?.info ?? null} snapshot={snapshot} pathOf={sim?.animalPath ?? null} selectedId={selectedId} onSelect={setSelectedId} followSelected={following} onFollowRelease={releaseFollow} alwaysDay={display.alwaysDay} />
             <main className="ui-layer">
                 {screen === 'landing' && <LandingScreen onStart={() => setScreen('opening')} />}
                 {screen === 'opening' && (
@@ -103,7 +110,7 @@ export default function App() {
                 )}
                 {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} onSelect={setSelectedId} objectInfoOf={sim?.objectInfo ?? null} following={following} onFollowChange={setFollowing} onBack={endSimulation}
                     leaderboardSettings={leaderboardSettings} onLeaderboardSettingsChange={setLeaderboardSettings} history={history} traitStats={traitStats} deathAges={deathAges} deathCauses={deathCauses} ended={ended} onEnd={() => setEnded(true)} speed={speed} onSpeedChange={setSpeed} />}
-                {screen === 'settings' && <SettingsScreen store={presetStore} onChange={changePresets} onDone={closeSettings} />}
+                {screen === 'settings' && <SettingsScreen store={presetStore} onChange={changePresets} display={display} onDisplayChange={changeDisplay} onDone={closeSettings} />}
                 {screen === 'credits' && <CreditsScreen onBack={closeCredits} />}
             </main>
         </>

@@ -71,6 +71,8 @@ export class WorldScene {
     private readonly skyColor = new THREE.Color();
     /** How strongly animals glow right now: 0 by day, 1 at night. Reapplied whenever the actors are rebuilt. */
     private nightGlow = 0;
+    /** When true the visual day-night cycle is off and the scene always looks like midday (the simulation's clock still runs). */
+    private alwaysDay = false;
     private pathProvider: ((id: number) => number[]) | null = null;
     private target: CameraPreset = PRESETS.landing;
     private readonly lookAt = PRESETS.landing.lookAt.clone();
@@ -163,8 +165,7 @@ export class WorldScene {
         this.measureInsets();
         this.spinning = screen !== 'simulation';
         this.actors?.setAnimalsVisible(screen === 'simulation');
-        if (screen !== 'simulation') this.applyTimeOfDay(0.5); // menus are always bright midday
-        else if (this.snapshot) this.applyTimeOfDay(this.snapshot.timeOfDay);
+        this.refreshLighting();
         if (screen === 'simulation') {
             this.simTouched = false;
             this.simYaw = 0;
@@ -239,6 +240,22 @@ export class WorldScene {
     }
 
     /**
+     * Turns the visual day-night cycle off (true: always midday lighting) or back on. Only the visuals change;
+     * the simulation keeps its own clock, so nocturnal behaviour and the HUD time are unaffected.
+     */
+    setAlwaysDay(alwaysDay: boolean): void {
+        if (this.alwaysDay === alwaysDay) return;
+        this.alwaysDay = alwaysDay;
+        this.refreshLighting();
+    }
+
+    /** Applies the lighting the scene should show now: midday on menus or when always-day is on, else the simulation's time. */
+    private refreshLighting(): void {
+        if (this.screen !== 'simulation' || this.alwaysDay) this.applyTimeOfDay(0.5); // menus are always bright midday
+        else if (this.snapshot) this.applyTimeOfDay(this.snapshot.timeOfDay);
+    }
+
+    /**
      * Day-night cycle: moves the sun across the sky and blends sky, fog and light colours from bright blue at noon
      * through an orange horizon glow to dark blue at midnight. `timeOfDay` is 0 (midnight) to 1; 0.5 is noon.
      */
@@ -271,7 +288,7 @@ export class WorldScene {
     setSnapshot(snapshot: SimSnapshot | null): void {
         this.snapshot = snapshot;
         if (snapshot) this.actors?.update(snapshot);
-        if (snapshot && this.screen === 'simulation') this.applyTimeOfDay(snapshot.timeOfDay);
+        if (snapshot && this.screen === 'simulation' && !this.alwaysDay) this.applyTimeOfDay(snapshot.timeOfDay);
     }
 
     /** (Re)creates the actor layer whenever terrain or simulation info changes. */

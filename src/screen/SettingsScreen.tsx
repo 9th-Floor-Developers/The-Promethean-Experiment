@@ -4,10 +4,14 @@ import {
     newSpeciesName, type SimSettings, type SpeciesSettings, type StatKey,
 } from '../settings/speciesSettings';
 import { activePreset, builtInSettings, createPreset, duplicatePreset, type PresetStore } from '../settings/presets';
+import type { DisplaySettings } from '../settings/displaySettings';
 
 interface Props {
     store: PresetStore;
     onChange: (next: PresetStore) => void;
+    /** Global viewer-side display options (not stored in presets). */
+    display: DisplaySettings;
+    onDisplayChange: (next: DisplaySettings) => void;
     onDone: () => void;
 }
 
@@ -28,7 +32,7 @@ function formatStat(v: number, step: number): string {
  * Every control has a plain-language label and help text. Changes apply the next time the simulation starts;
  * Done (or Escape) returns to the main menu.
  */
-export function SettingsScreen({ store, onChange: onStoreChange, onDone }: Props) {
+export function SettingsScreen({ store, onChange: onStoreChange, display, onDisplayChange, onDone }: Props) {
     const preset = activePreset(store);
     const settings = preset.settings;
     /** Edits the active preset's settings. */
@@ -44,7 +48,7 @@ export function SettingsScreen({ store, onChange: onStoreChange, onDone }: Props
     };
 
     const doneRef = useRef<HTMLButtonElement>(null);
-    const [tab, setTab] = useState<'species' | 'world'>('species');
+    const [tab, setTab] = useState<'species' | 'world' | 'display'>('species');
 
     useEffect(() => {
         doneRef.current?.focus();
@@ -101,6 +105,8 @@ export function SettingsScreen({ store, onChange: onStoreChange, onDone }: Props
                     className={`tab${tab === 'species' ? ' tab--on' : ''}`} onClick={() => setTab('species')}>Species</button>
                 <button type="button" role="tab" id="tab-world" aria-selected={tab === 'world'} aria-controls="panel-world"
                     className={`tab${tab === 'world' ? ' tab--on' : ''}`} onClick={() => setTab('world')}>World</button>
+                <button type="button" role="tab" id="tab-display" aria-selected={tab === 'display'} aria-controls="panel-display"
+                    className={`tab${tab === 'display' ? ' tab--on' : ''}`} onClick={() => setTab('display')}>Display</button>
             </div>
 
             {tab === 'world' && (
@@ -125,6 +131,25 @@ export function SettingsScreen({ store, onChange: onStoreChange, onDone }: Props
                             </div>
                         ))}
                     </div>
+                </article>
+            )}
+
+            {tab === 'display' && (
+                <article className="species-card" role="tabpanel" id="panel-display" aria-labelledby="tab-display">
+                    <h2 className="species-card__title">Comfort and accessibility</h2>
+                    <p className="stat__help">These apply to every preset and take effect immediately.</p>
+                    <label className="toggle">
+                        <input type="checkbox" className="toggle__box" checked={display.alwaysDay}
+                            onChange={(e) => onDisplayChange({ ...display, alwaysDay: e.target.checked })} />
+                        <span>
+                            <span className="toggle__label">Always show daytime</span>
+                            <span className="stat__help">
+                                Turns off the visual day and night cycle so the island stays brightly lit, with no darkening or flashing
+                                between night and day. Helpful for people with photosensitive epilepsy or to reduce eye strain.
+                                The animals still live by the simulated clock, so night-time animals keep their schedule.
+                            </span>
+                        </span>
+                    </label>
                 </article>
             )}
 

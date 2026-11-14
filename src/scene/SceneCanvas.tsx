@@ -17,9 +17,11 @@ interface Props {
     followSelected?: boolean;
     /** Called when manual camera movement breaks the lock. */
     onFollowRelease?: () => void;
+    /** Keep the lighting at midday instead of showing the visual day-night cycle (accessibility / eye strain). */
+    alwaysDay?: boolean;
 }
 
-export function SceneCanvas({ screen, terrain, simInfo, snapshot, pathOf, selectedId, onSelect, followSelected, onFollowRelease }: Props) {
+export function SceneCanvas({ screen, terrain, simInfo, snapshot, pathOf, selectedId, onSelect, followSelected, onFollowRelease, alwaysDay }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const sceneRef = useRef<WorldScene | null>(null);
 
@@ -68,6 +70,10 @@ export function SceneCanvas({ screen, terrain, simInfo, snapshot, pathOf, select
     useEffect(() => {
         sceneRef.current?.setFollowReleaseHandler(onFollowRelease ?? null);
     }, [onFollowRelease]);
+
+    useEffect(() => {
+        sceneRef.current?.setAlwaysDay(alwaysDay ?? false);
+    }, [alwaysDay]);
 
     return <canvas ref={canvasRef} className="scene-canvas" aria-hidden="true" />;
 }
