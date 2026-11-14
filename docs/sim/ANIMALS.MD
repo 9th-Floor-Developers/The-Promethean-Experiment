@@ -26,4 +26,6 @@ there is
 'thirst' which makes the animal find water
 'libido' which makes the animal want to reproduce
 
+animals with
+
 
