@@ -31,7 +31,7 @@ export default function App() {
     }, []);
 
     // Ticks only while the simulation screen is open; leaving it pauses the world where it is.
-    const [speed, setSpeed] = useState(MIN_SPEED);
+    const [speed, setSpeed] = useState<number>(MIN_SPEED);
     const [ended, setEnded] = useState(false);
     const snapshot = useSimulation(sim, screen === 'simulation' && !ended, speed);
     // The simulation ends when every animal has died; ticking stops and the full history is shown.
