@@ -37,3 +37,22 @@ and every time the animal rest it uses that data to train the neural network
 
 the size of each hidden layers and the amount of hidden layers are inherited from their parents plus some modification
 
+SOFT CODED AI - details
+
+the network outputs one value ('feeling') per drive: FLEE, EAT, DRINK, MATE, REST, EXPLORE
+the strongest drive wins (10% of the time a random drive is tried instead, so the animal keeps exploring new behaviour)
+the drive is turned into an action by the same target search as the HARD CODED AI (nearest food, water, mate, predator)
+fear/hunger/thirst/libido shown for a SOFT CODED animal are the softmax shares of FLEE/EAT/DRINK/MATE
+
+inputs (all roughly 0..1): hp, nutrition, hydration, stamina, age (vs elderly age), readiness to breed,
+closeness of the nearest predator, food, water and mate, time of day (sin, cos), whether its activity cycle says it should be awake
+
+a decision is made when the action cooldown ends, the current action becomes impossible, or a predator comes into view
+reward = change in nutrition + change in hydration + 2 x change in HP (each as a fraction of max), +1 for each offspring
+each decision is remembered with the reward collected until the next decision (up to 200 per animal)
+every tick an animal is in REST it replays 4 remembered decisions through Q-learning
+
+children inherit the hidden layer shape (from a random parent, sizes averaged where both parents have the layer)
+and the parents' weights averaged, both with mutation: +/- 2 neurons per layer (30% chance), add or remove a layer (5% each, 1 to 4 layers, 2 to 64 neurons)
+founders start with one hidden layer of 12 neurons and random weights
+every hidden neuron costs stamina each tick, so a bigger brain has to earn its keep

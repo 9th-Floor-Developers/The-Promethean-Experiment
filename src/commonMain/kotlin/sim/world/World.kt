@@ -10,6 +10,7 @@ import sim.animal.Action
 import sim.animal.Animal
 import sim.animal.AnimalStats
 import sim.animal.Brain
+import sim.animal.Mind
 import sim.objects.Carcass
 import sim.objects.Egg
 import sim.objects.SimObject
@@ -130,6 +131,10 @@ class World(
         const val FLEE_TURN_CHANCE = 0.03
         /** HP regained per tick by REGENERATION animals that are not starving. */
         const val REGEN_RATE = 0.1
+        /** SOFT_CODED reward for each parent when an offspring is born or an egg laid. */
+        const val BIRTH_REWARD = 1.0
+        /** SOFT_CODED reward weight of HP change relative to nutrition and hydration change (all as fractions of max). */
+        const val HP_REWARD_WEIGHT = 2.0
         /** Angles (radians) tried, in order, when the straight path is blocked. */
         val MOVE_OFFSETS = doubleArrayOf(0.0, 0.7, -0.7, 1.4, -1.4)
     }
@@ -138,7 +143,8 @@ class World(
     fun spawn(s: Species, at: Vector2): Animal {
         require(s in species) { "$s is not a species of this world" }
         require(terrain.isWalkable(floor(at.x).toInt(), floor(at.y).toInt())) { "cannot spawn $s at $at: tile not walkable" }
-        return Animal(nextId++, s, at).also { animals.add(it) }
+        val mind = if (Trait.SOFT_CODED in s.traits) Mind.founder(rng) else null
+        return Animal(nextId++, s, at, mind = mind).also { animals.add(it) }
     }
 
     /** Adds a non-animal object built from a freshly allocated id; its tile must be walkable. */
@@ -205,18 +211,23 @@ class World(
 
     private fun decidePhase(log: TickLog) {
         log.phase("2/4 Decide")
-        log.step("1/2 Update feelings")
+        log.step("1/3 Sense")
         hunters = animals.filter { it.isAlive && it.species.canHunt }
         animalGrid.clear(); hunterGrid.clear(); carcassGrid.clear(); eggGrid.clear()
         for (a in animals) if (a.isAlive) { animalGrid.add(a, a.position); if (a.species.canHunt) hunterGrid.add(a, a.position) }
         for (c in carcasses) if (!c.isRemoved) carcassGrid.add(c, c.position)
         for (e in eggs) if (!e.isRemoved) eggGrid.add(e, e.position)
-        for (a in animals) a.feelings = brain.feel(a)
-        log.info { "updated feelings of ${animals.size} animals" }
+        var soft = 0
+        for (a in animals) a.mind?.let { brain.sense(a, it); soft++ }
+        log.info { "$soft SOFT_CODED animals sensed their surroundings" }
 
-        log.step("2/2 Choose actions")
+        log.step("2/3 Feel")
+        for (a in animals) a.feelings = a.mind?.let { brain.feelSoft(a, it) } ?: brain.feel(a)
+        log.info { "updated feelings of ${animals.size} animals (${animals.size - soft} by rules, $soft by network)" }
+
+        log.step("3/3 Choose actions")
         for (a in animals) {
-            a.action = brain.decide(a)
+            a.action = a.mind?.let { brain.decideSoft(a, it) } ?: brain.decide(a)
             val f = a.feelings
             log.info { "${a.label}: ${a.action} (fear=${fmt1(f.fear)} hunger=${fmt1(f.hunger)} thirst=${fmt1(f.thirst)} libido=${fmt1(f.libido)}) age=${fmt1(a.age)} hp=${fmt1(a.hp)} nutrition=${fmt1(a.nutrition)} hydration=${fmt1(a.hydration)} stamina=${fmt1(a.stamina)}" }
         }
@@ -281,7 +292,7 @@ class World(
             a.action is Action.AttackTarget && a.position.distanceTo((a.action as Action.AttackTarget).target.position) <= SPRINT_RANGE -> s.staminaSprintCost
             else -> a.stats.walkingStaminaUsage
         }
-        a.changeStamina(a.staminaRegen - a.stats.baseStaminaUsage - moveCost)
+        a.changeStamina(a.staminaRegen - a.baseStaminaUsage - moveCost)
     }
 
     /** Eats, drinks or attacks if the animal is already within reach of its target. */
@@ -397,7 +408,7 @@ class World(
 
     private fun lifePhase(log: TickLog) {
         log.phase("4/4 Life")
-        log.step("1/2 Metabolism, ageing and regeneration")
+        log.step("1/4 Metabolism, ageing and regeneration")
         for (a in animals) {
             val s = a.species
             a.age += 1.0 / TICKS_PER_DAY
@@ -413,7 +424,36 @@ class World(
         }
         log.info { "updated ${animals.size} animals" }
 
-        log.step("2/2 Deaths")
+        log.step("2/4 Record rewards")
+        var rewarded = 0
+        var rewardSum = 0.0
+        for (a in animals) {
+            val m = a.mind ?: continue
+            if (!a.isAlive) continue
+            if (m.lastHp >= 0) {
+                val r = (a.nutrition - m.lastNutrition) / a.species.maxNutrition +
+                    (a.hydration - m.lastHydration) / a.species.maxHydration +
+                    HP_REWARD_WEIGHT * (a.hp - m.lastHp) / a.stats.maxHp
+                m.pendingReward += r
+                rewardSum += r
+                rewarded++
+            }
+            m.lastHp = a.hp; m.lastNutrition = a.nutrition; m.lastHydration = a.hydration
+        }
+        log.info { "rewarded $rewarded SOFT_CODED animals (mean reward ${if (rewarded > 0) fmt1(rewardSum / rewarded * 1000) else "0"} per 1000)" }
+
+        log.step("3/4 Train resting brains")
+        var trained = 0
+        var replays = 0
+        for (a in animals) {
+            val m = a.mind ?: continue
+            if (!a.isAlive || a.action != Action.Rest) continue
+            replays += m.train(rng)
+            trained++
+        }
+        log.info { "$trained resting SOFT_CODED animals replayed $replays remembered decisions" }
+
+        log.step("4/4 Deaths")
         val dead = animals.filter { !it.isAlive }
         for (a in dead) {
             if (a.killedByAnimal) predatoryDeaths++ else naturalDeaths++
@@ -434,10 +474,10 @@ class World(
             if (!egg.readyToHatch) continue
             egg.hatch()
             val s = egg.species
-            val child = Animal(nextId++, s, egg.position, egg.stats, nutrition = s.maxNutrition / 2)
+            val child = Animal(nextId++, s, egg.position, egg.stats, nutrition = s.maxNutrition / 2, mind = egg.mind)
             child.reproductionCooldown = s.reproductionCooldownTicks
             animals.add(child)
-            simEvent("[${clock.format()}] HATCH ${child.label} hatched from an egg")
+            simEvent("[${clock.format()}] HATCH ${child.label} hatched from an egg${brainInfo(child.mind)}")
         }
     }
 
@@ -448,17 +488,23 @@ class World(
     private fun reproduce(a: Animal, mate: Animal) {
         val s = a.species
         val stats = AnimalStats.inherit(s, a.stats, mate.stats, rng)
+        val mind = if (a.mind != null && mate.mind != null) Mind.inherit(a.mind, mate.mind, rng) else null
+        a.mind?.let { it.pendingReward += BIRTH_REWARD }
+        mate.mind?.let { it.pendingReward += BIRTH_REWARD }
         a.reproductionCooldown = s.reproductionCooldownTicks
         mate.reproductionCooldown = s.reproductionCooldownTicks
         a.changeNutrition(-s.reproductionNutritionCost)
         if (Trait.EGG_BIRTH in s.traits) {
-            Egg(nextId++, a.position, s, stats, s.eggHatchTicks, s.eggNutrition).also { objects.add(it); eggs.add(it) }
-            simEvent("[${clock.format()}] EGG laid by ${a.label} and ${mate.label}")
+            Egg(nextId++, a.position, s, stats, s.eggHatchTicks, s.eggNutrition, mind).also { objects.add(it); eggs.add(it) }
+            simEvent("[${clock.format()}] EGG laid by ${a.label} and ${mate.label}${brainInfo(mind)}")
             return
         }
-        val child = Animal(nextId++, s, a.position, stats, nutrition = s.maxNutrition / 2)
+        val child = Animal(nextId++, s, a.position, stats, nutrition = s.maxNutrition / 2, mind = mind)
         animals.add(child)
         child.reproductionCooldown = s.reproductionCooldownTicks
-        simEvent("[${clock.format()}] BIRTH ${child.label} born to ${a.label} and ${mate.label}")
+        simEvent("[${clock.format()}] BIRTH ${child.label} born to ${a.label} and ${mate.label}${brainInfo(mind)}")
     }
+
+    /** " (brain hidden layers [12, 4])" for a SOFT_CODED newborn's [mind], empty otherwise. */
+    private fun brainInfo(mind: Mind?) = mind?.let { " (brain hidden layers ${it.net.hiddenSizes})" } ?: ""
 }

@@ -2,6 +2,7 @@ package sim.objects
 
 import base.Vector2
 import sim.animal.AnimalStats
+import sim.animal.Mind
 import sim.species.Species
 
 /**
@@ -17,6 +18,8 @@ class Egg(
     val stats: AnimalStats,
     val hatchTicks: Int,
     nutrition: Double,
+    /** Brain the hatchling is born with (SOFT_CODED species only), fixed when the egg is laid. */
+    val mind: Mind? = null,
 ) : SimObject(id, position) {
     init {
         require(hatchTicks > 0) { "hatchTicks must be positive" }

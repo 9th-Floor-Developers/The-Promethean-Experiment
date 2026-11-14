@@ -21,6 +21,8 @@ class Animal(
     var stamina: Double = species.maxStamina,
     /** Age in days, starting at 0. Older animals regenerate stamina more slowly. */
     var age: Double = 0.0,
+    /** The learning brain of a SOFT_CODED animal; null for HARD_CODED ones. */
+    val mind: Mind? = null,
 ) {
     val isAlive get() = hp > 0
 
@@ -75,6 +77,9 @@ class Animal(
 
     /** Whether the animal has reached its [AnimalStats.elderlyAge], when negative effects begin. */
     val isElderly get() = age >= stats.elderlyAge
+
+    /** Stamina spent every tick regardless of activity: the base usage plus the cost of running a [mind]. */
+    val baseStaminaUsage get() = stats.baseStaminaUsage + (mind?.staminaCost ?: 0.0)
 
     /** Stamina regained per tick; once [isElderly] it decays with the days spent elderly (docs/sim/ANIMALS.MD). */
     val staminaRegen get() = species.staminaRegen / (1 + species.staminaAgeDecay * (age - stats.elderlyAge).coerceAtLeast(0.0))

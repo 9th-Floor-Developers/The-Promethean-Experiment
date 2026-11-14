@@ -10,8 +10,9 @@ import sim.world.EXPLORE_ARRIVE
 import sim.world.World
 
 /**
- * Hard-coded animal AI (docs/sim/ANIMALS.MD): numeric feelings decide the current [Action].
- * SOFT_CODED animals currently use the same logic until a learned controller exists.
+ * Animal AI (docs/sim/ANIMALS.MD). HARD_CODED animals compute their feelings by fixed rules and pick an [Action]
+ * with fixed thresholds. SOFT_CODED animals sense their surroundings ([sense]), their [Mind]'s network turns that
+ * into one feeling per [Drive], and the strongest drive is carried out with the same target searches.
  */
 internal class Brain(private val world: World) {
     private companion object {
@@ -42,28 +43,140 @@ internal class Brain(private val world: World) {
     private var scoreBuf = DoubleArray(256)
     private var targetBuf = arrayOfNulls<Any>(256)
 
-    /** Computes the animal's current fear, hunger and thirst. */
-    fun feel(a: Animal): Feelings {
+    /** Nearest predator (a hunter of another species) in view range; hunters themselves fear nothing. */
+    private fun nearestThreat(a: Animal): Animal? {
         val s = a.species
+        if (s.canHunt) return null
         var threat: Animal? = null
         var best = a.stats.viewRange * a.stats.viewRange
-        if (!s.canHunt) {
-            world.hunterGrid.forEachNear(a.position, a.stats.viewRange) { o ->
-                if (o.isAlive && o.species != s) {
-                    val d = a.position.distanceSquaredTo(o.position)
-                    if (d <= best) { best = d; threat = o }
-                }
+        world.hunterGrid.forEachNear(a.position, a.stats.viewRange) { o ->
+            if (o.isAlive && o.species != s) {
+                val d = a.position.distanceSquaredTo(o.position)
+                if (d <= best) { best = d; threat = o }
             }
         }
-        val fear = threat?.let { 1 - a.position.distanceTo(it.position) / a.stats.viewRange } ?: 0.0
+        return threat
+    }
+
+    /** 1 when [o] is right next to the animal, falling to 0 at view range; 0 when there is nothing. */
+    private fun closeness(a: Animal, o: Vector2?): Double =
+        o?.let { (1 - a.position.distanceTo(it) / a.stats.viewRange).coerceIn(0.0, 1.0) } ?: 0.0
+
+    /** Readiness to reproduce: 0 on cooldown or at/below the nutrition threshold, rising to 1 at full nutrition. */
+    private fun libido(a: Animal): Double {
+        val s = a.species
         val spare = s.maxNutrition - s.reproductionNutritionThreshold
-        val libido = when {
+        return when {
             a.reproductionCooldown > 0 || a.nutrition <= s.reproductionNutritionThreshold -> 0.0
             spare <= 0 -> 1.0
             else -> (a.nutrition - s.reproductionNutritionThreshold) / spare
         }
-        return Feelings(fear, 1 - a.nutrition / s.maxNutrition, 1 - a.hydration / s.maxHydration, libido, threat)
     }
+
+    /** Computes a HARD_CODED animal's current fear, hunger, thirst and libido by fixed rules. */
+    fun feel(a: Animal): Feelings {
+        val s = a.species
+        val threat = nearestThreat(a)
+        return Feelings(closeness(a, threat?.position), 1 - a.nutrition / s.maxNutrition, 1 - a.hydration / s.maxHydration, libido(a), threat)
+    }
+
+    // ------------------------------------------------------------ SOFT CODED AI
+
+    /**
+     * Fills a SOFT_CODED animal's [Mind.inputs] (all roughly 0..1): its own hp, nutrition, hydration, stamina, age and
+     * readiness to breed; how close the nearest predator, food, water and mate are; the time of day; and whether
+     * its activity cycle says it should be awake.
+     */
+    fun sense(a: Animal, m: Mind) {
+        val s = a.species
+        val waterDist = world.water.distanceFrom(a.position)
+        val day = world.clock.timeOfDay * 2 * kotlin.math.PI
+        m.inputs = doubleArrayOf(
+            a.hp / a.stats.maxHp,
+            a.nutrition / s.maxNutrition,
+            a.hydration / s.maxHydration,
+            a.stamina / s.maxStamina,
+            (a.age / a.stats.elderlyAge.coerceAtLeast(0.1)).coerceAtMost(2.0) / 2,
+            libido(a),
+            closeness(a, nearestThreat(a)?.position),
+            closeness(a, nearestFood(a)),
+            if (waterDist < 0) 0.0 else (1 - waterDist / s.waterSenseRange).coerceIn(0.0, 1.0),
+            closeness(a, findMate(a)?.position),
+            kotlin.math.sin(day),
+            kotlin.math.cos(day),
+            if (s.isActiveAt(world.clock.phase)) 1.0 else 0.0,
+        )
+    }
+
+    /**
+     * A SOFT_CODED animal's feelings: its network's value for each [Drive]. fear/hunger/thirst/libido are the
+     * softmax shares of FLEE/EAT/DRINK/MATE among all drives, so they read 0..1 like the hard-coded ones.
+     */
+    fun feelSoft(a: Animal, m: Mind): Feelings {
+        m.values = m.net.forward(m.inputs)
+        val top = m.values.max()
+        val exp = DoubleArray(m.values.size) { kotlin.math.exp(m.values[it] - top) }
+        val sum = exp.sum()
+        fun share(d: Drive) = exp[d.ordinal] / sum
+        return Feelings(share(Drive.FLEE), share(Drive.EAT), share(Drive.DRINK), share(Drive.MATE), nearestThreat(a))
+    }
+
+    /**
+     * Chooses a SOFT_CODED animal's action. A new decision is made when the switch cooldown is over, the current
+     * action is no longer possible, or a predator has just come into view; otherwise the animal keeps going.
+     * Each decision closes the previous one in the mind's memory with the reward it earned.
+     */
+    fun decideSoft(a: Animal, m: Mind): Action {
+        if (a.actionCooldown > 0) a.actionCooldown--
+        val current = a.action
+        val threatAppeared = a.feelings.threat != null && !m.sawThreat
+        m.sawThreat = a.feelings.threat != null
+        if (m.lastDrive >= 0 && a.actionCooldown > 0 && !threatAppeared && stillPossible(current)) return current
+
+        val drive = m.pickDrive(world.rng)
+        m.decide(drive, m.inputs)
+        a.actionCooldown = a.species.actionCooldownTicks
+        return actionFor(a, drive)
+    }
+
+    /** Turns [drive] into an action, keeping the current one when it already serves that drive and can go on. */
+    private fun actionFor(a: Animal, drive: Drive): Action {
+        val current = a.action
+        val same = when (drive) {
+            Drive.FLEE -> current is Action.RunFromPredator && current.predator === a.feelings.threat
+            Drive.EAT -> current is Action.EatFood || current is Action.AttackTarget
+            Drive.DRINK -> current is Action.DrinkWater
+            Drive.MATE -> current is Action.ReproduceWith
+            Drive.REST -> current == Action.Rest
+            Drive.EXPLORE -> current is Action.Explore && a.position.distanceTo(current.target) > EXPLORE_ARRIVE
+        }
+        if (same && stillPossible(current)) return current
+        return when (drive) {
+            Drive.FLEE -> a.feelings.threat?.let { Action.RunFromPredator(it) } ?: Action.Wander
+            Drive.EAT -> findFood(a) ?: explore(a)
+            Drive.DRINK -> findWater(a) ?: Action.Wander
+            Drive.MATE -> findMate(a)?.let { Action.ReproduceWith(it) } ?: explore(a)
+            Drive.REST -> Action.Rest
+            Drive.EXPLORE -> explore(a)
+        }
+    }
+
+    /** Position of the nearest thing in view this species can eat (no route check; used as a sense only). */
+    private fun nearestFood(a: Animal): Vector2? {
+        val s = a.species
+        val view = a.stats.viewRange
+        var best: Vector2? = null
+        var bestD = view * view
+        fun consider(p: Vector2) { val d = a.position.distanceSquaredTo(p); if (d <= bestD) { bestD = d; best = p } }
+        if (s.eatsPlants) world.treeGrid.forEachNear(a.position, view) { t -> if (t.isEdible) consider(t.position) }
+        if (s.eatsPlants) world.grassGrid.forEachNear(a.position, view) { g -> if (g.isEdible) consider(g.position) }
+        if (s.eatsCarcasses) world.carcassGrid.forEachNear(a.position, view) { c -> if (!c.isRemoved) consider(c.position) }
+        if (s.eatsCarcasses) world.eggGrid.forEachNear(a.position, view) { e -> if (!e.isRemoved && e.species != s) consider(e.position) }
+        if (s.canHunt) world.animalGrid.forEachNear(a.position, view) { o -> if (o.isAlive && o.species != s) consider(o.position) }
+        return best
+    }
+
+    // ------------------------------------------------------------ HARD CODED AI
 
     /**
      * Chooses what the animal does this tick. After switching to a different kind of action the animal must
