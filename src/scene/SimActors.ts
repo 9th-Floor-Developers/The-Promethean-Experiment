@@ -26,6 +26,8 @@ const ROUTE_COLORS: Record<string, number> = {
     EXPLORE: 0xb18cff,
 };
 const ROUTE_FALLBACK_COLOR = 0xffffff;
+/** Emissive intensity of animals at full night, so they stay visible in the dark. */
+const NIGHT_GLOW_MAX = 0.45;
 /** Colours of the direction arrow shown when there is no destination (fleeing, wandering). */
 const HEADING_COLORS: Record<string, number> = { RUN_FROM_PREDATOR: 0xffa63d, WANDER: 0xd5dde2 };
 /** Length (world units) of the direction arrow. */
@@ -151,7 +153,9 @@ export class SimActors {
 
     /** One merged mesh geometry per species (body, head, ears and eyes baked together): one draw call per animal. */
     private readonly animalGeos: THREE.BufferGeometry[] = [];
-    private readonly animalMat = this.own(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true }));
+    private readonly animalMat = this.own(new THREE.MeshStandardMaterial({
+        vertexColors: true, flatShading: true, emissive: new THREE.Color(0xffe9a8), emissiveIntensity: 0,
+    }));
     private readonly hitGeo = this.own(new THREE.SphereGeometry(0.7, 6, 4));
     private readonly hitMat = this.own(new THREE.MeshBasicMaterial({ visible: false }));
     private readonly ringGeo = this.own(new THREE.RingGeometry(0.42, 0.56, 24));
@@ -289,6 +293,11 @@ export class SimActors {
     /** Converts tile coordinates to a world-space position standing on the ground. */
     private place(tx: number, ty: number, lift = 0, out = new THREE.Vector3()): THREE.Vector3 {
         return out.set(tx - this.tilesWide / 2, this.heightAt(tx, ty) + lift, ty - this.tilesHigh / 2);
+    }
+
+    /** Makes animals glow softly: 0 = no glow (daytime), 1 = full glow (deep night). */
+    setNightGlow(strength: number): void {
+        this.animalMat.emissiveIntensity = NIGHT_GLOW_MAX * strength;
     }
 
     /** Shows or hides the animals (they are only meaningful while the simulation screen is open). */
