@@ -12,6 +12,11 @@ sealed class Action {
     /** Aimless walking while nothing needs doing. */
     data object Wander : Action()
 
+    /** Walking to a far-away spot to search new ground when a need cannot be met by anything in view. */
+    class Explore(val target: Vector2) : Action() {
+        override fun toString() = "EXPLORE (${fmt1(target.x)}, ${fmt1(target.y)})"
+    }
+
     /** Running directly away from a [predator]. */
     class RunFromPredator(val predator: Animal) : Action() {
         override fun toString() = "RUN_FROM_PREDATOR ${predator.label}"

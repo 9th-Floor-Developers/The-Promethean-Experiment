@@ -23,6 +23,7 @@ const ROUTE_COLORS: Record<string, number> = {
     DRINK_WATER: 0x3aa0ff,
     EAT_FOOD: 0x5ce65c,
     REPRODUCE_WITH: 0xff7ad9,
+    EXPLORE: 0xb18cff,
 };
 const ROUTE_FALLBACK_COLOR = 0xffffff;
 /** Colours of the direction arrow shown when there is no destination (fleeing, wandering). */

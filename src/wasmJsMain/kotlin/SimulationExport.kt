@@ -18,7 +18,7 @@ private var world: World? = null
 private fun current(): World = world ?: error("createSimulation must be called first")
 
 /** Action names in the order of [actionCode]; sent to the frontend in [getSimulationInfo]. */
-private val ACTION_NAMES = listOf("REST", "WANDER", "RUN_FROM_PREDATOR", "ATTACK_TARGET", "DRINK_WATER", "EAT_FOOD", "REPRODUCE_WITH")
+private val ACTION_NAMES = listOf("REST", "WANDER", "RUN_FROM_PREDATOR", "ATTACK_TARGET", "DRINK_WATER", "EAT_FOOD", "REPRODUCE_WITH", "EXPLORE")
 
 /** Index into [ACTION_NAMES] for an animal's current action. */
 private fun actionCode(a: Action): Int = when (a) {
@@ -29,6 +29,7 @@ private fun actionCode(a: Action): Int = when (a) {
     is Action.DrinkWater -> 4
     is Action.EatFood -> 5
     is Action.ReproduceWith -> 6
+    is Action.Explore -> 7
 }
 
 /** Rounds to 2 decimals so the JSON stays short. */
@@ -111,6 +112,7 @@ fun getSimulationSnapshot(): String {
 /** Where the animal is walking to for [action] (its food, water, mate or prey); null when it has no destination. */
 private fun destination(action: Action): Vector2? = when (action) {
     is Action.DrinkWater -> action.target
+    is Action.Explore -> action.target
     is Action.EatFood -> action.target.position
     is Action.AttackTarget -> action.target.position
     is Action.ReproduceWith -> action.target.position

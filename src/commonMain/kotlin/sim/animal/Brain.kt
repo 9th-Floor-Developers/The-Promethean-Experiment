@@ -6,6 +6,7 @@ import kotlin.math.max
 import sim.objects.Carcass
 import sim.objects.Plant
 import sim.objects.Tree
+import sim.world.EXPLORE_ARRIVE
 import sim.world.World
 
 /**
@@ -34,6 +35,8 @@ internal class Brain(private val world: World) {
         const val HUNT_PENALTY = 3.0
         /** How many of the nearest food candidates are checked for a walkable route before giving up. */
         const val MAX_REACH_CHECKS = 12
+        /** Random far-away spots tried when exploring before giving up and wandering. */
+        const val EXPLORE_TRIES = 8
     }
 
     private var scoreBuf = DoubleArray(256)
@@ -81,6 +84,7 @@ internal class Brain(private val world: World) {
     /** Whether [act] can still be carried out (its target still exists and is still usable). */
     private fun stillPossible(act: Action): Boolean = when (act) {
         Action.Rest, Action.Wander, is Action.DrinkWater -> true
+        is Action.Explore -> true
         is Action.RunFromPredator -> act.predator.isAlive
         is Action.AttackTarget -> act.target.isAlive
         is Action.EatFood -> !act.target.isRemoved && (act.target !is Plant || act.target.isEdible)
@@ -107,6 +111,29 @@ internal class Brain(private val world: World) {
         if (wantsFood) findFood(a)?.let { return it }
         if (wantsWater) findWater(a)?.let { return it }
         if (f.libido > 0) findMate(a)?.let { return Action.ReproduceWith(it) }
+        // Wants food or a mate but nothing in view: search new ground instead of drifting aimlessly.
+        if (wantsFood || f.libido > 0) return explore(a)
+        return Action.Wander
+    }
+
+    /**
+     * Keeps heading to the current far-away spot until reached; otherwise picks a new walkable one in a random
+     * direction, 2 to 4 view ranges from where the animal stands now. Falls back to wandering if none is reachable.
+     */
+    private fun explore(a: Animal): Action {
+        val current = a.action
+        if (current is Action.Explore && a.position.distanceTo(current.target) > EXPLORE_ARRIVE) return current
+        val t = world.terrain
+        repeat(EXPLORE_TRIES) {
+            val angle = world.rng.nextDouble() * 2 * kotlin.math.PI
+            val dist = a.species.viewRange * (2 + 2 * world.rng.nextDouble())
+            val x = (a.position.x + kotlin.math.cos(angle) * dist).coerceIn(0.5, t.width - 0.5)
+            val y = (a.position.y + kotlin.math.sin(angle) * dist).coerceIn(0.5, t.height - 0.5)
+            val target = Vector2(x, y)
+            if (t.isWalkable(x.toInt(), y.toInt()) && a.position.distanceTo(target) > a.species.viewRange && world.isClearWalk(a.position, target)) {
+                return Action.Explore(target)
+            }
+        }
         return Action.Wander
     }
 

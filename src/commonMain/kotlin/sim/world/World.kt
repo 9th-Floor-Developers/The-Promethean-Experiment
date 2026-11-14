@@ -18,6 +18,9 @@ import sim.species.Species
 import sim.species.Trait
 import terrain.Terrain
 
+/** An exploring animal has arrived when this close (tiles) to its far-away target. */
+internal const val EXPLORE_ARRIVE = 1.5
+
 /** Holds the whole simulation state. The species are fixed when the world is created and never change. */
 class World(
     val terrain: Terrain,
@@ -41,7 +44,7 @@ class World(
     /** The world clock and day-night cycle. */
     val clock = Clock()
 
-    private val rng = Random(seed)
+    internal val rng = Random(seed)
     private val brain = Brain(this)
     private val pathfinder = Pathfinder(terrain)
     private var nextId = 0
@@ -224,6 +227,7 @@ class World(
         when (val act = a.action) {
             Action.Rest -> {}
             Action.Wander -> wander(a)
+            is Action.Explore -> if (!standingAtGoal(a)) moveToward(a, act.target, speed)
             is Action.RunFromPredator -> {
                 val p = act.predator.position
                 // Generally away from the predator, but not exactly: veer by a random offset that is only re-rolled occasionally.
@@ -308,6 +312,7 @@ class World(
     /** Whether the animal is already where its action wants it, so not moving is expected. */
     private fun standingAtGoal(a: Animal): Boolean = when (val act = a.action) {
         is Action.DrinkWater -> canDrink(a, act.target)
+        is Action.Explore -> a.position.distanceTo(act.target) <= EXPLORE_ARRIVE
         is Action.EatFood -> act.target.isRemoved || inEatReach(a, act.target)
         is Action.AttackTarget -> inAttackReach(a, act.target)
         is Action.ReproduceWith -> !act.target.isAlive || a.position.distanceTo(act.target.position) <= a.species.reproductionRange
