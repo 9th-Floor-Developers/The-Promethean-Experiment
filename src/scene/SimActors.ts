@@ -141,7 +141,20 @@ export class SimActors {
         color: 0xffd23f, side: THREE.DoubleSide, depthTest: false, transparent: true,
     }));
     private readonly ring = new THREE.Mesh(this.ringGeo, this.ringMat);
+    private readonly viewTileGeo = this.own(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2));
+    private readonly viewTileMat = this.own(new THREE.MeshBasicMaterial({
+        color: 0xffd23f, transparent: true, opacity: 0.28, depthTest: false, depthWrite: false,
+    }));
     private selectedId: number | null = null;
+
+    /** View range (tiles) of each species, indexed like the animal rows' species column. */
+    private viewRanges: number[] = [];
+    /** Flat yellow tiles marking everything the selected animal can see; one instance per tile in range. */
+    private viewOverlay: THREE.InstancedMesh | null = null;
+    /** Last sim position and species of the selected animal, so the overlay can be rebuilt on selection. */
+    private selectedRow: { x: number; y: number; species: number } | null = null;
+    /** Latest sim position and species of every living animal, for showing the overlay as soon as one is selected. */
+    private readonly lastRows = new Map<number, { x: number; y: number; species: number }>();
     private readonly carcassGeo = this.own(new THREE.IcosahedronGeometry(0.3, 0));
     private readonly carcassMat = this.own(new THREE.MeshStandardMaterial({ color: 0xd9a6a6, flatShading: true }));
 
@@ -162,6 +175,41 @@ export class SimActors {
         this.ring.removeFromParent();
         const actor = id === null ? undefined : this.actors.get(id);
         if (actor) actor.obj.add(this.ring);
+        this.selectedRow = null;
+        this.hideViewRange();
+        const row = id === null ? undefined : this.lastRows.get(id);
+        if (row) { this.selectedRow = row; this.showViewRange(row.x, row.y, row.species); }
+    }
+
+    /** Hides the view-range overlay. */
+    private hideViewRange(): void {
+        if (this.viewOverlay) this.viewOverlay.count = 0;
+    }
+
+    /**
+     * Marks every tile whose centre lies within the selected animal's view range (the same distance test the
+     * simulation uses) with a translucent yellow layer, so the area it can see is visible on the map.
+     */
+    private showViewRange(x: number, y: number, species: number): void {
+        const overlay = this.viewOverlay;
+        const range = this.viewRanges[species];
+        if (!overlay || !range) { this.hideViewRange(); return; }
+        const m = new THREE.Matrix4();
+        const pos = new THREE.Vector3();
+        const r2 = range * range;
+        let n = 0;
+        const x0 = Math.max(0, Math.floor(x - range)), x1 = Math.min(this.tilesWide - 1, Math.floor(x + range));
+        const y0 = Math.max(0, Math.floor(y - range)), y1 = Math.min(this.tilesHigh - 1, Math.floor(y + range));
+        for (let ty = y0; ty <= y1; ty++) {
+            for (let tx = x0; tx <= x1; tx++) {
+                const dx = tx + 0.5 - x, dy = ty + 0.5 - y;
+                if (dx * dx + dy * dy > r2 || n >= overlay.instanceMatrix.count) continue;
+                m.makeTranslation(...this.place(tx + 0.5, ty + 0.5, 0.06, pos).toArray());
+                overlay.setMatrixAt(n++, m);
+            }
+        }
+        overlay.count = n;
+        overlay.instanceMatrix.needsUpdate = true;
     }
 
     /** Writes the animal's current drawn (smoothed) world-space position into `out`; false if it is not alive. */
@@ -195,6 +243,7 @@ export class SimActors {
     /** Shows or hides the animals (they are only meaningful while the simulation screen is open). */
     setAnimalsVisible(visible: boolean): void {
         this.animalGroup.visible = visible;
+        if (this.viewOverlay) this.viewOverlay.visible = visible;
     }
 
     /** Builds the static scenery (trees and grass) as instanced meshes. Call once per simulation. */
@@ -204,6 +253,20 @@ export class SimActors {
         this.animalGeos.length = 0;
         for (const sp of info.species) this.animalGeos.push(buildAnimalGeometry(sp.canHunt ? CARNIVORE_COLOR : HERBIVORE_COLOR, sp.canHunt));
         this.animalGeos.push(buildAnimalGeometry(OTHER_COLOR, false));
+
+        this.viewRanges = info.species.map((sp) => sp.viewRange);
+        if (this.viewOverlay) {
+            this.group.remove(this.viewOverlay);
+            this.viewOverlay.dispose();
+        }
+        const widest = Math.ceil(Math.max(0, ...this.viewRanges));
+        const capacity = (2 * widest + 2) ** 2;
+        this.viewOverlay = new THREE.InstancedMesh(this.viewTileGeo, this.viewTileMat, capacity);
+        this.viewOverlay.count = 0;
+        this.viewOverlay.frustumCulled = false;
+        this.viewOverlay.renderOrder = 9;
+        this.viewOverlay.visible = this.animalGroup.visible;
+        this.group.add(this.viewOverlay);
 
         this.clearScenery();
         const trees = info.scenery.filter((s) => s[1] === 1);
@@ -291,12 +354,22 @@ export class SimActors {
                 this.showEvents(actor, row[A.hp]!, row[A.action]!);
             }
             actor.seen = stamp;
+            const x = row[A.x]!, y = row[A.y]!, species = row[A.species]!;
+            this.lastRows.set(id, { x, y, species });
+            if (id === this.selectedId) {
+                const prev = this.selectedRow;
+                if (!prev || prev.x !== x || prev.y !== y || prev.species !== species) {
+                    this.selectedRow = { x, y, species };
+                    this.showViewRange(x, y, species);
+                }
+            }
         }
         for (const [id, actor] of this.actors) {
             if (actor.seen !== stamp) {
-                if (id === this.selectedId) this.ring.removeFromParent();
+                if (id === this.selectedId) { this.ring.removeFromParent(); this.selectedRow = null; this.hideViewRange(); }
                 this.animalGroup.remove(actor.obj);
                 this.actors.delete(id);
+                this.lastRows.delete(id);
             }
         }
 
@@ -442,6 +515,7 @@ export class SimActors {
         this.textures.forEach((t) => t.dispose());
         this.textures.clear();
         this.clearScenery();
+        this.viewOverlay?.dispose();
         this.animalGeos.forEach((g) => g.dispose());
         this.owned.forEach((r) => r.dispose());
     }
