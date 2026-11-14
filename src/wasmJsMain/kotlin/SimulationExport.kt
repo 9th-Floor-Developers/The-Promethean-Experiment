@@ -1,3 +1,4 @@
+import base.Vector2
 import sim.animal.Action
 import sim.objects.Carcass
 import sim.objects.Grass
@@ -79,8 +80,9 @@ fun tickSimulation(ticks: Int) {
 /**
  * Current state as JSON:
  * `{"tick","day","timeOfDay","phase",
- * "animals":[[id,speciesIndex,x,y,hp,nutrition,hydration,stamina,age,actionCode,fear,hunger,thirst,libido]...],
+ * "animals":[[id,speciesIndex,x,y,hp,nutrition,hydration,stamina,age,actionCode,fear,hunger,thirst,libido,targetX,targetY]...],
  * "carcasses":[[id,x,y,fractionLeft]...],"trees":"<one digit per tree, 1 = edible>","grass":"<one digit per grass tuft, 1 = edible>"}`.
+ * `targetX`/`targetY` are the tile-unit position the animal is heading for (see [destination]), or -1,-1 when it has none.
  * `timeOfDay` runs 0.0 (midnight) to 1.0; `speciesIndex` indexes `species` from [getSimulationInfo].
  */
 @OptIn(ExperimentalJsExport::class)
@@ -90,7 +92,8 @@ fun getSimulationSnapshot(): String {
     val animals = w.animals.joinToString(",") { a ->
         "[${a.id},${w.species.indexOf(a.species)},${r2(a.position.x)},${r2(a.position.y)}," +
             "${r2(a.hp)},${r2(a.nutrition)},${r2(a.hydration)},${r2(a.stamina)},${r2(a.age)},${actionCode(a.action)}," +
-            "${r2(a.feelings.fear)},${r2(a.feelings.hunger)},${r2(a.feelings.thirst)},${r2(a.feelings.libido)}]"
+            "${r2(a.feelings.fear)},${r2(a.feelings.hunger)},${r2(a.feelings.thirst)},${r2(a.feelings.libido)}," +
+            (destination(a.action)?.let { "${r2(it.x)},${r2(it.y)}" } ?: "-1,-1") + "]"
     }
     val carcasses = w.objects.filterIsInstance<Carcass>().joinToString(",") {
         "[${it.id},${r2(it.position.x)},${r2(it.position.y)},${r2(it.nutrition / it.initialNutrition)}]"
@@ -99,4 +102,13 @@ fun getSimulationSnapshot(): String {
     val grass = buildString { w.grasses.forEach { append(if (it.isEdible) '1' else '0') } }
     return """{"tick":${w.clock.tick},"day":${w.clock.day},"timeOfDay":${r2(w.clock.timeOfDay)},""" +
         """"phase":"${w.clock.phase}","animals":[$animals],"carcasses":[$carcasses],"trees":"$trees","grass":"$grass"}"""
+}
+
+/** Where the animal is walking to for [action] (its food, water, mate or prey); null when it has no destination. */
+private fun destination(action: Action): Vector2? = when (action) {
+    is Action.DrinkWater -> action.target
+    is Action.EatFood -> action.target.position
+    is Action.AttackTarget -> action.target.position
+    is Action.ReproduceWith -> action.target.position
+    Action.Rest, Action.Wander, is Action.RunFromPredator -> null
 }

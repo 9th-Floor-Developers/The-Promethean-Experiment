@@ -155,6 +155,18 @@ export class SimActors {
     private selectedRow: { x: number; y: number; species: number } | null = null;
     /** Latest sim position and species of every living animal, for showing the overlay as soon as one is selected. */
     private readonly lastRows = new Map<number, { x: number; y: number; species: number }>();
+
+    /** Cyan ring on the tile the selected animal is walking to. */
+    private readonly destMarker = new THREE.Mesh(
+        this.own(new THREE.RingGeometry(0.3, 0.46, 20).rotateX(-Math.PI / 2)),
+        this.own(new THREE.MeshBasicMaterial({ color: 0x2bd9ff, side: THREE.DoubleSide, depthTest: false, transparent: true })));
+    /** Line from the selected animal to its destination. */
+    private readonly destLine = new THREE.Line(
+        this.own(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3))),
+        this.own(new THREE.LineBasicMaterial({ color: 0x2bd9ff, depthTest: false, transparent: true, opacity: 0.8 })));
+    /** Destination of the selected animal in tile units, or null when it has none. */
+    private selectedDest: { x: number; y: number } | null = null;
+    private readonly destPos = new THREE.Vector3();
     private readonly carcassGeo = this.own(new THREE.IcosahedronGeometry(0.3, 0));
     private readonly carcassMat = this.own(new THREE.MeshStandardMaterial({ color: 0xd9a6a6, flatShading: true }));
 
@@ -163,7 +175,8 @@ export class SimActors {
         private readonly tilesHigh: number,
         private readonly heightAt: HeightFn,
     ) {
-        this.group.add(this.sceneryGroup, this.animalGroup);
+        this.group.add(this.sceneryGroup, this.animalGroup, this.destMarker, this.destLine);
+        for (const o of [this.destMarker, this.destLine]) { o.visible = false; o.renderOrder = 11; o.frustumCulled = false; }
         this.ring.rotation.x = -Math.PI / 2;
         this.ring.position.y = -0.19;
         this.ring.renderOrder = 10; // drawn over the ground so it is always visible
@@ -176,6 +189,8 @@ export class SimActors {
         const actor = id === null ? undefined : this.actors.get(id);
         if (actor) actor.obj.add(this.ring);
         this.selectedRow = null;
+        this.selectedDest = null;
+        this.destMarker.visible = this.destLine.visible = false;
         this.hideViewRange();
         const row = id === null ? undefined : this.lastRows.get(id);
         if (row) { this.selectedRow = row; this.showViewRange(row.x, row.y, row.species); }
@@ -244,6 +259,7 @@ export class SimActors {
     setAnimalsVisible(visible: boolean): void {
         this.animalGroup.visible = visible;
         if (this.viewOverlay) this.viewOverlay.visible = visible;
+        if (!visible) this.destMarker.visible = this.destLine.visible = false;
     }
 
     /** Builds the static scenery (trees and grass) as instanced meshes. Call once per simulation. */
@@ -357,6 +373,10 @@ export class SimActors {
             const x = row[A.x]!, y = row[A.y]!, species = row[A.species]!;
             this.lastRows.set(id, { x, y, species });
             if (id === this.selectedId) {
+                const tx = row[A.targetX]!, ty = row[A.targetY]!;
+                this.selectedDest = tx < 0 ? null : { x: tx, y: ty };
+                if (this.selectedDest) this.place(tx, ty, 0.08, this.destMarker.position);
+                this.destMarker.visible = this.destLine.visible = this.selectedDest !== null && this.animalGroup.visible;
                 const prev = this.selectedRow;
                 if (!prev || prev.x !== x || prev.y !== y || prev.species !== species) {
                     this.selectedRow = { x, y, species };
@@ -366,7 +386,10 @@ export class SimActors {
         }
         for (const [id, actor] of this.actors) {
             if (actor.seen !== stamp) {
-                if (id === this.selectedId) { this.ring.removeFromParent(); this.selectedRow = null; this.hideViewRange(); }
+                if (id === this.selectedId) {
+                    this.ring.removeFromParent(); this.selectedRow = null; this.selectedDest = null;
+                    this.destMarker.visible = this.destLine.visible = false; this.hideViewRange();
+                }
                 this.animalGroup.remove(actor.obj);
                 this.actors.delete(id);
                 this.lastRows.delete(id);
@@ -494,6 +517,14 @@ export class SimActors {
             const moving = actor.obj.position.distanceToSquared(actor.target) > 1e-4;
             const bob = moving ? Math.abs(Math.sin(this.clockTime * 12 + actor.obj.id)) * 0.05 : 0;
             actor.obj.children[0]!.position.y = bob;
+        }
+        const sel = this.selectedId === null ? undefined : this.actors.get(this.selectedId);
+        if (sel && this.selectedDest && this.destLine.visible) {
+            const a = this.destLine.geometry.getAttribute('position') as THREE.BufferAttribute;
+            this.place(this.selectedDest.x, this.selectedDest.y, 0.08, this.destPos);
+            a.setXYZ(0, sel.obj.position.x, sel.obj.position.y + 0.1, sel.obj.position.z);
+            a.setXYZ(1, this.destPos.x, this.destPos.y, this.destPos.z);
+            a.needsUpdate = true;
         }
     }
 
