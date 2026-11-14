@@ -14,21 +14,23 @@ import kotlin.random.Random
 val MOCK_CARNIVORE = Species(
     name = "Mock Carnivore",
     traits = setOf(Trait.HARD_CODED, Trait.CARNIVORE, Trait.LIVE_BIRTH, Trait.FUR, Trait.ENDOTHERMIC, Trait.CREPUSCULAR, Trait.PACK),
-    speed = 0.10,
+    speed = 0.09,
     staminaSprintCost = 0.1,
-    viewRange = 24.0,
+    viewRange = 30.0,
     bodyRadius = 0.35,
     attackDamage = 3.0,
     reproductionNutritionThreshold = 85.0,
     reproductionNutritionCost = 60.0,
-    reproductionCooldownTicks = 3600,
-    nutritionDrain = 0.045,
+    reproductionCooldownTicks = 6000,
+    nutritionDrain = 0.03,
 )
 
 /** Mock herbivore used until real species definitions exist. */
 val MOCK_HERBIVORE = Species(
     name = "Mock Herbivore",
     traits = setOf(Trait.HARD_CODED, Trait.HERBIVORE, Trait.LIVE_BIRTH, Trait.FUR, Trait.ENDOTHERMIC, Trait.DIURNAL),
+    speed = 0.07,
+    viewRange = 16.0,
     reproductionCooldownTicks = 600,
     carcassNutrition = 70.0,
 )

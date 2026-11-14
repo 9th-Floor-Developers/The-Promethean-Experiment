@@ -160,3 +160,13 @@
 .sim-overview__chart { max-width: 70rem; margin: 0 auto; }
 .sim__end { margin-left: var(--space-2); padding: 0.2rem 0.8rem; border: 1px solid var(--color-accent); border-radius: 999px; background: transparent; color: inherit; font: inherit; font-size: 0.8rem; cursor: pointer; }
 .sim__end:hover { background: var(--color-accent); color: var(--color-accent-ink); }
+
+.sim-overview__body { display: flex; flex-direction: column; gap: var(--space-3); }
+.radar { max-width: 28rem; margin: 0 auto; width: 100%; }
+.radar__head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); margin-bottom: 0.4rem; }
+.radar__title { margin: 0; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: #ffd9c7; }
+.radar select { padding: 0.25rem 0.5rem; border-radius: 8px; border: 1px solid var(--color-accent); background: #1a233b; color: inherit; font: inherit; }
+.radar__svg { width: 100%; height: auto; overflow: visible; }
+.radar__label { font-size: 10px; fill: #e8eefc; }
+.radar__sub { font-size: 8px; fill: #93a1c4; font-variant-numeric: tabular-nums; }
+.radar__note { margin: 0.3rem 0 0; font-size: 0.75rem; color: #93a1c4; }

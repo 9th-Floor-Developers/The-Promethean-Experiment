@@ -3,6 +3,7 @@ import type { Screen } from './app/screens';
 import { createSimulation, type KotlinSimulation } from './sim/kotlinSim';
 import { useSimulation, MIN_SPEED } from './sim/useSimulation';
 import { usePopulationHistory } from './sim/usePopulationHistory';
+import { useTraitStats } from './sim/useTraitStats';
 import { DEFAULT_LEADERBOARD_SETTINGS, type LeaderboardSettings } from './simulation/Leaderboard';
 import { SceneCanvas } from './scene/SceneCanvas';
 import {LandingScreen} from "./screen/LandingScreen.tsx";
@@ -41,6 +42,7 @@ export default function App() {
         if (snapshot && snapshot.tick > 0 && snapshot.animals.length === 0) setEnded(true);
     }, [snapshot]);
     const history = usePopulationHistory(snapshot, sim?.info ?? null);
+    const traitStats = useTraitStats(snapshot, sim?.info ?? null);
 
     // The camera lock only makes sense while an animal is selected.
     useEffect(() => {
@@ -96,7 +98,7 @@ export default function App() {
                     />
                 )}
                 {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} onSelect={setSelectedId} objectInfoOf={sim?.objectInfo ?? null} following={following} onFollowChange={setFollowing} onBack={endSimulation}
-                    leaderboardSettings={leaderboardSettings} onLeaderboardSettingsChange={setLeaderboardSettings} history={history} ended={ended} onEnd={() => setEnded(true)} speed={speed} onSpeedChange={setSpeed} />}
+                    leaderboardSettings={leaderboardSettings} onLeaderboardSettingsChange={setLeaderboardSettings} history={history} traitStats={traitStats} ended={ended} onEnd={() => setEnded(true)} speed={speed} onSpeedChange={setSpeed} />}
                 {screen === 'settings' && <SettingsScreen store={presetStore} onChange={changePresets} onDone={closeSettings} />}
                 {screen === 'credits' && <CreditsScreen onBack={closeCredits} />}
             </main>
