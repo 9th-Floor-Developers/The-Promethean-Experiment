@@ -35,4 +35,5 @@ world environment inputs → hidden layers → 'feelings'
 this will use a version of Q learning where actions get rewarded and recorded per animal
 and every time the animal rest it uses that data to train the neural network
 
-the size of each hidden layers and the amount are inherited from their parents, 
+the size of each hidden layers and the amount of hidden layers are inherited from their parents plus some modification
+
