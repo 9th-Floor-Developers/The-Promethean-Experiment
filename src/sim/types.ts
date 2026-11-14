@@ -14,6 +14,12 @@ export interface SpeciesInfo {
     viewRange: number;
 }
 
+/** Details of a selected non-animal object from Kotlin's getObjectInfo(). Positions are in tile units. */
+export type ObjectInfo =
+    | { type: 'TREE' | 'GRASS'; x: number; y: number; edible: boolean; cooldownRemaining: number; cooldownTicks: number; nutrition: number }
+    | { type: 'CARCASS'; x: number; y: number; nutrition: number; initialNutrition: number; rotTicksLeft: number; rotTicks: number }
+    | { type: 'EGG'; x: number; y: number; species: string; hatchTicks: number; ticksLeft: number; nutrition: number };
+
 export interface SimInfo {
     /** Action names, indexed by an animal row's action code (see A.action). */
     actions: string[];

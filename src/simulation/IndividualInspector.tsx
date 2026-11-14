@@ -1,5 +1,7 @@
 import { Leaderboard, type LeaderboardSettings } from './Leaderboard';
-import { A, type SimInfo, type SimSnapshot } from '../sim/types';
+import { A, type ObjectInfo, type SimInfo, type SimSnapshot } from '../sim/types';
+
+const TICKS_PER_DAY = 1200;
 
 interface Props {
     snapshot: SimSnapshot | null;
@@ -7,6 +9,8 @@ interface Props {
     selectedId: number | null;
     /** Selects an animal by id, or clears the selection with null. */
     onSelect: (id: number | null) => void;
+    /** Looks up the details of a selected tree, grass tuft, carcass or egg. */
+    objectInfoOf: ((id: number) => ObjectInfo | null) | null;
     /** Whether the camera is locked onto the selected animal. */
     following: boolean;
     leaderboardSettings: LeaderboardSettings;
@@ -34,14 +38,76 @@ function Meter({ label, value, max, tone }: { label: string; value: number; max:
     );
 }
 
+/** A time in ticks as ticks plus in-game days, e.g. "300 ticks (0.25 days)". */
+function formatTicks(ticks: number): string {
+    return `${ticks} ticks (${(ticks / TICKS_PER_DAY).toFixed(2)} days)`;
+}
+
+const OBJECT_NAMES: Record<ObjectInfo['type'], string> = { TREE: 'Tree', GRASS: 'Grass', CARCASS: 'Carcass', EGG: 'Egg' };
+
+/** Details of a selected tree, grass tuft, carcass or egg, including its cooldown. */
+function ObjectDetails({ id, object, onBack }: { id: number; object: ObjectInfo; onBack: () => void }) {
+    return (
+        <>
+            <div className="inspector__title">
+                <strong>{OBJECT_NAMES[object.type]}</strong>
+                <span className="inspector__id">#{id}</span>
+                <button type="button" className="inspector__back" onClick={onBack}>← Leaderboard</button>
+            </div>
+            {(object.type === 'TREE' || object.type === 'GRASS') && (
+                <>
+                    <div className="inspector__action">
+                        <span className="meter__label">State</span>
+                        <span className="inspector__action-value">{object.edible ? 'Ready to eat' : 'Regrowing'}</span>
+                    </div>
+                    <Meter label="Regrowth" value={object.cooldownTicks - object.cooldownRemaining} max={object.cooldownTicks} tone="stamina" />
+                    <dl className="inspector__facts">
+                        <dt>Cooldown left</dt><dd>{object.edible ? 'none' : formatTicks(object.cooldownRemaining)}</dd>
+                        <dt>Full cooldown</dt><dd>{formatTicks(object.cooldownTicks)}</dd>
+                        <dt>Nutrition</dt><dd>{object.nutrition}</dd>
+                        <dt>Position</dt><dd>{object.x.toFixed(1)}, {object.y.toFixed(1)}</dd>
+                    </dl>
+                </>
+            )}
+            {object.type === 'CARCASS' && (
+                <>
+                    <Meter label="Meat left" value={object.nutrition} max={object.initialNutrition} tone="nutrition" />
+                    <dl className="inspector__facts">
+                        <dt>Rots away in</dt><dd>{formatTicks(object.rotTicksLeft)}</dd>
+                        <dt>Nutrition</dt><dd>{object.nutrition.toFixed(1)} of {object.initialNutrition.toFixed(1)}</dd>
+                        <dt>Position</dt><dd>{object.x.toFixed(1)}, {object.y.toFixed(1)}</dd>
+                    </dl>
+                </>
+            )}
+            {object.type === 'EGG' && (
+                <>
+                    <Meter label="Hatching" value={object.hatchTicks - object.ticksLeft} max={object.hatchTicks} tone="hp" />
+                    <dl className="inspector__facts">
+                        <dt>Species</dt><dd>{object.species}</dd>
+                        <dt>Hatches in</dt><dd>{formatTicks(object.ticksLeft)}</dd>
+                        <dt>Nutrition</dt><dd>{object.nutrition.toFixed(1)}</dd>
+                        <dt>Position</dt><dd>{object.x.toFixed(1)}, {object.y.toFixed(1)}</dd>
+                    </dl>
+                </>
+            )}
+        </>
+    );
+}
+
 /** Shows the selected animal's status values (HP, stamina, nutrition, hydration, age), feelings and current action. */
-export function IndividualInspector({ snapshot, info, selectedId, onSelect, following, onFollowChange, leaderboardSettings, onLeaderboardSettingsChange }: Props) {
+export function IndividualInspector({ snapshot, info, selectedId, onSelect, objectInfoOf, following, onFollowChange, leaderboardSettings, onLeaderboardSettingsChange }: Props) {
     const row = selectedId === null ? undefined : snapshot?.animals.find((r) => r[A.id] === selectedId);
     const species = row && info ? info.species[row[A.species]!] : undefined;
 
     let body;
     if (selectedId === null) {
         body = null; // the leaderboard is shown instead, see below
+    } else if (!row && info && objectInfoOf) {
+        // Ids are shared by animals and objects, so an id that is not a living animal may be a tree, grass, carcass or egg.
+        const object = objectInfoOf(selectedId);
+        body = object
+            ? <ObjectDetails id={selectedId} object={object} onBack={() => onSelect(null)} />
+            : <div className="panel__empty">#{selectedId} no longer exists.</div>;
     } else if (!row || !species || !info) {
         body = <div className="panel__empty">Animal #{selectedId} is no longer alive.</div>;
     } else {

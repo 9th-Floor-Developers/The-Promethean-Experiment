@@ -23,7 +23,9 @@ class Egg(
         require(nutrition > 0) { "nutrition must be positive" }
     }
 
-    private var ticksLeft = hatchTicks
+    /** Ticks until the egg hatches. */
+    var ticksLeft: Int = hatchTicks
+        private set
     private var hatched = false
 
     /** Nutrition left in the egg; an eater gets this much in total. */

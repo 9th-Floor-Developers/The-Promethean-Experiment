@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { TitleEffects } from './TitleEffects';
 import { PopulationGraph, SimulationSummary } from './PopulationGraph';
 import type { LeaderboardSettings } from './Leaderboard';
-import type { SimInfo, SimSnapshot } from '../sim/types';
+import type { ObjectInfo, SimInfo, SimSnapshot } from '../sim/types';
 import type { PopulationSample } from '../sim/usePopulationHistory';
 
 /**
@@ -17,6 +17,8 @@ interface Props {
     info: SimInfo | null;
     selectedId: number | null;
     onSelect: (id: number | null) => void;
+    /** Looks up the details of a selected tree, grass tuft, carcass or egg. */
+    objectInfoOf: ((id: number) => ObjectInfo | null) | null;
     /** Whether the camera is locked onto the selected animal. */
     following: boolean;
     /** Ends the simulation and returns to the previous screen. */
@@ -31,7 +33,7 @@ interface Props {
     onSpeedChange: (speed: number) => void;
 }
 
-export function SimulationScreen({ snapshot, info, selectedId, onSelect, following, onFollowChange, onBack, leaderboardSettings, onLeaderboardSettingsChange, history, ended, speed, onSpeedChange }: Props) {
+export function SimulationScreen({ snapshot, info, selectedId, onSelect, objectInfoOf, following, onFollowChange, onBack, leaderboardSettings, onLeaderboardSettingsChange, history, ended, speed, onSpeedChange }: Props) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [summaryClosed, setSummaryClosed] = useState(false);
     return (
@@ -43,7 +45,7 @@ export function SimulationScreen({ snapshot, info, selectedId, onSelect, followi
                 <SimulationSummary history={history} info={info} snapshot={snapshot} onClose={() => setSummaryClosed(true)} />
             )}
             <aside className="sim__sidebar" aria-label="Simulation panels">
-                <IndividualInspector snapshot={snapshot} info={info} selectedId={selectedId} onSelect={onSelect} following={following} onFollowChange={onFollowChange}
+                <IndividualInspector snapshot={snapshot} info={info} selectedId={selectedId} onSelect={onSelect} objectInfoOf={objectInfoOf} following={following} onFollowChange={onFollowChange}
                                     leaderboardSettings={leaderboardSettings} onLeaderboardSettingsChange={onLeaderboardSettingsChange} />
                 <PopulationGraph history={history} info={info} snapshot={snapshot} />
             </aside>

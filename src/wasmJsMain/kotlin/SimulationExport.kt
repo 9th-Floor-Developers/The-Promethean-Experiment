@@ -2,6 +2,7 @@ import base.Vector2
 import sim.animal.Action
 import sim.animal.Animal
 import sim.objects.Carcass
+import sim.objects.Egg
 import sim.objects.Grass
 import sim.objects.Tree
 import sim.world.World
@@ -141,4 +142,25 @@ private fun heading(a: Animal): Double? = when (val act = a.action) {
     Action.Wander -> a.wanderHeading
     is Action.RunFromPredator -> atan2(a.position.y - act.predator.position.y, a.position.x - act.predator.position.x) + a.fleeOffset
     else -> null
+}
+
+/**
+ * Details of the non-animal object with [id] (tree, grass, carcass or egg) as JSON, or `null` when it does not exist
+ * (any more). Always has `type` ("TREE", "GRASS", "CARCASS" or "EGG"), `x` and `y` in tile units; the rest depends on
+ * the type: plants have `edible`, `cooldownRemaining`, `cooldownTicks` and `nutrition`; carcasses `nutrition`,
+ * `initialNutrition`, `rotTicksLeft` and `rotTicks`; eggs `species`, `hatchTicks`, `ticksLeft` and `nutrition`.
+ */
+@OptIn(ExperimentalJsExport::class)
+@JsExport
+fun getObjectInfo(id: Int): String {
+    val o = current().objects.firstOrNull { it.id == id && !it.isRemoved } ?: return "null"
+    val head = """"x":${r2(o.position.x)},"y":${r2(o.position.y)}"""
+    return when (o) {
+        is Tree -> """{"type":"TREE",$head,"edible":${o.isEdible},"cooldownRemaining":${o.cooldownRemaining},"cooldownTicks":${o.cooldownTicks},"nutrition":${o.nutritionValue}}"""
+        is Grass -> """{"type":"GRASS",$head,"edible":${o.isEdible},"cooldownRemaining":${o.cooldownRemaining},"cooldownTicks":${o.cooldownTicks},"nutrition":${o.nutritionValue}}"""
+        is Carcass -> """{"type":"CARCASS",$head,"nutrition":${r2(o.nutrition)},"initialNutrition":${r2(o.initialNutrition)},""" +
+            """"rotTicksLeft":${(o.nutrition / o.initialNutrition * o.rotTicks).toInt()},"rotTicks":${o.rotTicks}}"""
+        is Egg -> """{"type":"EGG",$head,"species":${q(o.species.name)},"hatchTicks":${o.hatchTicks},"ticksLeft":${o.ticksLeft},"nutrition":${r2(o.nutrition)}}"""
+        else -> "null"
+    }
 }

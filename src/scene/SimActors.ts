@@ -269,12 +269,16 @@ export class SimActors {
     private readonly pickInv = new THREE.Matrix4();
     /** Follows the selected animal and carries the selection ring (animals are no longer separate objects to hold it). */
     private readonly ringHolder = new THREE.Group();
+    /** Trees and grass tufts by id, with their tile position, for clicking and highlighting them. */
+    private readonly sceneryById = new Map<number, { type: number; x: number; y: number }>();
     private readonly animalMat = this.own(this.makeAnimalMaterial());
     private readonly ringGeo = this.own(new THREE.RingGeometry(0.42, 0.56, 24));
     private readonly ringMat = this.own(new THREE.MeshBasicMaterial({
         color: 0xffd23f, side: THREE.DoubleSide, depthTest: false, transparent: true,
     }));
     private readonly ring = new THREE.Mesh(this.ringGeo, this.ringMat);
+    /** Ring around the selected non-animal object (tree, grass, carcass or egg). */
+    private readonly objectRing = new THREE.Mesh(this.ringGeo, this.ringMat);
     private readonly viewTileMat = this.own(new THREE.MeshBasicMaterial({
         color: 0xffd23f, transparent: true, opacity: 0.28, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
     }));
@@ -334,6 +338,10 @@ export class SimActors {
         this.animalGroup.add(this.ringHolder);
         for (const o of [this.destMarker, this.destLine, this.routeArrows]) { o.visible = false; o.renderOrder = 11; o.frustumCulled = false; }
         this.routeArrows.count = 0;
+        this.objectRing.rotation.x = -Math.PI / 2;
+        this.objectRing.renderOrder = 10;
+        this.objectRing.visible = false;
+        this.group.add(this.objectRing);
         this.ring.rotation.x = -Math.PI / 2;
         this.ring.position.y = -0.19;
         this.ring.renderOrder = 10; // drawn over the ground so it is always visible
@@ -344,6 +352,7 @@ export class SimActors {
         this.selectedId = id;
         const actor = id === null ? undefined : this.actors.get(id);
         this.ringHolder.visible = !!actor;
+        this.updateObjectRing();
         this.selectedRow = null;
         this.selectedDest = null;
         this.selectedHeading = null;
@@ -351,6 +360,22 @@ export class SimActors {
         this.hideViewRange();
         const row = id === null ? undefined : this.lastRows.get(id);
         if (row) { this.selectedRow = row; this.showViewRange(row.x, row.y, row.range); }
+    }
+
+    /** Local position and ring size of a non-animal object, or null when it does not exist. */
+    private objectSpot(id: number, out: THREE.Vector3): number | null {
+        const item = this.sceneryById.get(id);
+        if (item) { this.place(item.x, item.y, 0.12, out); return item.type === 1 ? 1.7 : 0.9; }
+        const mesh = this.carcasses.get(id) ?? this.eggs.get(id);
+        if (mesh) { out.copy(mesh.position); out.y = mesh.position.y; return 1.0; }
+        return null;
+    }
+
+    /** Shows the selection ring around the selected non-animal object, hides it otherwise. */
+    private updateObjectRing(): void {
+        const size = this.selectedId === null || this.actors.has(this.selectedId) ? null : this.objectSpot(this.selectedId, this.objectRing.position);
+        this.objectRing.visible = size !== null && this.animalGroup.visible;
+        if (size !== null) this.objectRing.scale.setScalar(size);
     }
 
     /** Hides the view-range overlay. */
@@ -412,6 +437,25 @@ export class SimActors {
             const d = this.tmpV2.distanceToSquared(this.pickRay.origin);
             if (d < bestDist) { bestDist = d; best = id; }
         }
+        if (best !== null) return best;
+
+        // No animal: try the trees, grass tufts, carcasses and eggs.
+        const hit = (centre: THREE.Vector3, radius: number): number => {
+            this.pickSphere.set(centre, radius);
+            return this.pickRay.intersectSphere(this.pickSphere, this.tmpV2) ? this.tmpV2.distanceToSquared(this.pickRay.origin) : Infinity;
+        };
+        for (const [id, item] of this.sceneryById) {
+            const tree = item.type === 1;
+            this.place(item.x, item.y, tree ? 0.9 : 0.15, this.tmpV);
+            const d = hit(this.tmpV, tree ? 0.9 : 0.45);
+            if (d < bestDist) { bestDist = d; best = id; }
+        }
+        for (const map of [this.carcasses, this.eggs]) {
+            for (const [id, mesh] of map) {
+                const d = hit(mesh.position, 0.5);
+                if (d < bestDist) { bestDist = d; best = id; }
+            }
+        }
         return best;
     }
 
@@ -470,6 +514,7 @@ vec3 transformed = aRot * (position + vec3(0.0, aBob, 0.0)) * uScale + mix(aFrom
     /** Shows or hides the animals (they are only meaningful while the simulation screen is open). */
     setAnimalsVisible(visible: boolean): void {
         this.animalGroup.visible = visible;
+        this.updateObjectRing();
         if (this.viewOverlay) this.viewOverlay.visible = visible;
         if (!visible) this.setRouteVisible(false);
     }
@@ -507,6 +552,8 @@ vec3 transformed = aRot * (position + vec3(0.0, aBob, 0.0)) * uScale + mix(aFrom
         this.group.add(this.viewOverlay);
 
         this.clearScenery();
+        this.sceneryById.clear();
+        for (const [id, type, x, y] of info.scenery) this.sceneryById.set(id, { type, x, y });
         const trees = info.scenery.filter((s) => s[1] === 1);
         const grass = info.scenery.filter((s) => s[1] === 2);
         const m = new THREE.Matrix4();
@@ -565,6 +612,7 @@ vec3 transformed = aRot * (position + vec3(0.0, aBob, 0.0)) * uScale + mix(aFrom
         }
         this.carcasses.clear();
         this.eggs.clear();
+        this.sceneryById.clear();
         this.foliage = null;
         this.grassMesh = null;
     }
@@ -696,6 +744,7 @@ vec3 transformed = aRot * (position + vec3(0.0, aBob, 0.0)) * uScale + mix(aFrom
         for (const [id, mesh] of this.eggs) {
             if (!liveEggs.has(id)) { this.sceneryGroup.remove(mesh); this.eggs.delete(id); }
         }
+        this.updateObjectRing();
     }
 
     /** Spawns overhead text for damage taken and for a changed action since the previous snapshot. */

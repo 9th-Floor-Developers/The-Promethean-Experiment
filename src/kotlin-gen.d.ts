@@ -12,4 +12,6 @@ declare module '*Project-Prometheus-wasm-js.mjs' {
     export function getSimulationSnapshot(): string;
     /** Waypoints of an animal's path as a flat JSON array [x0,y0,x1,y1,...]. */
     export function getAnimalPath(id: number): string;
+    /** Details of a tree, grass tuft, carcass or egg as JSON (see ObjectInfo), or the text "null". */
+    export function getObjectInfo(id: number): string;
 }
