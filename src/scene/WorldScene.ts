@@ -58,6 +58,7 @@ export class WorldScene {
     private actors: SimActors | null = null;
     private simInfo: SimInfo | null = null;
     private snapshot: SimSnapshot | null = null;
+    private pathProvider: ((id: number) => number[]) | null = null;
     private target: CameraPreset = PRESETS.landing;
     private readonly lookAt = PRESETS.landing.lookAt.clone();
     private frame = 0;
@@ -186,6 +187,12 @@ export class WorldScene {
         this.rebuildActors();
     }
 
+    /** Supplies the waypoints of an animal's path so the selected animal's route can be drawn. */
+    setPathProvider(provider: ((id: number) => number[]) | null): void {
+        this.pathProvider = provider;
+        this.actors?.setPathProvider(provider);
+    }
+
     /** Called with the clicked animal's id, or null when empty ground is clicked. */
     setSelectionHandler(handler: ((id: number | null) => void) | null): void {
         this.selectionHandler = handler;
@@ -240,6 +247,7 @@ export class WorldScene {
         const t = this.terrainData;
         this.actors = new SimActors(t.width, t.height, createHeightSampler(t));
         this.actors.setInfo(this.simInfo);
+        this.actors.setPathProvider(this.pathProvider);
         this.actors.setAnimalsVisible(this.screen === 'simulation');
         this.actors.setSelected(this.selectedId);
         this.world.add(this.actors.group);

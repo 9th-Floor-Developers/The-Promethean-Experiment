@@ -17,6 +17,19 @@ const OTHER_COLOR = 0xb18cff;
 /** How quickly drawn animals catch up to the simulation (higher = snappier). */
 const FOLLOW = 14;
 const TURN = 12;
+/** Colour of the destination marker, route line and arrows by the action being carried out. */
+const ROUTE_COLORS: Record<string, number> = {
+    ATTACK_TARGET: 0xff4d4d,
+    DRINK_WATER: 0x3aa0ff,
+    EAT_FOOD: 0x5ce65c,
+    REPRODUCE_WITH: 0xff7ad9,
+};
+const ROUTE_FALLBACK_COLOR = 0xffffff;
+/** Most points of a route that are drawn, and most arrowheads along it. */
+const ROUTE_MAX_POINTS = 512;
+const ARROW_MAX = 300;
+/** World-space distance between arrowheads along the route. */
+const ARROW_SPACING = 1.6;
 
 /** "RUN_FROM_PREDATOR" -> "Run from predator". */
 function actionLabel(name: string): string {
@@ -156,17 +169,32 @@ export class SimActors {
     /** Latest sim position and species of every living animal, for showing the overlay as soon as one is selected. */
     private readonly lastRows = new Map<number, { x: number; y: number; species: number }>();
 
-    /** Cyan ring on the tile the selected animal is walking to. */
+    /** Colour shared by everything that shows the selected animal's route; changed with its action. */
+    private readonly routeColor = new THREE.Color(ROUTE_FALLBACK_COLOR);
+    /** Ring on the tile the selected animal is walking to. */
     private readonly destMarker = new THREE.Mesh(
         this.own(new THREE.RingGeometry(0.3, 0.46, 20).rotateX(-Math.PI / 2)),
-        this.own(new THREE.MeshBasicMaterial({ color: 0x2bd9ff, side: THREE.DoubleSide, depthTest: false, transparent: true })));
-    /** Line from the selected animal to its destination. */
+        this.own(new THREE.MeshBasicMaterial({ color: this.routeColor, side: THREE.DoubleSide, depthTest: false, transparent: true })));
+    /** Line along the selected animal's route: from the animal, around obstacles, to its destination. */
     private readonly destLine = new THREE.Line(
-        this.own(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3))),
-        this.own(new THREE.LineBasicMaterial({ color: 0x2bd9ff, depthTest: false, transparent: true, opacity: 0.8 })));
+        this.own(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(ROUTE_MAX_POINTS * 3), 3))),
+        this.own(new THREE.LineBasicMaterial({ color: this.routeColor, depthTest: false, transparent: true, opacity: 0.85 })));
+    /** Arrowheads along the route showing which way it leads. */
+    private readonly routeArrows = new THREE.InstancedMesh(
+        this.own(new THREE.ConeGeometry(0.13, 0.4, 6).rotateX(Math.PI / 2)),
+        this.own(new THREE.MeshBasicMaterial({ color: this.routeColor, depthTest: false, transparent: true, opacity: 0.95 })), ARROW_MAX);
     /** Destination of the selected animal in tile units, or null when it has none. */
     private selectedDest: { x: number; y: number } | null = null;
-    private readonly destPos = new THREE.Vector3();
+    /** Waypoints (tile units, flat x,y pairs) the selected animal follows around obstacles. */
+    private selectedWaypoints: number[] = [];
+    private pathProvider: ((id: number) => number[]) | null = null;
+    private readonly routePts: THREE.Vector3[] = [];
+    private readonly arrowQuat = new THREE.Quaternion();
+    private readonly arrowMatrix = new THREE.Matrix4();
+    private readonly arrowPos = new THREE.Vector3();
+    private readonly arrowDir = new THREE.Vector3();
+    private readonly arrowForward = new THREE.Vector3(0, 0, 1);
+    private readonly arrowScale = new THREE.Vector3(1, 1, 1);
     private readonly carcassGeo = this.own(new THREE.IcosahedronGeometry(0.3, 0));
     private readonly carcassMat = this.own(new THREE.MeshStandardMaterial({ color: 0xd9a6a6, flatShading: true }));
 
@@ -175,8 +203,9 @@ export class SimActors {
         private readonly tilesHigh: number,
         private readonly heightAt: HeightFn,
     ) {
-        this.group.add(this.sceneryGroup, this.animalGroup, this.destMarker, this.destLine);
-        for (const o of [this.destMarker, this.destLine]) { o.visible = false; o.renderOrder = 11; o.frustumCulled = false; }
+        this.group.add(this.sceneryGroup, this.animalGroup, this.destMarker, this.destLine, this.routeArrows);
+        for (const o of [this.destMarker, this.destLine, this.routeArrows]) { o.visible = false; o.renderOrder = 11; o.frustumCulled = false; }
+        this.routeArrows.count = 0;
         this.ring.rotation.x = -Math.PI / 2;
         this.ring.position.y = -0.19;
         this.ring.renderOrder = 10; // drawn over the ground so it is always visible
@@ -190,7 +219,7 @@ export class SimActors {
         if (actor) actor.obj.add(this.ring);
         this.selectedRow = null;
         this.selectedDest = null;
-        this.destMarker.visible = this.destLine.visible = false;
+        this.setRouteVisible(false);
         this.hideViewRange();
         const row = id === null ? undefined : this.lastRows.get(id);
         if (row) { this.selectedRow = row; this.showViewRange(row.x, row.y, row.species); }
@@ -259,7 +288,7 @@ export class SimActors {
     setAnimalsVisible(visible: boolean): void {
         this.animalGroup.visible = visible;
         if (this.viewOverlay) this.viewOverlay.visible = visible;
-        if (!visible) this.destMarker.visible = this.destLine.visible = false;
+        if (!visible) this.setRouteVisible(false);
     }
 
     /** Builds the static scenery (trees and grass) as instanced meshes. Call once per simulation. */
@@ -376,7 +405,9 @@ export class SimActors {
                 const tx = row[A.targetX]!, ty = row[A.targetY]!;
                 this.selectedDest = tx < 0 ? null : { x: tx, y: ty };
                 if (this.selectedDest) this.place(tx, ty, 0.08, this.destMarker.position);
-                this.destMarker.visible = this.destLine.visible = this.selectedDest !== null && this.animalGroup.visible;
+                this.applyRouteColor(ROUTE_COLORS[this.actionNames[row[A.action]!] ?? ''] ?? ROUTE_FALLBACK_COLOR);
+                this.selectedWaypoints = this.selectedDest && this.pathProvider ? this.pathProvider(id) : [];
+                this.setRouteVisible(this.selectedDest !== null && this.animalGroup.visible);
                 const prev = this.selectedRow;
                 if (!prev || prev.x !== x || prev.y !== y || prev.species !== species) {
                     this.selectedRow = { x, y, species };
@@ -388,7 +419,7 @@ export class SimActors {
             if (actor.seen !== stamp) {
                 if (id === this.selectedId) {
                     this.ring.removeFromParent(); this.selectedRow = null; this.selectedDest = null;
-                    this.destMarker.visible = this.destLine.visible = false; this.hideViewRange();
+                    this.setRouteVisible(false); this.hideViewRange();
                 }
                 this.animalGroup.remove(actor.obj);
                 this.actors.delete(id);
@@ -519,13 +550,67 @@ export class SimActors {
             actor.obj.children[0]!.position.y = bob;
         }
         const sel = this.selectedId === null ? undefined : this.actors.get(this.selectedId);
-        if (sel && this.selectedDest && this.destLine.visible) {
-            const a = this.destLine.geometry.getAttribute('position') as THREE.BufferAttribute;
-            this.place(this.selectedDest.x, this.selectedDest.y, 0.08, this.destPos);
-            a.setXYZ(0, sel.obj.position.x, sel.obj.position.y + 0.1, sel.obj.position.z);
-            a.setXYZ(1, this.destPos.x, this.destPos.y, this.destPos.z);
-            a.needsUpdate = true;
+        if (sel && this.selectedDest && this.destLine.visible) this.drawRoute(sel.obj.position);
+    }
+
+    /** Recolours the destination marker, route line and arrowheads. */
+    private applyRouteColor(color: number): void {
+        this.routeColor.set(color);
+        for (const o of [this.destMarker, this.destLine, this.routeArrows]) {
+            (o.material as THREE.MeshBasicMaterial | THREE.LineBasicMaterial).color.copy(this.routeColor);
         }
+    }
+
+    /** Sets the visibility of the destination marker, route line and arrowheads together. */
+    private setRouteVisible(visible: boolean): void {
+        this.destMarker.visible = this.destLine.visible = this.routeArrows.visible = visible;
+    }
+
+    /** Supplies the lookup for an animal's path waypoints (see KotlinSimulation.animalPath). */
+    setPathProvider(provider: ((id: number) => number[]) | null): void {
+        this.pathProvider = provider;
+    }
+
+    /**
+     * Draws the selected animal's route: a line from [start] through its path waypoints to the destination,
+     * with arrowheads at even spacing pointing along the direction of travel.
+     */
+    private drawRoute(start: THREE.Vector3): void {
+        const pts = this.routePts;
+        let n = 0;
+        const next = (): THREE.Vector3 => (pts[n] ??= new THREE.Vector3());
+        next().set(start.x, start.y + 0.1, start.z); n++;
+        const wp = this.selectedWaypoints;
+        for (let i = 0; i + 1 < wp.length && n < ROUTE_MAX_POINTS - 1; i += 2) {
+            this.place(wp[i]!, wp[i + 1]!, 0.08, next()); n++;
+        }
+        this.place(this.selectedDest!.x, this.selectedDest!.y, 0.08, next()); n++;
+
+        const line = this.destLine.geometry;
+        const pos = line.getAttribute('position') as THREE.BufferAttribute;
+        for (let i = 0; i < n; i++) pos.setXYZ(i, pts[i]!.x, pts[i]!.y, pts[i]!.z);
+        pos.needsUpdate = true;
+        line.setDrawRange(0, n);
+
+        let arrows = 0;
+        let d = ARROW_SPACING / 2;
+        for (let i = 1; i < n && arrows < ARROW_MAX; i++) {
+            const a = pts[i - 1]!, b = pts[i]!;
+            this.arrowDir.subVectors(b, a);
+            const len = this.arrowDir.length();
+            if (len < 1e-6) continue;
+            this.arrowDir.divideScalar(len);
+            this.arrowQuat.setFromUnitVectors(this.arrowForward, this.arrowDir);
+            while (d <= len && arrows < ARROW_MAX) {
+                this.arrowPos.copy(a).addScaledVector(this.arrowDir, d);
+                this.arrowMatrix.compose(this.arrowPos, this.arrowQuat, this.arrowScale);
+                this.routeArrows.setMatrixAt(arrows++, this.arrowMatrix);
+                d += ARROW_SPACING;
+            }
+            d -= len;
+        }
+        this.routeArrows.count = arrows;
+        this.routeArrows.instanceMatrix.needsUpdate = true;
     }
 
     /** One animal facing +Z: a bobbing rig holding the merged body mesh, plus an invisible click target. */
@@ -547,6 +632,7 @@ export class SimActors {
         this.textures.clear();
         this.clearScenery();
         this.viewOverlay?.dispose();
+        this.routeArrows.dispose();
         this.animalGeos.forEach((g) => g.dispose());
         this.owned.forEach((r) => r.dispose());
     }

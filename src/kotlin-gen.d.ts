@@ -10,4 +10,6 @@ declare module '*Project-Prometheus-wasm-js.mjs' {
     export function tickSimulation(ticks: number): void;
     /** Current state JSON (see SimSnapshot). */
     export function getSimulationSnapshot(): string;
+    /** Waypoints of an animal's path as a flat JSON array [x0,y0,x1,y1,...]. */
+    export function getAnimalPath(id: number): string;
 }

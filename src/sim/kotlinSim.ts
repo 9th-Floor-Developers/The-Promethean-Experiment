@@ -17,6 +17,8 @@ export interface KotlinSimulation {
     tick(ticks: number): void;
     /** Reads the current state. */
     snapshot(): SimSnapshot;
+    /** Waypoints (tile units) an animal follows around obstacles, flat [x0,y0,x1,y1,...]; empty when it walks straight. */
+    animalPath(id: number): number[];
 }
 
 /**
@@ -38,5 +40,6 @@ export async function createSimulation(seed = 42, size = 200, speciesConfig = ''
         info: JSON.parse(kotlin.getSimulationInfo()) as SimInfo,
         tick: (ticks) => kotlin.tickSimulation(ticks),
         snapshot: () => JSON.parse(kotlin.getSimulationSnapshot()) as SimSnapshot,
+        animalPath: (id) => JSON.parse(kotlin.getAnimalPath(id)) as number[],
     };
 }

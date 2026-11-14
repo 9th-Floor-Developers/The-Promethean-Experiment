@@ -81,7 +81,7 @@ export default function App() {
     return (
         <>
             {/* Persistent: never unmounted, so the same 3D scene lives across screens. */}
-            <SceneCanvas screen={screen} terrain={sim?.terrain ?? null} simInfo={sim?.info ?? null} snapshot={snapshot} selectedId={selectedId} onSelect={setSelectedId} followSelected={following} onFollowRelease={releaseFollow} />
+            <SceneCanvas screen={screen} terrain={sim?.terrain ?? null} simInfo={sim?.info ?? null} snapshot={snapshot} pathOf={sim?.animalPath ?? null} selectedId={selectedId} onSelect={setSelectedId} followSelected={following} onFollowRelease={releaseFollow} />
             <main className="ui-layer">
                 {screen === 'landing' && <LandingScreen onStart={() => setScreen('opening')} />}
                 {screen === 'opening' && (

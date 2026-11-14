@@ -112,3 +112,14 @@ private fun destination(action: Action): Vector2? = when (action) {
     is Action.ReproduceWith -> action.target.position
     Action.Rest, Action.Wander, is Action.RunFromPredator -> null
 }
+
+/**
+ * The waypoints (tile units) the animal with [id] is following around lakes toward its destination, as a flat
+ * JSON array `[x0,y0,x1,y1,...]`. Empty when it walks straight, has no path, or does not exist.
+ */
+@OptIn(ExperimentalJsExport::class)
+@JsExport
+fun getAnimalPath(id: Int): String {
+    val a = current().animals.firstOrNull { it.id == id } ?: return "[]"
+    return a.path.joinToString(",", "[", "]") { "${r2(it.x)},${r2(it.y)}" }
+}

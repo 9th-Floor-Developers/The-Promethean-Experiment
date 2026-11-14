@@ -9,6 +9,8 @@ interface Props {
     terrain?: TerrainData | null;
     simInfo?: SimInfo | null;
     snapshot?: SimSnapshot | null;
+    /** Looks up the waypoints an animal follows (tile units, flat x,y pairs); used to draw the selected animal's route. */
+    pathOf?: ((id: number) => number[]) | null;
     selectedId?: number | null;
     onSelect?: (id: number | null) => void;
     /** Lock the camera onto the selected animal. */
@@ -17,7 +19,7 @@ interface Props {
     onFollowRelease?: () => void;
 }
 
-export function SceneCanvas({ screen, terrain, simInfo, snapshot, selectedId, onSelect, followSelected, onFollowRelease }: Props) {
+export function SceneCanvas({ screen, terrain, simInfo, snapshot, pathOf, selectedId, onSelect, followSelected, onFollowRelease }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const sceneRef = useRef<WorldScene | null>(null);
 
@@ -42,6 +44,10 @@ export function SceneCanvas({ screen, terrain, simInfo, snapshot, selectedId, on
     useEffect(() => {
         sceneRef.current?.setSimulationInfo(simInfo ?? null);
     }, [simInfo]);
+
+    useEffect(() => {
+        sceneRef.current?.setPathProvider(pathOf ?? null);
+    }, [pathOf]);
 
     useEffect(() => {
         sceneRef.current?.setSnapshot(snapshot ?? null);
