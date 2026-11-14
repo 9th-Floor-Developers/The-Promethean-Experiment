@@ -255,12 +255,14 @@ export class SimActors {
 
     private clearScenery(): void {
         for (const child of [...this.sceneryGroup.children]) {
-            const mesh = child as THREE.InstancedMesh;
-            this.sceneryGroup.remove(mesh);
-            mesh.geometry.dispose();
-            (mesh.material as THREE.Material).dispose();
-            mesh.dispose();
+            this.sceneryGroup.remove(child);
+            // Carcass meshes share one geometry/material (released with `owned`); only the instanced scenery owns its own.
+            if (!(child instanceof THREE.InstancedMesh)) continue;
+            child.geometry.dispose();
+            (child.material as THREE.Material).dispose();
+            child.dispose();
         }
+        this.carcasses.clear();
         this.foliage = null;
         this.grassMesh = null;
     }
