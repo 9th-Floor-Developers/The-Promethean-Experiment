@@ -96,7 +96,7 @@ export default function App() {
                     />
                 )}
                 {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} onSelect={setSelectedId} objectInfoOf={sim?.objectInfo ?? null} following={following} onFollowChange={setFollowing} onBack={endSimulation}
-                    leaderboardSettings={leaderboardSettings} onLeaderboardSettingsChange={setLeaderboardSettings} history={history} ended={ended} speed={speed} onSpeedChange={setSpeed} />}
+                    leaderboardSettings={leaderboardSettings} onLeaderboardSettingsChange={setLeaderboardSettings} history={history} ended={ended} onEnd={() => setEnded(true)} speed={speed} onSpeedChange={setSpeed} />}
                 {screen === 'settings' && <SettingsScreen store={presetStore} onChange={changePresets} onDone={closeSettings} />}
                 {screen === 'credits' && <CreditsScreen onBack={closeCredits} />}
             </main>

@@ -131,10 +131,13 @@ export function PopulationChart({ history: stored, info, snapshot, windowDays, w
 }
 
 /** Sidebar panel: the live population graph covering only the last {@link LIVE_WINDOW_DAYS} days. */
-export function PopulationGraph(props: Props) {
+export function PopulationGraph({ onExpand, ...props }: Props & { onExpand?: () => void }) {
     return (
         <section className="panel" aria-labelledby="population-h">
-            <h2 id="population-h" className="panel__header">Population · last {LIVE_WINDOW_DAYS} days</h2>
+            <h2 id="population-h" className="panel__header panel__header--row">
+                <span>Population · last {LIVE_WINDOW_DAYS} days</span>
+                {onExpand && <button type="button" className="panel__action" onClick={onExpand} title="Open the overview page">Expand ⤢</button>}
+            </h2>
             <div className="panel__body popgraph-body">
                 <PopulationChart {...props} windowDays={LIVE_WINDOW_DAYS} />
             </div>
@@ -142,17 +145,22 @@ export function PopulationGraph(props: Props) {
     );
 }
 
-/** Large overlay shown when the simulation has ended: the population over the entire run. */
-export function SimulationSummary({ onClose, ...props }: Props & { onClose: () => void }) {
+/**
+ * The single statistics page, used both as the live overview (simulation still running behind it) and as the
+ * end-of-simulation page. Every graph over the whole run goes in `sim-overview__body`.
+ */
+export function StatisticsPage({ ended, onAction, ...props }: Props & { ended: boolean; onAction: () => void }) {
     return (
-        <div className="sim-summary" role="dialog" aria-labelledby="summary-h">
-            <section className="panel sim-summary__card">
-                <h2 id="summary-h" className="panel__header">Simulation ended · full population history</h2>
-                <div className="panel__body popgraph-body">
+        <section className="sim-overview" aria-labelledby="overview-h">
+            <h2 id="overview-h" className="panel__header panel__header--row">
+                <span>{ended ? 'Simulation ended · statistics' : 'Overview · statistics'}</span>
+                <button type="button" className="panel__action" onClick={onAction}>{ended ? '← Leave simulation' : '← Back to simulation'}</button>
+            </h2>
+            <div className="sim-overview__body">
+                <div className="sim-overview__chart">
                     <PopulationChart {...props} width={720} height={320} />
                 </div>
-                <button className="sim-summary__close" onClick={onClose}>Close</button>
-            </section>
-        </div>
+            </div>
+        </section>
     );
 }

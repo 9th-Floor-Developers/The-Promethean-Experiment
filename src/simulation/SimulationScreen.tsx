@@ -3,7 +3,7 @@ import { SimulationViewport } from './SimulationViewport';
 import { IndividualInspector } from './IndividualInspector';
 import { useState } from 'react';
 import { TitleEffects } from './TitleEffects';
-import { PopulationGraph, SimulationSummary } from './PopulationGraph';
+import { PopulationGraph, StatisticsPage } from './PopulationGraph';
 import type { LeaderboardSettings } from './Leaderboard';
 import type { ObjectInfo, SimInfo, SimSnapshot } from '../sim/types';
 import type { PopulationSample } from '../sim/usePopulationHistory';
@@ -29,25 +29,25 @@ interface Props {
     history: PopulationSample[];
     /** True once every animal has died; shows the full-run graph. */
     ended: boolean;
+    /** Ends the run early, exactly as if every animal had died. */
+    onEnd: () => void;
     speed: number;
     onSpeedChange: (speed: number) => void;
 }
 
-export function SimulationScreen({ snapshot, info, selectedId, onSelect, objectInfoOf, following, onFollowChange, onBack, leaderboardSettings, onLeaderboardSettingsChange, history, ended, speed, onSpeedChange }: Props) {
+export function SimulationScreen({ snapshot, info, selectedId, onSelect, objectInfoOf, following, onFollowChange, onBack, leaderboardSettings, onLeaderboardSettingsChange, history, ended, onEnd, speed, onSpeedChange }: Props) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [summaryClosed, setSummaryClosed] = useState(false);
+    const [overview, setOverview] = useState(false);
     return (
         <div className={`sim${sidebarOpen ? '' : ' sim--no-sidebar'}`}>
-            <SimulationHeader snapshot={snapshot} onBack={onBack} sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((o) => !o)} speed={speed} onSpeedChange={onSpeedChange} />
+            <SimulationHeader snapshot={snapshot} onBack={onBack} sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((o) => !o)} speed={speed} onSpeedChange={onSpeedChange} ended={ended} onEnd={() => { onEnd(); }} />
             <SimulationViewport />
             <TitleEffects snapshot={snapshot} info={info} />
-            {ended && !summaryClosed && (
-                <SimulationSummary history={history} info={info} snapshot={snapshot} onClose={() => setSummaryClosed(true)} />
-            )}
+            {(overview || ended) && <StatisticsPage ended={ended} history={history} info={info} snapshot={snapshot} onAction={ended ? onBack : () => setOverview(false)} />}
             <aside className="sim__sidebar" aria-label="Simulation panels">
                 <IndividualInspector snapshot={snapshot} info={info} selectedId={selectedId} onSelect={onSelect} objectInfoOf={objectInfoOf} following={following} onFollowChange={onFollowChange}
                                     leaderboardSettings={leaderboardSettings} onLeaderboardSettingsChange={onLeaderboardSettingsChange} />
-                <PopulationGraph history={history} info={info} snapshot={snapshot} />
+                <PopulationGraph history={history} info={info} snapshot={snapshot} onExpand={() => setOverview(true)} />
             </aside>
         </div>
     );

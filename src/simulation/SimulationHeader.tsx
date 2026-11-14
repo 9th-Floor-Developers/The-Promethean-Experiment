@@ -9,17 +9,20 @@ interface Props {
     /** Whether the sidebar is currently shown, and a toggle for it. */
     sidebarOpen: boolean;
     onToggleSidebar: () => void;
+    ended: boolean;
+    onEnd: () => void;
     speed: number;
     onSpeedChange: (speed: number) => void;
 }
 
 /** Narrow top bar. Back button at the far left, then the clock at the upper-left with the speed adjustor beside it. */
-export function SimulationHeader({ snapshot, speed, onSpeedChange, onBack, sidebarOpen, onToggleSidebar }: Props) {
+export function SimulationHeader({ snapshot, ended, onEnd, speed, onSpeedChange, onBack, sidebarOpen, onToggleSidebar }: Props) {
     return (
         <header className="sim__header">
             <button type="button" className="sim__back" onClick={onBack}>← Back</button>
             <SimulationClock snapshot={snapshot} />
             <SimulationSpeed speed={speed} onChange={onSpeedChange} />
+            {!ended && <button type="button" className="sim__end" onClick={onEnd}>End Simulation</button>}
             <button type="button" className="sim__sidebar-toggle" onClick={onToggleSidebar}
                     aria-pressed={sidebarOpen} aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
                     title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}>
