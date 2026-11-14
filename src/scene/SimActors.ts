@@ -170,9 +170,9 @@ export class SimActors {
     /** Flat yellow tiles marking everything the selected animal can see; one instance per tile in range. */
     private viewOverlay: THREE.InstancedMesh | null = null;
     /** Last sim position and species of the selected animal, so the overlay can be rebuilt on selection. */
-    private selectedRow: { x: number; y: number; species: number } | null = null;
+    private selectedRow: { x: number; y: number; range: number } | null = null;
     /** Latest sim position and species of every living animal, for showing the overlay as soon as one is selected. */
-    private readonly lastRows = new Map<number, { x: number; y: number; species: number }>();
+    private readonly lastRows = new Map<number, { x: number; y: number; range: number }>();
 
     /** Colour shared by everything that shows the selected animal's route; changed with its action. */
     private readonly routeColor = new THREE.Color(ROUTE_FALLBACK_COLOR);
@@ -230,7 +230,7 @@ export class SimActors {
         this.setRouteVisible(false);
         this.hideViewRange();
         const row = id === null ? undefined : this.lastRows.get(id);
-        if (row) { this.selectedRow = row; this.showViewRange(row.x, row.y, row.species); }
+        if (row) { this.selectedRow = row; this.showViewRange(row.x, row.y, row.range); }
     }
 
     /** Hides the view-range overlay. */
@@ -242,9 +242,8 @@ export class SimActors {
      * Marks every tile whose centre lies within the selected animal's view range (the same distance test the
      * simulation uses) with a translucent yellow layer, so the area it can see is visible on the map.
      */
-    private showViewRange(x: number, y: number, species: number): void {
+    private showViewRange(x: number, y: number, range: number): void {
         const overlay = this.viewOverlay;
-        const range = this.viewRanges[species];
         if (!overlay || !range) { this.hideViewRange(); return; }
         const m = new THREE.Matrix4();
         const pos = new THREE.Vector3();
@@ -407,8 +406,8 @@ export class SimActors {
                 this.showEvents(actor, row[A.hp]!, row[A.action]!);
             }
             actor.seen = stamp;
-            const x = row[A.x]!, y = row[A.y]!, species = row[A.species]!;
-            this.lastRows.set(id, { x, y, species });
+            const x = row[A.x]!, y = row[A.y]!, range = row[A.viewRange]!;
+            this.lastRows.set(id, { x, y, range });
             if (id === this.selectedId) {
                 const tx = row[A.targetX]!, ty = row[A.targetY]!;
                 this.selectedDest = tx < 0 ? null : { x: tx, y: ty };
@@ -419,9 +418,9 @@ export class SimActors {
                 this.selectedWaypoints = this.selectedDest && this.pathProvider ? this.pathProvider(id) : [];
                 this.setRouteVisible((this.selectedDest !== null || this.selectedHeading !== null) && this.animalGroup.visible);
                 const prev = this.selectedRow;
-                if (!prev || prev.x !== x || prev.y !== y || prev.species !== species) {
-                    this.selectedRow = { x, y, species };
-                    this.showViewRange(x, y, species);
+                if (!prev || prev.x !== x || prev.y !== y || prev.range !== range) {
+                    this.selectedRow = { x, y, range };
+                    this.showViewRange(x, y, range);
                 }
             }
         }

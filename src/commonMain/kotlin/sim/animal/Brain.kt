@@ -46,16 +46,16 @@ internal class Brain(private val world: World) {
     fun feel(a: Animal): Feelings {
         val s = a.species
         var threat: Animal? = null
-        var best = s.viewRange * s.viewRange
+        var best = a.stats.viewRange * a.stats.viewRange
         if (!s.canHunt) {
-            world.hunterGrid.forEachNear(a.position, s.viewRange) { o ->
+            world.hunterGrid.forEachNear(a.position, a.stats.viewRange) { o ->
                 if (o.isAlive && o.species != s) {
                     val d = a.position.distanceSquaredTo(o.position)
                     if (d <= best) { best = d; threat = o }
                 }
             }
         }
-        val fear = threat?.let { 1 - a.position.distanceTo(it.position) / s.viewRange } ?: 0.0
+        val fear = threat?.let { 1 - a.position.distanceTo(it.position) / a.stats.viewRange } ?: 0.0
         val spare = s.maxNutrition - s.reproductionNutritionThreshold
         val libido = when {
             a.reproductionCooldown > 0 || a.nutrition <= s.reproductionNutritionThreshold -> 0.0
@@ -126,11 +126,11 @@ internal class Brain(private val world: World) {
         val t = world.terrain
         repeat(EXPLORE_TRIES) {
             val angle = world.rng.nextDouble() * 2 * kotlin.math.PI
-            val dist = a.species.viewRange * (2 + 2 * world.rng.nextDouble())
+            val dist = a.stats.viewRange * (2 + 2 * world.rng.nextDouble())
             val x = (a.position.x + kotlin.math.cos(angle) * dist).coerceIn(0.5, t.width - 0.5)
             val y = (a.position.y + kotlin.math.sin(angle) * dist).coerceIn(0.5, t.height - 0.5)
             val target = Vector2(x, y)
-            if (t.isWalkable(x.toInt(), y.toInt()) && a.position.distanceTo(target) > a.species.viewRange && world.isClearWalk(a.position, target)) {
+            if (t.isWalkable(x.toInt(), y.toInt()) && a.position.distanceTo(target) > a.stats.viewRange && world.isClearWalk(a.position, target)) {
                 return Action.Explore(target)
             }
         }
@@ -156,10 +156,10 @@ internal class Brain(private val world: World) {
 
     /** Nearest living, off-cooldown animal of the same species within view range. */
     private fun findMate(a: Animal): Animal? {
-        val range = a.species.viewRange * a.species.viewRange
+        val range = a.stats.viewRange * a.stats.viewRange
         var best: Animal? = null
         var bestD = Double.MAX_VALUE
-        world.animalGrid.forEachNear(a.position, a.species.viewRange) { o ->
+        world.animalGrid.forEachNear(a.position, a.stats.viewRange) { o ->
             if (o !== a && o.isAlive && o.species == a.species && o.reproductionCooldown == 0) {
                 val d = a.position.distanceSquaredTo(o.position)
                 if (d <= range && d < bestD) { bestD = d; best = o }
@@ -178,7 +178,7 @@ internal class Brain(private val world: World) {
     /** Best food this species can eat in view range: trees, carcasses or live prey. */
     private fun findFood(a: Animal): Action? {
         val s = a.species
-        val range = s.viewRange * s.viewRange
+        val range = a.stats.viewRange * a.stats.viewRange
         var n = 0
 
         // Gather in-range candidates into reusable arrays (no per-candidate objects), scored by squared distance.
@@ -190,7 +190,7 @@ internal class Brain(private val world: World) {
             targetBuf[n] = target
             n++
         }
-        val view = s.viewRange
+        val view = a.stats.viewRange
         if (s.eatsPlants) world.treeGrid.forEachNear(a.position, view) { t -> if (t.isEdible) add(t, t.position, 1.0) }
         if (s.eatsPlants) world.grassGrid.forEachNear(a.position, view) { g -> if (g.isEdible) add(g, g.position, 1.0) }
         if (s.eatsCarcasses) world.carcassGrid.forEachNear(a.position, view) { c -> if (!c.isRemoved) add(c, c.position, 1.0) }

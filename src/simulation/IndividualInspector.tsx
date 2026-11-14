@@ -65,7 +65,7 @@ export function IndividualInspector({ snapshot, info, selectedId, onSelect, foll
                     <span className="meter__label">Action</span>
                     <span className="inspector__action-value">{actionLabel(info.actions[row[A.action]!] ?? 'unknown')}</span>
                 </div>
-                <Meter label="HP" value={row[A.hp]!} max={species.maxHp} tone="hp" />
+                <Meter label="HP" value={row[A.hp]!} max={row[A.maxHp]!} tone="hp" />
                 <Meter label="Stamina" value={row[A.stamina]!} max={species.maxStamina} tone="stamina" />
                 <Meter label="Nutrition" value={row[A.nutrition]!} max={species.maxNutrition} tone="nutrition" />
                 <Meter label="Hydration" value={row[A.hydration]!} max={species.maxHydration} tone="hydration" />
@@ -75,6 +75,10 @@ export function IndividualInspector({ snapshot, info, selectedId, onSelect, foll
                     <dt>Hunger</dt><dd>{row[A.hunger]!.toFixed(2)}</dd>
                     <dt>Thirst</dt><dd>{row[A.thirst]!.toFixed(2)}</dd>
                     <dt>Libido</dt><dd>{row[A.libido]!.toFixed(2)}</dd>
+                    <dt>Speed</dt><dd>{row[A.speed]!.toFixed(3)}</dd>
+                    <dt>Damage</dt><dd>{row[A.damage]!.toFixed(1)}</dd>
+                    <dt>Armor</dt><dd>{row[A.armor]!.toFixed(1)}%</dd>
+                    <dt>View range</dt><dd>{row[A.viewRange]!.toFixed(1)} tiles</dd>
                 </dl>
                 <p className="inspector__traits">{species.traits.map((t) => t.toLowerCase().replace(/_/g, ' ')).join(' · ')}</p>
             </>

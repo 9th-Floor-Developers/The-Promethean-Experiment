@@ -9,8 +9,10 @@ class Animal(
     val id: Int,
     val species: Species,
     var position: Vector2,
+    /** This animal's universal stats, fixed for life; the species' founder values unless inherited from parents. */
+    val stats: AnimalStats = AnimalStats.founder(species),
     /** Health: the animal dies when this reaches 0. */
-    var hp: Double = species.maxHp,
+    var hp: Double = stats.maxHp,
     /** Nutrition: the animal takes damage at 0; restored by eating. */
     var nutrition: Double = species.maxNutrition / 2,
     /** Hydration: the animal takes damage at 0; restored by drinking. */
@@ -62,16 +64,16 @@ class Animal(
     var causeOfDeath: String? = null
         private set
 
-    fun changeHp(delta: Double) { hp = (hp + delta).coerceIn(0.0, species.maxHp) }
+    fun changeHp(delta: Double) { hp = (hp + delta).coerceIn(0.0, stats.maxHp) }
     fun changeNutrition(delta: Double) { nutrition = (nutrition + delta).coerceIn(0.0, species.maxNutrition) }
     fun changeHydration(delta: Double) { hydration = (hydration + delta).coerceIn(0.0, species.maxHydration) }
     fun changeStamina(delta: Double) { stamina = (stamina + delta).coerceIn(0.0, species.maxStamina) }
 
-    /** Whether the animal has reached its species' [Species.elderlyAge], when negative effects begin. */
-    val isElderly get() = age >= species.elderlyAge
+    /** Whether the animal has reached its [AnimalStats.elderlyAge], when negative effects begin. */
+    val isElderly get() = age >= stats.elderlyAge
 
     /** Stamina regained per tick; once [isElderly] it decays with the days spent elderly (docs/sim/ANIMALS.MD). */
-    val staminaRegen get() = species.staminaRegen / (1 + species.staminaAgeDecay * (age - species.elderlyAge).coerceAtLeast(0.0))
+    val staminaRegen get() = species.staminaRegen / (1 + species.staminaAgeDecay * (age - stats.elderlyAge).coerceAtLeast(0.0))
 
     /** Whether stamina is high enough (90% of max) for HP to regenerate. */
     val canRegenerateHp get() = stamina >= species.maxStamina * 0.9

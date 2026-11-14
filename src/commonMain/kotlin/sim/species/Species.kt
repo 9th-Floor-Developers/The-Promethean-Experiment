@@ -49,8 +49,10 @@ class Species(
     val hydrationDrain: Double = 0.07,
     /** HP lost per tick while nutrition or hydration is 0. */
     val starvationDamage: Double = 0.2,
-    /** Damage dealt per tick to a target in reach; 0 means the species cannot attack. */
+    /** Founder DAMAGE: damage dealt per tick to a target in reach; 0 means the species cannot attack. */
     val attackDamage: Double = 0.0,
+    /** Founder ARMOR: percent of attack damage absorbed (see [sim.animal.AnimalStats.armorReduction]). */
+    val armor: Double = 0.0,
     /** Extra reach (tiles) beyond body contact for attacks. */
     val attackRange: Double = 0.3,
     /** Nutrition the parent loses when reproducing. */

@@ -12,7 +12,8 @@ const val MAX_START_COUNT = 300
 /**
  * Parses the settings text sent by the frontend's Settings screen into species setups.
  * One species per line: `name|count|key=value,key=value|TRAIT,TRAIT`.
- * Keys are the universal stats: maxHp, speed, baseStaminaUsage, walkingStaminaUsage, elderlyAge, viewRange.
+ * Keys are the inherited founder stats: maxHp, speed, damage, armor, viewRange. (baseStaminaUsage, walkingStaminaUsage and elderlyAge are
+ * still accepted as founder values; they are calculated for each animal from its inherited stats.)
  * Unknown keys/traits are ignored. Species that can hunt get carnivore-style attack and breeding defaults,
  * the rest get herbivore-style ones, so the user only has to pick traits.
  * Throws IllegalArgumentException for a malformed line or an invalid trait combination.
@@ -46,7 +47,8 @@ private fun buildSpecies(name: String, traits: Set<Trait>, stats: Map<String, Do
         maxNutrition = maxNutrition,
         staminaSprintCost = if (hunter) 0.1 else 0.2,
         bodyRadius = if (hunter) 0.35 else 0.3,
-        attackDamage = if (hunter) 3.0 else 0.0,
+        attackDamage = stats["damage"] ?: if (hunter) 3.0 else 0.0,
+        armor = stats["armor"] ?: 0.0,
         reproductionNutritionThreshold = if (hunter) 85.0 else 70.0,
         reproductionNutritionCost = if (hunter) 60.0 else 30.0,
         reproductionCooldownTicks = if (hunter) 3600 else 600,

@@ -1,7 +1,7 @@
 /** User-editable simulation settings: which species run, how many of each, and their stats and traits. */
 
 /** Key of a universal stat; matches the keys Kotlin's parseSpeciesConfig reads. */
-export type StatKey = 'maxHp' | 'speed' | 'baseStaminaUsage' | 'walkingStaminaUsage' | 'elderlyAge' | 'viewRange';
+export type StatKey = 'maxHp' | 'speed' | 'damage' | 'armor' | 'viewRange';
 
 /** How one universal stat is shown: plain-language name, help text and slider range. */
 export interface StatDef {
@@ -17,14 +17,13 @@ export interface StatDef {
     unit: string;
 }
 
-/** The species universal stats (docs/sim/SPECIES.md), described without jargon. */
+/** The inherited species stats (docs/sim/SPECIES.md), described without jargon. These are the founders' values; later generations mix their parents' and mutate. */
 export const STATS: StatDef[] = [
     { key: 'maxHp', label: 'Health', help: 'How much damage it can take before it dies.', min: 20, max: 300, step: 10, low: 'Fragile', high: 'Tough', unit: '' },
     { key: 'speed', label: 'Speed', help: 'How fast it walks when it has full energy.', min: 0.02, max: 0.2, step: 0.01, low: 'Slow', high: 'Fast', unit: '' },
     { key: 'viewRange', label: 'Eyesight', help: 'How far it can see food, water, mates and enemies.', min: 4, max: 40, step: 1, low: 'Short-sighted', high: 'Eagle-eyed', unit: ' tiles' },
-    { key: 'baseStaminaUsage', label: 'Energy used while resting', help: 'Energy it burns every moment, even standing still.', min: 0, max: 0.05, step: 0.005, low: 'Frugal', high: 'Hungry for energy', unit: '' },
-    { key: 'walkingStaminaUsage', label: 'Energy used while walking', help: 'Extra energy burned while moving around.', min: 0, max: 0.2, step: 0.01, low: 'Efficient', high: 'Tiring', unit: '' },
-    { key: 'elderlyAge', label: 'Old age starts at', help: 'The age (in days) when it starts slowing down and recovering less energy.', min: 1, max: 20, step: 1, low: 'Ages early', high: 'Ages late', unit: ' days' },
+    { key: 'damage', label: 'Bite strength', help: 'Damage it deals each moment while attacking. Animals that do not hunt can leave this at 0.', min: 0, max: 10, step: 0.5, low: 'Harmless', high: 'Deadly', unit: '' },
+    { key: 'armor', label: 'Armor', help: 'Percent of incoming attack damage it shrugs off (at most 80%).', min: 0, max: 60, step: 5, low: 'Soft', high: 'Armored', unit: '%' },
 ];
 
 /** One selectable trait with a friendly name and a one-line explanation. */
@@ -131,7 +130,7 @@ export const MAP_SIZE = { min: 60, max: 300, step: 10, default: 200 } as const;
 export const MAX_SPECIES = 6;
 export const MIN_COUNT = 1;
 export const MAX_COUNT = 150;
-export const DEFAULT_STATS: Record<StatKey, number> = { maxHp: 100, speed: 0.06, viewRange: 12, baseStaminaUsage: 0.01, walkingStaminaUsage: 0.05, elderlyAge: 5 };
+export const DEFAULT_STATS: Record<StatKey, number> = { maxHp: 100, speed: 0.06, damage: 0, armor: 0, viewRange: 12 };
 
 let nextUid = 1;
 
@@ -146,7 +145,7 @@ export function herbivoreTemplate(): SpeciesSettings {
 /** A meat-eating species starting point. */
 export function carnivoreTemplate(): SpeciesSettings {
     return {
-        uid: nextUid++, name: 'Carnivore', count: 10, stats: { ...DEFAULT_STATS, speed: 0.1, viewRange: 24 },
+        uid: nextUid++, name: 'Carnivore', count: 10, stats: { ...DEFAULT_STATS, speed: 0.1, damage: 3, viewRange: 24 },
         traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR', 'PACK'],
     };
 }

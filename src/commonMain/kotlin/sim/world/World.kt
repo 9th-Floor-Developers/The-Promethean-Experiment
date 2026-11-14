@@ -8,6 +8,7 @@ import kotlin.math.sin
 import kotlin.random.Random
 import sim.animal.Action
 import sim.animal.Animal
+import sim.animal.AnimalStats
 import sim.animal.Brain
 import sim.objects.Carcass
 import sim.objects.SimObject
@@ -222,7 +223,7 @@ class World(
     /** Moves the animal toward or away from its action's target. */
     private fun move(a: Animal) {
         val s = a.species
-        val speed = s.speed * a.speedFactor
+        val speed = a.stats.speed * a.speedFactor
         val before = a.position
         when (val act = a.action) {
             Action.Rest -> {}
@@ -260,16 +261,16 @@ class World(
             a.action is Action.RunFromPredator -> s.staminaSprintCost
             // Predators stalk at a walk and only sprint for the final dash.
             a.action is Action.AttackTarget && a.position.distanceTo((a.action as Action.AttackTarget).target.position) <= SPRINT_RANGE -> s.staminaSprintCost
-            else -> s.walkingStaminaUsage
+            else -> a.stats.walkingStaminaUsage
         }
-        a.changeStamina(a.staminaRegen - s.baseStaminaUsage - moveCost)
+        a.changeStamina(a.staminaRegen - a.stats.baseStaminaUsage - moveCost)
     }
 
     /** Eats, drinks or attacks if the animal is already within reach of its target. */
     private fun interact(a: Animal) {
         when (val act = a.action) {
-            is Action.AttackTarget -> if (act.target.isAlive && inAttackReach(a, act.target) && a.species.attackDamage > 0) {
-                act.target.hurt(a.species.attackDamage, "killed by ${a.label}")
+            is Action.AttackTarget -> if (act.target.isAlive && inAttackReach(a, act.target) && a.stats.damage > 0) {
+                act.target.hurt(a.stats.damage * (1 - act.target.stats.armorReduction), "killed by ${a.label}")
                 attacks++
             }
             is Action.ReproduceWith -> if (a.reproductionCooldown == 0 &&
@@ -355,7 +356,7 @@ class World(
     /** Random-walk: keeps a heading, occasionally turns, and turns when blocked. */
     private fun wander(a: Animal) {
         if (rng.nextDouble() < WANDER_TURN_CHANCE) a.wanderHeading = rng.nextDouble() * 2 * kotlin.math.PI
-        if (!tryMove(a, a.wanderHeading, a.species.speed * a.speedFactor * WANDER_SPEED)) {
+        if (!tryMove(a, a.wanderHeading, a.stats.speed * a.speedFactor * WANDER_SPEED)) {
             a.wanderHeading = rng.nextDouble() * 2 * kotlin.math.PI
         }
     }
@@ -410,7 +411,7 @@ class World(
     /** [a] and [mate] reproduce: a newborn appears at [a]'s position, parent [a] pays the nutrition cost, both go on cooldown. */
     private fun reproduce(a: Animal, mate: Animal) {
         val s = a.species
-        val child = Animal(nextId++, s, a.position, nutrition = s.maxNutrition / 2)
+        val child = Animal(nextId++, s, a.position, AnimalStats.inherit(s, a.stats, mate.stats, rng), nutrition = s.maxNutrition / 2)
         animals.add(child)
         child.reproductionCooldown = s.reproductionCooldownTicks
         a.reproductionCooldown = s.reproductionCooldownTicks
