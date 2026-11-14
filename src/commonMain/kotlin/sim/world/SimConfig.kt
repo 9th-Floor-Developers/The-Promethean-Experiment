@@ -1,5 +1,6 @@
 package sim.world
 
+import sim.animal.AnimalStats
 import sim.species.Species
 import sim.species.Trait
 
@@ -38,17 +39,17 @@ private fun buildSpecies(name: String, traits: Set<Trait>, stats: Map<String, Do
     return Species(
         name = name,
         traits = traits,
-        maxHp = stats["maxHp"] ?: 100.0,
-        speed = stats["speed"] ?: 0.1,
+        maxHp = (stats["maxHp"] ?: 100.0).coerceAtLeast(AnimalStats.MIN_MAX_HP),
+        speed = (stats["speed"] ?: 0.1).coerceAtLeast(AnimalStats.MIN_SPEED),
         baseStaminaUsage = stats["baseStaminaUsage"] ?: 0.01,
         walkingStaminaUsage = stats["walkingStaminaUsage"] ?: 0.05,
         elderlyAge = stats["elderlyAge"] ?: 5.0,
-        viewRange = stats["viewRange"] ?: 10.0,
+        viewRange = (stats["viewRange"] ?: 10.0).coerceAtLeast(AnimalStats.MIN_VIEW_RANGE),
         maxNutrition = maxNutrition,
         staminaSprintCost = if (hunter) 0.1 else 0.2,
         bodyRadius = if (hunter) 0.35 else 0.3,
-        attackDamage = stats["damage"] ?: 3.0,
-        armor = stats["armor"] ?: 1.0,
+        attackDamage = (stats["damage"] ?: 3.0).coerceAtLeast(AnimalStats.MIN_DAMAGE),
+        armor = (stats["armor"] ?: 1.0).coerceAtLeast(AnimalStats.MIN_ARMOR),
         reproductionNutritionThreshold = if (hunter) 85.0 else 70.0,
         reproductionNutritionCost = if (hunter) 60.0 else 30.0,
         reproductionCooldownTicks = if (hunter) 6000 else 600,

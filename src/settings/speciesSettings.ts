@@ -19,11 +19,11 @@ export interface StatDef {
 
 /** The inherited species stats (docs/sim/SPECIES.md), described without jargon. These are the founders' values; later generations mix their parents' and mutate. */
 export const STATS: StatDef[] = [
-    { key: 'maxHp', label: 'Health', help: 'How much damage it can take before it dies.', min: 20, max: 300, step: 10, low: 'Fragile', high: 'Tough', unit: '' },
-    { key: 'speed', label: 'Speed', help: 'How fast it walks when it has full energy.', min: 0.02, max: 0.2, step: 0.01, low: 'Slow', high: 'Fast', unit: '' },
-    { key: 'viewRange', label: 'Eyesight', help: 'How far it can see food, water, mates and enemies.', min: 4, max: 40, step: 1, low: 'Short-sighted', high: 'Eagle-eyed', unit: ' tiles' },
-    { key: 'damage', label: 'Bite strength', help: 'Damage it deals each moment while attacking. Animals that do not hunt can leave this at 0.', min: 0, max: 10, step: 0.5, low: 'Harmless', high: 'Deadly', unit: '' },
-    { key: 'armor', label: 'Armor', help: 'Percent of incoming attack damage it shrugs off (at most 80%).', min: 0, max: 60, step: 5, low: 'Soft', high: 'Armored', unit: '%' },
+    { key: 'maxHp', label: 'Health', help: 'How much damage it can take before it dies.', min: 1, max: 300, step: 1, low: 'Fragile', high: 'Tough', unit: '' },
+    { key: 'speed', label: 'Speed', help: 'How fast it walks when it has full energy.', min: 0.01, max: 0.2, step: 0.01, low: 'Slow', high: 'Fast', unit: '' },
+    { key: 'viewRange', label: 'Eyesight', help: 'How far it can see food, water, mates and enemies.', min: 3, max: 40, step: 1, low: 'Short-sighted', high: 'Eagle-eyed', unit: ' tiles' },
+    { key: 'damage', label: 'Bite strength', help: 'Damage it deals each moment while attacking. Animals that do not hunt never use it.', min: 0.1, max: 10, step: 0.1, low: 'Weak', high: 'Deadly', unit: '' },
+    { key: 'armor', label: 'Armor', help: 'Percent of incoming attack damage it shrugs off (at most 80%).', min: 0.1, max: 60, step: 0.1, low: 'Soft', high: 'Armored', unit: '%' },
 ];
 
 /** One selectable trait with a friendly name and a one-line explanation. */
@@ -171,6 +171,13 @@ export function toSpeciesConfig(settings: SimSettings): string {
 
 const STORAGE_KEY = 'prometheus.settings.v1';
 
+/** Keeps every stat within its slider range (including the minimums from docs/sim/SPECIES.md). */
+function clampStats(stats: Record<StatKey, number>): Record<StatKey, number> {
+    const out = { ...stats };
+    for (const d of STATS) out[d.key] = Math.max(d.min, Math.min(d.max, Number(out[d.key]) || DEFAULT_STATS[d.key]));
+    return out;
+}
+
 /**
  * Validates settings read from storage (clamping numbers, filling missing stats) and gives every species a fresh uid.
  * Returns null if `raw` is not usable settings. Also used to deep-copy settings.
@@ -182,7 +189,7 @@ export function sanitizeSettings(raw: unknown): SimSettings | null {
     return {
         water: res(parsed.water), trees: res(parsed.trees), grass: res(parsed.grass),
         mapSize: Math.max(MAP_SIZE.min, Math.min(MAP_SIZE.max, Number(parsed.mapSize) || MAP_SIZE.default)),
-        species: parsed.species.map((s) => ({ ...s, uid: nextUid++, stats: { ...DEFAULT_STATS, ...s.stats }, traits: [...s.traits] })),
+        species: parsed.species.map((s) => ({ ...s, uid: nextUid++, stats: clampStats({ ...DEFAULT_STATS, ...s.stats }), traits: [...s.traits] })),
     };
 }
 

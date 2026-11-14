@@ -35,6 +35,13 @@ class AnimalStats(
         const val MIN_RATIO = 0.5
         const val MAX_RATIO = 2.0
 
+        /** Smallest value each inherited stat may have (docs/sim/SPECIES.md), for founders and for mutated offspring. */
+        const val MIN_MAX_HP = 1.0
+        const val MIN_SPEED = 0.01
+        const val MIN_DAMAGE = 0.1
+        const val MIN_ARMOR = 0.1
+        const val MIN_VIEW_RANGE = 3.0
+
         /** Armor never absorbs more than this fraction of damage. */
         const val MAX_ARMOR_REDUCTION = 0.8
 
@@ -54,18 +61,18 @@ class AnimalStats(
 
         /** Stats of a newborn: each inherited stat is the parents' average, randomly mutated, kept near the founder value. */
         fun inherit(s: Species, a: AnimalStats, b: AnimalStats, rng: Random): AnimalStats {
-            fun mix(x: Double, y: Double, founder: Double): Double {
+            fun mix(x: Double, y: Double, founder: Double, min: Double): Double {
                 if (founder == 0.0) return 0.0 // a stat the species lacks (no attack, no armor) cannot appear by mutation
                 val mutated = (x + y) / 2 * (1 + (rng.nextDouble() * 2 - 1) * MUTATION)
-                return mutated.coerceIn(founder * MIN_RATIO, founder * MAX_RATIO)
+                return mutated.coerceIn(maxOf(founder * MIN_RATIO, min), maxOf(founder * MAX_RATIO, min))
             }
             return derive(
                 s,
-                maxHp = mix(a.maxHp, b.maxHp, s.maxHp),
-                speed = mix(a.speed, b.speed, s.speed),
-                damage = mix(a.damage, b.damage, s.attackDamage),
-                armor = mix(a.armor, b.armor, s.armor),
-                viewRange = mix(a.viewRange, b.viewRange, s.viewRange),
+                maxHp = mix(a.maxHp, b.maxHp, s.maxHp, MIN_MAX_HP),
+                speed = mix(a.speed, b.speed, s.speed, MIN_SPEED),
+                damage = mix(a.damage, b.damage, s.attackDamage, MIN_DAMAGE),
+                armor = mix(a.armor, b.armor, s.armor, MIN_ARMOR),
+                viewRange = mix(a.viewRange, b.viewRange, s.viewRange, MIN_VIEW_RANGE),
             )
         }
 

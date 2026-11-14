@@ -1,5 +1,6 @@
 package sim.species
 
+import sim.animal.AnimalStats
 import sim.world.TimePhase
 
 /**
@@ -69,6 +70,8 @@ class Species(
     init {
         val dupes = traits.mapNotNull { it.category }.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
         require(dupes.isEmpty()) { "Species '$name' has more than one trait in: $dupes" }
+        require(maxHp >= AnimalStats.MIN_MAX_HP && speed >= AnimalStats.MIN_SPEED && attackDamage >= AnimalStats.MIN_DAMAGE &&
+            armor >= AnimalStats.MIN_ARMOR && viewRange >= AnimalStats.MIN_VIEW_RANGE) { "Species '$name' has an inherited stat below its minimum" }
         require(baseStaminaUsage >= 0 && walkingStaminaUsage >= 0) { "stamina usage must not be negative" }
         require(elderlyAge >= 0) { "elderlyAge must not be negative" }
         require(reproductionNutritionThreshold <= maxNutrition) { "reproduction threshold above max nutrition" }
