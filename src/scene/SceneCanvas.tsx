@@ -1,0 +1,55 @@
+import { useEffect, useRef } from 'react';
+import type { Screen } from '../app/screens';
+import type { TerrainData } from '../terrain/types';
+import type { SimInfo, SimSnapshot } from '../sim/types';
+import { WorldScene } from './WorldScene';
+
+interface Props {
+    screen: Screen;
+    terrain?: TerrainData | null;
+    simInfo?: SimInfo | null;
+    snapshot?: SimSnapshot | null;
+    selectedId?: number | null;
+    onSelect?: (id: number | null) => void;
+}
+
+export function SceneCanvas({ screen, terrain, simInfo, snapshot, selectedId, onSelect }: Props) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const sceneRef = useRef<WorldScene | null>(null);
+
+    // Mount/dispose only. Declared first so later effects see sceneRef set.
+    useEffect(() => {
+        const scene = new WorldScene(canvasRef.current!);
+        sceneRef.current = scene;
+        return () => {
+            scene.dispose();
+            sceneRef.current = null;
+        };
+    }, []);
+
+    useEffect(() => {
+        sceneRef.current?.setScreen(screen);
+    }, [screen]);
+
+    useEffect(() => {
+        sceneRef.current?.setTerrain(terrain ?? null);
+    }, [terrain]);
+
+    useEffect(() => {
+        sceneRef.current?.setSimulationInfo(simInfo ?? null);
+    }, [simInfo]);
+
+    useEffect(() => {
+        sceneRef.current?.setSnapshot(snapshot ?? null);
+    }, [snapshot]);
+
+    useEffect(() => {
+        sceneRef.current?.setSelectionHandler(onSelect ?? null);
+    }, [onSelect]);
+
+    useEffect(() => {
+        sceneRef.current?.setSelectedAnimal(selectedId ?? null);
+    }, [selectedId, simInfo, terrain]);
+
+    return <canvas ref={canvasRef} className="scene-canvas" aria-hidden="true" />;
+}

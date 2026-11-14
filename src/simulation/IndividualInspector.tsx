@@ -1,0 +1,72 @@
+import { A, type SimInfo, type SimSnapshot } from '../sim/types';
+
+interface Props {
+    snapshot: SimSnapshot | null;
+    info: SimInfo | null;
+    selectedId: number | null;
+}
+
+/** "RUN_FROM_PREDATOR" -> "Run from predator". */
+function actionLabel(name: string): string {
+    const text = name.toLowerCase().replace(/_/g, ' ');
+    return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** A labelled status bar: `value` out of `max`, drawn as a filled track with the number beside it. */
+function Meter({ label, value, max, tone }: { label: string; value: number; max: number; tone: string }) {
+    const pct = Math.max(0, Math.min(100, (value / max) * 100));
+    return (
+        <div className="meter">
+            <span className="meter__label">{label}</span>
+            <div className="meter__track" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={max} aria-valuenow={Math.round(value)}>
+                <div className={`meter__fill meter__fill--${tone}`} style={{ width: `${pct}%` }} />
+            </div>
+            <span className="meter__value">{Math.round(value)}/{max}</span>
+        </div>
+    );
+}
+
+/** Shows the selected animal's status values (HP, stamina, nutrition, hydration, age), feelings and current action. */
+export function IndividualInspector({ snapshot, info, selectedId }: Props) {
+    const row = selectedId === null ? undefined : snapshot?.animals.find((r) => r[A.id] === selectedId);
+    const species = row && info ? info.species[row[A.species]!] : undefined;
+
+    let body;
+    if (selectedId === null) {
+        body = <div className="panel__empty">No individual selected. Click an animal.</div>;
+    } else if (!row || !species || !info) {
+        body = <div className="panel__empty">Animal #{selectedId} is no longer alive.</div>;
+    } else {
+        body = (
+            <>
+                <div className="inspector__title">
+                    <strong>{species.name}</strong>
+                    <span className="inspector__id">#{selectedId}</span>
+                </div>
+                <div className="inspector__action">
+                    <span className="meter__label">Action</span>
+                    <span className="inspector__action-value">{actionLabel(info.actions[row[A.action]!] ?? 'unknown')}</span>
+                </div>
+                <Meter label="HP" value={row[A.hp]!} max={species.maxHp} tone="hp" />
+                <Meter label="Stamina" value={row[A.stamina]!} max={species.maxStamina} tone="stamina" />
+                <Meter label="Nutrition" value={row[A.nutrition]!} max={species.maxNutrition} tone="nutrition" />
+                <Meter label="Hydration" value={row[A.hydration]!} max={species.maxHydration} tone="hydration" />
+                <dl className="inspector__facts">
+                    <dt>Age</dt><dd>{row[A.age]!.toFixed(2)} days</dd>
+                    <dt>Fear</dt><dd>{row[A.fear]!.toFixed(2)}</dd>
+                    <dt>Hunger</dt><dd>{row[A.hunger]!.toFixed(2)}</dd>
+                    <dt>Thirst</dt><dd>{row[A.thirst]!.toFixed(2)}</dd>
+                    <dt>Libido</dt><dd>{row[A.libido]!.toFixed(2)}</dd>
+                </dl>
+                <p className="inspector__traits">{species.traits.map((t) => t.toLowerCase().replace(/_/g, ' ')).join(' · ')}</p>
+            </>
+        );
+    }
+
+    return (
+        <section className="panel" aria-labelledby="inspector-h">
+            <h2 id="inspector-h" className="panel__header">Individual Inspector</h2>
+            <div className="panel__body inspector">{body}</div>
+        </section>
+    );
+}

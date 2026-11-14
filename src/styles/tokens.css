@@ -1,0 +1,19 @@
+:root {
+    --color-sky: #bfe9ff;
+    --color-ink: #1f2a44;
+    --color-surface: rgba(255, 255, 255, 0.88);
+    --color-accent: #ff8a5c;
+    --color-accent-ink: #ffffff;
+
+    --font-display: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+    --font-body: system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+    --space-1: 0.5rem;
+    --space-2: 1rem;
+    --space-3: 1.5rem;
+    --space-4: 2.5rem;
+    --radius: 14px;
+
+    --z-canvas: 0;
+    --z-ui: 1;
+}

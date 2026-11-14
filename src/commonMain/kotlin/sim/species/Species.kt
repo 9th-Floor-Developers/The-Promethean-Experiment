@@ -1,0 +1,88 @@
+package sim.species
+
+import sim.world.TimePhase
+
+/**
+ * A species is an immutable template: a set of traits plus base stats shared by all its animals.
+ * Invariant: at most one trait per [TraitCategory].
+ */
+class Species(
+    val name: String,
+    val traits: Set<Trait>,
+    val maxHp: Double = 100.0,
+    val maxNutrition: Double = 100.0,
+    /** Nutrition an animal must exceed to be able to reproduce. */
+    val reproductionNutritionThreshold: Double = 70.0,
+    /** Max distance (in tiles) to a same-species partner for reproduction. */
+    val reproductionRange: Double = 1.5,
+    /** Maximum hydration. */
+    val maxHydration: Double = 100.0,
+    /** Maximum stamina. */
+    val maxStamina: Double = 100.0,
+    /** Stamina regained per tick. */
+    val staminaRegen: Double = 0.05,
+    /** How strongly age (in days) slows stamina regeneration: regen is divided by 1 + this * age. */
+    val staminaAgeDecay: Double = 0.25,
+    /** HP regained per tick while stamina is at least 90% full. */
+    val hpRegen: Double = 0.05,
+    /** Stamina spent per tick while sprinting (fleeing or chasing). */
+    val staminaSprintCost: Double = 0.2,
+    /** Stamina spent per tick while walking to a target. */
+    val staminaWalkCost: Double = 0.05,
+    /** Tiles moved per tick at full stamina. */
+    val speed: Double = 0.06,
+    /** Body size (tiles); only used to extend how far an animal can reach to attack. */
+    val bodyRadius: Double = 0.3,
+    /** Distance (tiles) at which animals notice food, water and other animals. */
+    val senseRange: Double = 12.0,
+    /** Distance (tiles) within which an animal looks for a mate; much larger than [senseRange] so rare animals can still find each other. */
+    val mateSenseRange: Double = 80.0,
+    /** Walking distance (tiles) within which animals know where water is; much larger than [senseRange] because they remember the land. */
+    val waterSenseRange: Double = 150.0,
+    /** Ticks an animal must stick with an action before it may switch to a different kind of action. */
+    val actionCooldownTicks: Int = 20,
+    /** Nutrition lost per tick. */
+    val nutritionDrain: Double = 0.05,
+    /** Hydration lost per tick. */
+    val hydrationDrain: Double = 0.07,
+    /** HP lost per tick while nutrition or hydration is 0. */
+    val starvationDamage: Double = 0.2,
+    /** Damage dealt per tick to a target in reach; 0 means the species cannot attack. */
+    val attackDamage: Double = 0.0,
+    /** Extra reach (tiles) beyond body contact for attacks. */
+    val attackRange: Double = 0.3,
+    /** Nutrition the parent loses when reproducing. */
+    val reproductionNutritionCost: Double = 30.0,
+    /** Ticks before an animal can reproduce again. */
+    val reproductionCooldownTicks: Int = 300,
+    /** Nutrition contained in the carcass left behind on death. */
+    val carcassNutrition: Double = 60.0,
+) {
+    init {
+        val dupes = traits.mapNotNull { it.category }.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
+        require(dupes.isEmpty()) { "Species '$name' has more than one trait in: $dupes" }
+        require(reproductionNutritionThreshold <= maxNutrition) { "reproduction threshold above max nutrition" }
+    }
+
+    /** Whether animals of this species hunt other animals. */
+    val canHunt get() = Trait.CARNIVORE in traits || Trait.OMNIVORE in traits
+
+    /** Whether animals of this species eat trees. */
+    val eatsPlants get() = Trait.HERBIVORE in traits || Trait.OMNIVORE in traits
+
+    /** Whether animals of this species eat carcasses. */
+    val eatsCarcasses get() = Trait.CARNIVORE in traits || Trait.OMNIVORE in traits || Trait.SCAVENGER in traits
+
+    /** Whether the activity-cycle trait lets this species be active during [phase]; species without one are always active. */
+    fun isActiveAt(phase: TimePhase): Boolean = when {
+        Trait.DIURNAL in traits -> phase == TimePhase.DAY
+        Trait.NOCTURNAL in traits -> phase == TimePhase.NIGHT
+        Trait.CREPUSCULAR in traits -> phase == TimePhase.DAWN || phase == TimePhase.DUSK
+        else -> true
+    }
+
+    fun has(trait: Trait) = trait in traits
+    fun trait(category: TraitCategory): Trait? = traits.firstOrNull { it.category == category }
+
+    override fun toString() = "Species($name)"
+}

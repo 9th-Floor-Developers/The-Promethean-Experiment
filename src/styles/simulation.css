@@ -1,0 +1,92 @@
+/* Simulation workspace. The canvas and the grid share these two sizes so the 3D view fills the viewport cell. */
+:root {
+    --sim-header-h: 2.75rem;
+    --sim-sidebar-w: clamp(16rem, 24vw, 26rem);
+}
+
+.sim {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: 1fr var(--sim-sidebar-w);
+    grid-template-rows: var(--sim-header-h) 1fr;
+    grid-template-areas: "header header" "viewport sidebar";
+}
+.sim__header {
+    grid-area: header;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-2);
+    background: var(--color-ink);
+    color: #fff;
+    pointer-events: auto;
+}
+.sim__viewport {
+    grid-area: viewport;
+    border: 3px solid var(--color-ink);
+    border-left: 0;
+    border-bottom: 0;
+    pointer-events: none;
+}
+.sim__sidebar {
+    grid-area: sidebar;
+    display: grid;
+    grid-template-rows: 3fr 2fr;
+    min-height: 0;
+    gap: 2px;
+    background: var(--color-ink);
+    pointer-events: auto;
+}
+
+.sim-clock { display: flex; gap: var(--space-1); align-items: baseline; font-variant-numeric: tabular-nums; }
+.sim-clock__label { opacity: 0.7; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.sim-clock__value { font-weight: 700; }
+.sim-speed { display: flex; gap: var(--space-1); align-items: center; margin-left: var(--space-3, 1.5rem); }
+.sim-speed input { width: 7rem; }
+
+.panel { display: flex; flex-direction: column; min-height: 0; background: #f3f6fb; }
+.panel__header {
+    margin: 0;
+    padding: 0.5rem var(--space-2);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: #dde5f2;
+    border-bottom: 1px solid #c3cfe3;
+}
+.panel__body { flex: 1; min-height: 0; padding: var(--space-2); overflow: auto; }
+.panel__empty { display: grid; place-items: center; color: #6b7894; font-size: 0.9rem; }
+
+@media (max-width: 700px) {
+    :root { --sim-sidebar-w: 0px; }
+    .sim { grid-template-columns: 1fr; grid-template-rows: var(--sim-header-h) 1fr 40%; grid-template-areas: "header" "viewport" "sidebar"; }
+}
+
+/* Individual inspector */
+.inspector { display: flex; flex-direction: column; gap: 0.4rem; }
+.inspector .panel__empty { flex: 1; }
+.inspector__title { display: flex; align-items: baseline; justify-content: space-between; }
+.inspector__id { opacity: 0.6; font-variant-numeric: tabular-nums; }
+.inspector__action { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 0.25rem; border-bottom: 1px solid #d5dcea; }
+.inspector__action-value { font-weight: 700; }
+.inspector__facts { display: grid; grid-template-columns: auto 1fr; gap: 0.1rem 0.75rem; margin: 0.25rem 0 0; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.inspector__facts dt { opacity: 0.7; }
+.inspector__facts dd { margin: 0; text-align: right; }
+.inspector__traits { margin: 0.25rem 0 0; font-size: 0.75rem; opacity: 0.65; text-transform: capitalize; }
+.meter { display: grid; grid-template-columns: 4.6rem 1fr 3.8rem; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+.meter__label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; }
+.meter__track { height: 0.6rem; border-radius: 0.3rem; background: #dde3f0; overflow: hidden; }
+.meter__fill { height: 100%; border-radius: 0.3rem; transition: width 0.15s linear; }
+.meter__fill--hp { background: #e8505b; }
+.meter__fill--stamina { background: #f2b134; }
+.meter__fill--nutrition { background: #57b560; }
+.meter__fill--hydration { background: #3f9be8; }
+.meter__value { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Population graph */
+.popgraph-body { display: flex; flex-direction: column; gap: 0.4rem; }
+.popgraph { width: 100%; height: auto; flex: none; }
+.popgraph__tick { font-size: 8px; fill: #6b7894; font-variant-numeric: tabular-nums; }
+.popgraph__legend { display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; margin: 0; padding: 0; list-style: none; font-size: 0.8rem; }
+.popgraph__swatch { display: inline-block; width: 0.7rem; height: 0.3rem; margin-right: 0.3rem; vertical-align: middle; border-radius: 2px; }
+.popgraph__swatch--total { background: repeating-linear-gradient(90deg, #1f2a44 0 4px, transparent 4px 7px); }
