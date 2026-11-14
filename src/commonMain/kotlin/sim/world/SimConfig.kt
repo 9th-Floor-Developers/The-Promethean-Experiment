@@ -7,7 +7,7 @@ import sim.species.Trait
 class SpeciesSetup(val species: Species, val count: Int)
 
 /** Largest starting population per species; keeps a mistyped number from freezing the browser. */
-const val MAX_START_COUNT = 600 //BENCHTMP
+const val MAX_START_COUNT = 300
 
 /**
  * Parses the settings text sent by the frontend's Settings screen into species setups.

@@ -129,7 +129,7 @@ export const MAP_SIZE = { min: 60, max: 300, step: 10, default: 200 } as const;
 /** Most species allowed; the graph and legends have six distinct colours. */
 export const MAX_SPECIES = 6;
 export const MIN_COUNT = 1;
-export const MAX_COUNT = 600; //BENCHTMP
+export const MAX_COUNT = 150;
 export const DEFAULT_STATS: Record<StatKey, number> = { maxHp: 100, speed: 0.06, damage: 0, armor: 0, viewRange: 12 };
 
 let nextUid = 1;
