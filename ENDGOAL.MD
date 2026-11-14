@@ -26,7 +26,7 @@ no readme.md for this project
 
 Add docs strings each class and functions
 
-Commit every change to git
+Commit every change to git automatically
 If a feature is not directly asked to be implemented, confirm again with the user before implementing it
 
 check for redundant features, both code wise and to the end user
