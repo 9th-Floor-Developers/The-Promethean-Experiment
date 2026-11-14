@@ -3,6 +3,7 @@ import type { Screen } from './app/screens';
 import { createSimulation, type KotlinSimulation } from './sim/kotlinSim';
 import { useSimulation, MIN_SPEED } from './sim/useSimulation';
 import { usePopulationHistory } from './sim/usePopulationHistory';
+import { DEFAULT_LEADERBOARD_SETTINGS, type LeaderboardSettings } from './simulation/Leaderboard';
 import { SceneCanvas } from './scene/SceneCanvas';
 import {LandingScreen} from "./screen/LandingScreen.tsx";
 import {OpeningScreen} from "./screen/OpeningScreen.tsx";
@@ -12,6 +13,8 @@ import {CreditsScreen} from "./screen/CreditsScreen.tsx";
 export default function App() {
     const [screen, setScreen] = useState<Screen>('landing');
     const [selectedId, setSelectedId] = useState<number | null>(null);
+    // Lives here (not in the leaderboard) so the choices survive selecting an animal and leaving the screen.
+    const [leaderboardSettings, setLeaderboardSettings] = useState<LeaderboardSettings>(DEFAULT_LEADERBOARD_SETTINGS);
     const [following, setFollowing] = useState(false);
     const [sim, setSim] = useState<KotlinSimulation | null>(null);
 
@@ -55,7 +58,8 @@ export default function App() {
                         focusCredits={cameFromCredits}
                     />
                 )}
-                {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} onSelect={setSelectedId} following={following} onFollowChange={setFollowing} history={history} ended={ended} speed={speed} onSpeedChange={setSpeed} />}
+                {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} onSelect={setSelectedId} following={following} onFollowChange={setFollowing}
+                    leaderboardSettings={leaderboardSettings} onLeaderboardSettingsChange={setLeaderboardSettings} history={history} ended={ended} speed={speed} onSpeedChange={setSpeed} />}
                 {screen === 'credits' && <CreditsScreen onBack={closeCredits} />}
             </main>
         </>

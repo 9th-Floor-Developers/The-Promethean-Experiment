@@ -1,4 +1,4 @@
-import { Leaderboard } from './Leaderboard';
+import { Leaderboard, type LeaderboardSettings } from './Leaderboard';
 import { A, type SimInfo, type SimSnapshot } from '../sim/types';
 
 interface Props {
@@ -9,6 +9,8 @@ interface Props {
     onSelect: (id: number | null) => void;
     /** Whether the camera is locked onto the selected animal. */
     following: boolean;
+    leaderboardSettings: LeaderboardSettings;
+    onLeaderboardSettingsChange: (settings: LeaderboardSettings) => void;
     onFollowChange: (following: boolean) => void;
 }
 
@@ -33,7 +35,7 @@ function Meter({ label, value, max, tone }: { label: string; value: number; max:
 }
 
 /** Shows the selected animal's status values (HP, stamina, nutrition, hydration, age), feelings and current action. */
-export function IndividualInspector({ snapshot, info, selectedId, onSelect, following, onFollowChange }: Props) {
+export function IndividualInspector({ snapshot, info, selectedId, onSelect, following, onFollowChange, leaderboardSettings, onLeaderboardSettingsChange }: Props) {
     const row = selectedId === null ? undefined : snapshot?.animals.find((r) => r[A.id] === selectedId);
     const species = row && info ? info.species[row[A.species]!] : undefined;
 
@@ -83,7 +85,7 @@ export function IndividualInspector({ snapshot, info, selectedId, onSelect, foll
         <section className="panel" aria-labelledby="inspector-h">
             <h2 id="inspector-h" className="panel__header">{selectedId === null ? 'Leaderboard' : 'Individual Inspector'}</h2>
             <div className="panel__body inspector">
-                {selectedId === null ? <Leaderboard snapshot={snapshot} info={info} onSelect={onSelect} /> : body}
+                {selectedId === null ? <Leaderboard settings={leaderboardSettings} onSettingsChange={onLeaderboardSettingsChange} snapshot={snapshot} info={info} onSelect={onSelect} /> : body}
             </div>
         </section>
     );

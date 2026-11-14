@@ -1,8 +1,22 @@
-import { useState } from 'react';
 import { A, type SimInfo, type SimSnapshot } from '../sim/types';
 import { AnimalPortrait } from './AnimalPortrait';
 
+/** The user's leaderboard choices. Owned by a parent that outlives the leaderboard, so they survive selecting an animal. */
+export interface LeaderboardSettings {
+    /** Key of the stat ranked by (see STATS). */
+    statKey: string;
+    /** Key of the species filter ('all', 'herb', 'carn' or 'sp:<index>'). */
+    filterKey: string;
+    /** True = highest first. */
+    descending: boolean;
+}
+
+/** Defaults used when the app starts. */
+export const DEFAULT_LEADERBOARD_SETTINGS: LeaderboardSettings = { statKey: 'hp', filterKey: 'all', descending: true };
+
 interface Props {
+    settings: LeaderboardSettings;
+    onSettingsChange: (settings: LeaderboardSettings) => void;
     snapshot: SimSnapshot | null;
     info: SimInfo | null;
     onSelect: (id: number) => void;
@@ -52,10 +66,8 @@ function buildFilters(info: SimInfo): Filter[] {
  * Ranked list of living animals by a chosen stat, filterable by species group or species.
  * Each row shows a live portrait of the animal and its value; clicking a row selects it in the inspector.
  */
-export function Leaderboard({ snapshot, info, onSelect }: Props) {
-    const [statKey, setStatKey] = useState('hp');
-    const [filterKey, setFilterKey] = useState('all');
-    const [descending, setDescending] = useState(true);
+export function Leaderboard({ settings, onSettingsChange, snapshot, info, onSelect }: Props) {
+    const { statKey, filterKey, descending } = settings;
 
     if (!snapshot || !info) return <div className="panel__empty">No data yet.</div>;
 
@@ -72,17 +84,17 @@ export function Leaderboard({ snapshot, info, onSelect }: Props) {
             <div className="leaderboard__controls">
                 <label>
                     Rank by
-                    <select value={statKey} onChange={(e) => setStatKey(e.target.value)}>
+                    <select value={statKey} onChange={(e) => onSettingsChange({ ...settings, statKey: e.target.value })}>
                         {STATS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
                     </select>
                 </label>
                 <label>
                     Show
-                    <select value={filter.key} onChange={(e) => setFilterKey(e.target.value)}>
+                    <select value={filter.key} onChange={(e) => onSettingsChange({ ...settings, filterKey: e.target.value })}>
                         {filters.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
                     </select>
                 </label>
-                <button type="button" onClick={() => setDescending((d) => !d)} title="Reverse the order">
+                <button type="button" onClick={() => onSettingsChange({ ...settings, descending: !descending })} title="Reverse the order">
                     {descending ? 'Highest ▼' : 'Lowest ▲'}
                 </button>
             </div>

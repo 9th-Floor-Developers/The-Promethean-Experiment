@@ -3,6 +3,7 @@ import { SimulationViewport } from './SimulationViewport';
 import { IndividualInspector } from './IndividualInspector';
 import { useState } from 'react';
 import { PopulationGraph, SimulationSummary } from './PopulationGraph';
+import type { LeaderboardSettings } from './Leaderboard';
 import type { SimInfo, SimSnapshot } from '../sim/types';
 import type { PopulationSample } from '../sim/usePopulationHistory';
 
@@ -17,6 +18,8 @@ interface Props {
     onSelect: (id: number | null) => void;
     /** Whether the camera is locked onto the selected animal. */
     following: boolean;
+    leaderboardSettings: LeaderboardSettings;
+    onLeaderboardSettingsChange: (settings: LeaderboardSettings) => void;
     onFollowChange: (following: boolean) => void;
     history: PopulationSample[];
     /** True once every animal has died; shows the full-run graph. */
@@ -25,7 +28,7 @@ interface Props {
     onSpeedChange: (speed: number) => void;
 }
 
-export function SimulationScreen({ snapshot, info, selectedId, onSelect, following, onFollowChange, history, ended, speed, onSpeedChange }: Props) {
+export function SimulationScreen({ snapshot, info, selectedId, onSelect, following, onFollowChange, leaderboardSettings, onLeaderboardSettingsChange, history, ended, speed, onSpeedChange }: Props) {
     const [summaryClosed, setSummaryClosed] = useState(false);
     return (
         <div className="sim">
@@ -35,7 +38,8 @@ export function SimulationScreen({ snapshot, info, selectedId, onSelect, followi
                 <SimulationSummary history={history} info={info} snapshot={snapshot} onClose={() => setSummaryClosed(true)} />
             )}
             <aside className="sim__sidebar" aria-label="Simulation panels">
-                <IndividualInspector snapshot={snapshot} info={info} selectedId={selectedId} onSelect={onSelect} following={following} onFollowChange={onFollowChange} />
+                <IndividualInspector snapshot={snapshot} info={info} selectedId={selectedId} onSelect={onSelect} following={following} onFollowChange={onFollowChange}
+                                    leaderboardSettings={leaderboardSettings} onLeaderboardSettingsChange={onLeaderboardSettingsChange} />
                 <PopulationGraph history={history} info={info} snapshot={snapshot} />
             </aside>
         </div>
