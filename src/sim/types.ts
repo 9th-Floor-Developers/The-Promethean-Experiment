@@ -22,13 +22,17 @@ export interface SimInfo {
     scenery: [number, number, number, number][];
 }
 
+/** Value of an animal row's heading column when the animal has no direction of travel. */
+export const NO_HEADING = 999;
+
 /**
  * Column indices of a SimSnapshot.animals row:
- * [id, species, x, y, hp, nutrition, hydration, stamina, age, action, fear, hunger, thirst, libido, targetX, targetY] (target is -1,-1 when the animal has no destination).
+ * [id, species, x, y, hp, nutrition, hydration, stamina, age, action, fear, hunger, thirst, libido, targetX, targetY, heading] (target is -1,-1 when the animal has no destination; heading is
+ * the direction in radians a wandering or fleeing animal moves in, NO_HEADING when it has none).
  */
 export const A = {
     id: 0, species: 1, x: 2, y: 3, hp: 4, nutrition: 5, hydration: 6, stamina: 7, age: 8,
-    action: 9, fear: 10, hunger: 11, thirst: 12, libido: 13, targetX: 14, targetY: 15,
+    action: 9, fear: 10, hunger: 11, thirst: 12, libido: 13, targetX: 14, targetY: 15, heading: 16,
 } as const;
 
 /** Current simulation state from Kotlin's getSimulationSnapshot(). */

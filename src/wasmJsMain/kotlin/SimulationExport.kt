@@ -1,5 +1,6 @@
 import base.Vector2
 import sim.animal.Action
+import sim.animal.Animal
 import sim.objects.Carcass
 import sim.objects.Grass
 import sim.objects.Tree
@@ -8,6 +9,7 @@ import sim.world.Resources
 import sim.world.createMockWorld
 import sim.world.createWorld
 import sim.world.parseSpeciesConfig
+import kotlin.math.atan2
 import kotlin.math.roundToInt
 
 /** The single running simulation, created by [createSimulation]. */
@@ -81,9 +83,10 @@ fun tickSimulation(ticks: Int) {
 /**
  * Current state as JSON:
  * `{"tick","day","timeOfDay","phase",
- * "animals":[[id,speciesIndex,x,y,hp,nutrition,hydration,stamina,age,actionCode,fear,hunger,thirst,libido,targetX,targetY]...],
+ * "animals":[[id,speciesIndex,x,y,hp,nutrition,hydration,stamina,age,actionCode,fear,hunger,thirst,libido,targetX,targetY,heading]...],
  * "carcasses":[[id,x,y,fractionLeft]...],"trees":"<one digit per tree, 1 = edible>","grass":"<one digit per grass tuft, 1 = edible>"}`.
  * `targetX`/`targetY` are the tile-unit position the animal is heading for (see [destination]), or -1,-1 when it has none.
+ * `heading` is the direction (radians, tile axes) a wandering or fleeing animal is moving in, or 999 when it has none.
  * `timeOfDay` runs 0.0 (midnight) to 1.0; `speciesIndex` indexes `species` from [getSimulationInfo].
  */
 @OptIn(ExperimentalJsExport::class)
@@ -94,7 +97,7 @@ fun getSimulationSnapshot(): String {
         "[${a.id},${w.species.indexOf(a.species)},${r2(a.position.x)},${r2(a.position.y)}," +
             "${r2(a.hp)},${r2(a.nutrition)},${r2(a.hydration)},${r2(a.stamina)},${r2(a.age)},${actionCode(a.action)}," +
             "${r2(a.feelings.fear)},${r2(a.feelings.hunger)},${r2(a.feelings.thirst)},${r2(a.feelings.libido)}," +
-            (destination(a.action)?.let { "${r2(it.x)},${r2(it.y)}" } ?: "-1,-1") + "]"
+            (destination(a.action)?.let { "${r2(it.x)},${r2(it.y)}" } ?: "-1,-1") + "," + (heading(a)?.let { r2(it).toString() } ?: "999") + "]"
     }
     val carcasses = w.objects.filterIsInstance<Carcass>().joinToString(",") {
         "[${it.id},${r2(it.position.x)},${r2(it.position.y)},${r2(it.nutrition / it.initialNutrition)}]"
@@ -123,4 +126,11 @@ private fun destination(action: Action): Vector2? = when (action) {
 fun getAnimalPath(id: Int): String {
     val a = current().animals.firstOrNull { it.id == id } ?: return "[]"
     return a.path.joinToString(",", "[", "]") { "${r2(it.x)},${r2(it.y)}" }
+}
+
+/** Direction (radians, atan2(dy, dx) in tile units) a wandering or fleeing animal is heading; null for other actions. */
+private fun heading(a: Animal): Double? = when (val act = a.action) {
+    Action.Wander -> a.wanderHeading
+    is Action.RunFromPredator -> atan2(a.position.y - act.predator.position.y, a.position.x - act.predator.position.x) + a.fleeOffset
+    else -> null
 }

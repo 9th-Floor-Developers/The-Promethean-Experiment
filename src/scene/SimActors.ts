@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { A, type SimInfo, type SimSnapshot } from '../sim/types';
+import { A, NO_HEADING, type SimInfo, type SimSnapshot } from '../sim/types';
 
 /** Ground height at continuous tile coordinates, see createHeightSampler. */
 export type HeightFn = (tx: number, ty: number) => number;
@@ -25,6 +25,10 @@ const ROUTE_COLORS: Record<string, number> = {
     REPRODUCE_WITH: 0xff7ad9,
 };
 const ROUTE_FALLBACK_COLOR = 0xffffff;
+/** Colours of the direction arrow shown when there is no destination (fleeing, wandering). */
+const HEADING_COLORS: Record<string, number> = { RUN_FROM_PREDATOR: 0xffa63d, WANDER: 0xd5dde2 };
+/** Length (world units) of the direction arrow. */
+const HEADING_LENGTH = 3;
 /** Most points of a route that are drawn, and most arrowheads along it. */
 const ROUTE_MAX_POINTS = 512;
 const ARROW_MAX = 300;
@@ -185,6 +189,8 @@ export class SimActors {
         this.own(new THREE.MeshBasicMaterial({ color: this.routeColor, depthTest: false, transparent: true, opacity: 0.95 })), ARROW_MAX);
     /** Destination of the selected animal in tile units, or null when it has none. */
     private selectedDest: { x: number; y: number } | null = null;
+    /** Direction (radians, tile axes) the selected animal is wandering or fleeing in, or null when it has none. */
+    private selectedHeading: number | null = null;
     /** Waypoints (tile units, flat x,y pairs) the selected animal follows around obstacles. */
     private selectedWaypoints: number[] = [];
     private pathProvider: ((id: number) => number[]) | null = null;
@@ -219,6 +225,7 @@ export class SimActors {
         if (actor) actor.obj.add(this.ring);
         this.selectedRow = null;
         this.selectedDest = null;
+        this.selectedHeading = null;
         this.setRouteVisible(false);
         this.hideViewRange();
         const row = id === null ? undefined : this.lastRows.get(id);
@@ -405,9 +412,11 @@ export class SimActors {
                 const tx = row[A.targetX]!, ty = row[A.targetY]!;
                 this.selectedDest = tx < 0 ? null : { x: tx, y: ty };
                 if (this.selectedDest) this.place(tx, ty, 0.08, this.destMarker.position);
-                this.applyRouteColor(ROUTE_COLORS[this.actionNames[row[A.action]!] ?? ''] ?? ROUTE_FALLBACK_COLOR);
+                const actionName = this.actionNames[row[A.action]!] ?? '';
+                this.selectedHeading = !this.selectedDest && row[A.heading]! !== NO_HEADING ? row[A.heading]! : null;
+                this.applyRouteColor(ROUTE_COLORS[actionName] ?? HEADING_COLORS[actionName] ?? ROUTE_FALLBACK_COLOR);
                 this.selectedWaypoints = this.selectedDest && this.pathProvider ? this.pathProvider(id) : [];
-                this.setRouteVisible(this.selectedDest !== null && this.animalGroup.visible);
+                this.setRouteVisible((this.selectedDest !== null || this.selectedHeading !== null) && this.animalGroup.visible);
                 const prev = this.selectedRow;
                 if (!prev || prev.x !== x || prev.y !== y || prev.species !== species) {
                     this.selectedRow = { x, y, species };
@@ -418,7 +427,7 @@ export class SimActors {
         for (const [id, actor] of this.actors) {
             if (actor.seen !== stamp) {
                 if (id === this.selectedId) {
-                    this.ring.removeFromParent(); this.selectedRow = null; this.selectedDest = null;
+                    this.ring.removeFromParent(); this.selectedRow = null; this.selectedDest = null; this.selectedHeading = null;
                     this.setRouteVisible(false); this.hideViewRange();
                 }
                 this.animalGroup.remove(actor.obj);
@@ -550,7 +559,7 @@ export class SimActors {
             actor.obj.children[0]!.position.y = bob;
         }
         const sel = this.selectedId === null ? undefined : this.actors.get(this.selectedId);
-        if (sel && this.selectedDest && this.destLine.visible) this.drawRoute(sel.obj.position);
+        if (sel && (this.selectedDest || this.selectedHeading !== null) && this.destLine.visible) this.drawRoute(sel.obj.position);
     }
 
     /** Recolours the destination marker, route line and arrowheads. */
@@ -563,7 +572,8 @@ export class SimActors {
 
     /** Sets the visibility of the destination marker, route line and arrowheads together. */
     private setRouteVisible(visible: boolean): void {
-        this.destMarker.visible = this.destLine.visible = this.routeArrows.visible = visible;
+        this.destLine.visible = this.routeArrows.visible = visible;
+        this.destMarker.visible = visible && this.selectedDest !== null;
     }
 
     /** Supplies the lookup for an animal's path waypoints (see KotlinSimulation.animalPath). */
@@ -584,7 +594,15 @@ export class SimActors {
         for (let i = 0; i + 1 < wp.length && n < ROUTE_MAX_POINTS - 1; i += 2) {
             this.place(wp[i]!, wp[i + 1]!, 0.08, next()); n++;
         }
-        this.place(this.selectedDest!.x, this.selectedDest!.y, 0.08, next()); n++;
+        if (this.selectedDest) {
+            this.place(this.selectedDest.x, this.selectedDest.y, 0.08, next());
+        } else {
+            // No destination: a short arrow in the direction of travel (tile x/y map to world x/z).
+            const end = next();
+            const h = this.selectedHeading!;
+            end.set(start.x + Math.cos(h) * HEADING_LENGTH, start.y + 0.1, start.z + Math.sin(h) * HEADING_LENGTH);
+        }
+        n++;
 
         const line = this.destLine.geometry;
         const pos = line.getAttribute('position') as THREE.BufferAttribute;
