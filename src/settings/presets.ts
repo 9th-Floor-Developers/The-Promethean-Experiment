@@ -1,6 +1,6 @@
 /** Presets: named, saved bundles of simulation settings. One preset is active and is what Start Simulation runs. */
 import {
-    MAP_SIZE, defaultSettings, herbivoreTemplate, loadLegacySettings, sanitizeSettings, type SimSettings,
+    MAP_SIZE, RESOURCE, defaultSettings, herbivoreTemplate, loadLegacySettings, sanitizeSettings, type SimSettings,
 } from './speciesSettings';
 
 /** Which built-in preset a preset started as (so it can be reset to its original); absent for the user's own. */
@@ -24,7 +24,7 @@ const STORAGE_KEY = 'prometheus.presets.v1';
 /** The settings of a built-in preset, freshly created. */
 export function builtInSettings(key: BuiltInKey): SimSettings {
     if (key === 'paradise') {
-        return { species: [{ ...herbivoreTemplate(), name: 'Herbivore', count: 60 }], mapSize: MAP_SIZE.max, water: 1, trees: 1, grass: 1 };
+        return { species: [{ ...herbivoreTemplate(), name: 'Herbivore', count: 60 }], mapSize: MAP_SIZE.max, water: RESOURCE.max, trees: RESOURCE.max, grass: RESOURCE.max };
     }
     return { ...defaultSettings(), mapSize: 200 };
 }
