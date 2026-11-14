@@ -11,6 +11,8 @@ const SIZE = 360;
 const C = SIZE / 2;
 const R = 110;
 const RINGS = 4;
+const START_COLOR = '#5eb0ff';
+const NOW_COLOR = '#ff9f5a';
 
 const fmt = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2).replace(/\.?0+$/, ''));
 
@@ -26,6 +28,20 @@ export function TraitRadar({ info, stats }: Props) {
     const n = TRAIT_AXES.length;
     const angle = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
     const pt = (i: number, f: number): [number, number] => [C + Math.cos(angle(i)) * R * f, C + Math.sin(angle(i)) * R * f];
+    const base = info.species[sp]!.base as number[] | undefined; // missing only when the wasm build predates the field
+    /** Axis range: lowest to highest value among the animals, widened to include the species' base value so both shapes share one scale. */
+    const range = (i: number): [number, number] => {
+        const t = data!.traits[i]!;
+        const b = base?.[i];
+        return b === undefined ? [t.min, t.max] : [Math.min(t.min, b), Math.max(t.max, b)];
+    };
+    /** Position (0 = axis minimum, 1 = axis maximum) of each value; inverted axes are flipped, flat axes sit at mid-range. */
+    const frac = (vals: number[]) => (i: number) => {
+        const [lo, hi] = range(i);
+        if (hi <= lo) return 0.5;
+        const f = Math.min(1, Math.max(0, (vals[i]! - lo) / (hi - lo)));
+        return TRAIT_AXES[i]!.invert ? 1 - f : f;
+    };
     const poly = (f: (i: number) => number) => TRAIT_AXES.map((_, i) => pt(i, f(i)).join(',')).join(' ');
 
     return (
@@ -42,8 +58,8 @@ export function TraitRadar({ info, stats }: Props) {
                         <polygon key={k} points={poly(() => (k + 1) / RINGS)} fill="none" stroke="rgba(255,255,255,0.14)" />
                     ))}
                     {TRAIT_AXES.map((_, i) => <line key={i} x1={C} y1={C} x2={pt(i, 1)[0]} y2={pt(i, 1)[1]} stroke="rgba(255,255,255,0.14)" />)}
-                    <polygon fill="rgba(255,159,90,0.35)" stroke="#ff9f5a" strokeWidth={2}
-                             points={poly((i) => { const t = data.traits[i]!; if (t.max <= t.min) return 0.5; const f = (t.avg - t.min) / (t.max - t.min); return TRAIT_AXES[i]!.invert ? 1 - f : f; })} />
+                    {base && <polygon fill="rgba(94,176,255,0.25)" stroke={START_COLOR} strokeWidth={2} strokeDasharray="5 3" points={poly(frac(base))} />}
+                    <polygon fill="rgba(255,159,90,0.35)" stroke={NOW_COLOR} strokeWidth={2} points={poly(frac(data.traits.map((t) => t.avg)))} />
                     {TRAIT_AXES.map((ax, i) => {
                         const t = data.traits[i]!;
                         const [x, y] = pt(i, 1.2);
@@ -51,13 +67,19 @@ export function TraitRadar({ info, stats }: Props) {
                         return (
                             <text key={ax.label} x={x} y={y} textAnchor={anchor} className="radar__label">
                                 <tspan x={x} dy="-0.2em">{ax.label}{ax.invert ? ' (inverted)' : ''}</tspan>
-                                <tspan x={x} dy="1.15em" className="radar__sub">avg {fmt(t.avg)} · {fmt(t.min)}–{fmt(t.max)}</tspan>
+                                <tspan x={x} dy="1.15em" className="radar__sub">avg {fmt(t.avg)} · {fmt(range(i)[0])}–{fmt(range(i)[1])}</tspan>
                             </text>
                         );
                     })}
                 </svg>
             )}
-            {data && <p className="radar__note">{data.count} animals seen · axis = lowest to highest value found, shape = average; stamina axes inverted (lower use plots further out)</p>}
+            {data && (
+                <ul className="radar__legend">
+                    <li><span className="radar__swatch radar__swatch--start" />{base ? 'Base stats (from Settings)' : 'Base stats unavailable — rebuild Kotlin (npm run kotlin) and reload'}</li>
+                    <li><span className="radar__swatch" style={{ background: NOW_COLOR }} />Average of all animals so far</li>
+                </ul>
+            )}
+            {data && <p className="radar__note">{data.count} animals seen · axis = lowest to highest value found (including the base value), shape = average; stamina axes inverted (lower use plots further out)</p>}
         </section>
     );
 }

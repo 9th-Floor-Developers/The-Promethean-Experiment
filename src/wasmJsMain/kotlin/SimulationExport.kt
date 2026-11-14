@@ -1,6 +1,7 @@
 import base.Vector2
 import sim.animal.Action
 import sim.animal.Animal
+import sim.animal.AnimalStats
 import sim.objects.Carcass
 import sim.objects.Egg
 import sim.objects.Grass
@@ -55,7 +56,7 @@ fun createSimulation(seed: Int, size: Int, speciesConfig: String, water: Double,
 
 /**
  * Static facts the frontend needs once:
- * `{"actions":[name...],"species":[{"name","canHunt","traits":[..],"maxHp","maxNutrition","maxHydration","maxStamina","viewRange"}...],
+ * `{"actions":[name...],"species":[{"name","canHunt","traits":[..],"maxHp","maxNutrition","maxHydration","maxStamina","viewRange","base":[8 universal stats]}...],
  * "scenery":[[id,type,x,y]...]}`. `actions` is indexed by an animal row's action code.
  * Scenery `type` is 1 = tree, 2 = grass; trees and grass appear in the same order as the `trees` and `grass`
  * strings of [getSimulationSnapshot]. Positions are in tile units (the tile under it is floor(x), floor(y)).
@@ -65,8 +66,10 @@ fun createSimulation(seed: Int, size: Int, speciesConfig: String, water: Double,
 fun getSimulationInfo(): String {
     val w = current()
     val species = w.species.joinToString(",") { s ->
+        val b = AnimalStats.founder(s)
+        val base = listOf(b.maxHp, b.speed, b.damage, b.armor, b.viewRange, b.baseStaminaUsage, b.walkingStaminaUsage, b.elderlyAge).joinToString(",")
         "{" + """"name":${q(s.name)},"canHunt":${s.canHunt},"traits":[${s.traits.joinToString(",") { q(it.name) }}],""" +
-            """"maxHp":${s.maxHp},"maxNutrition":${s.maxNutrition},"maxHydration":${s.maxHydration},"maxStamina":${s.maxStamina},"viewRange":${s.viewRange}}"""
+            """"maxHp":${s.maxHp},"maxNutrition":${s.maxNutrition},"maxHydration":${s.maxHydration},"maxStamina":${s.maxStamina},"viewRange":${s.viewRange},"base":[$base]}"""
     }
     val scenery = w.objects.filter { it is Grass || it is Tree }.joinToString(",") {
         "[${it.id},${if (it is Tree) 1 else 2},${r2(it.position.x)},${r2(it.position.y)}]"

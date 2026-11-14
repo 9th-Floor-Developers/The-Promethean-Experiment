@@ -17,7 +17,7 @@ export const TRAIT_AXES: readonly { label: string; col: number; invert?: boolean
 /** Min / mean / max of one stat over every animal of a species seen during the run. */
 export interface TraitRange { min: number; avg: number; max: number }
 /** Per species (indexed like SimInfo.species): count of animals seen, and a range per TRAIT_AXES entry. Null before any animal of the species exists. */
-export type TraitStats = ({ count: number; traits: TraitRange[] } | null)[];
+export type TraitStats = ({ count: number; traits: TraitRange[]} | null)[];
 
 interface Acc { count: number; min: number[]; max: number[]; sum: number[] }
 
