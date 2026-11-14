@@ -26,6 +26,8 @@ const ROUTE_COLORS: Record<string, number> = {
     EXPLORE: 0xb18cff,
 };
 const ROUTE_FALLBACK_COLOR = 0xffffff;
+/** How far (world units) the view-range layer floats above the terrain so it never sinks into it. */
+const VIEW_LAYER_LIFT = 0.1;
 /** Emissive intensity of animals at full night, so they stay visible in the dark. */
 const NIGHT_GLOW_MAX = 0.45;
 /** Colours of the direction arrow shown when there is no destination (fleeing, wandering). */
@@ -163,16 +165,15 @@ export class SimActors {
         color: 0xffd23f, side: THREE.DoubleSide, depthTest: false, transparent: true,
     }));
     private readonly ring = new THREE.Mesh(this.ringGeo, this.ringMat);
-    private readonly viewTileGeo = this.own(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2));
     private readonly viewTileMat = this.own(new THREE.MeshBasicMaterial({
-        color: 0xffd23f, transparent: true, opacity: 0.28, depthTest: false, depthWrite: false,
+        color: 0xffd23f, transparent: true, opacity: 0.28, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
     }));
     private selectedId: number | null = null;
 
     /** View range (tiles) of each species, indexed like the animal rows' species column. */
     private viewRanges: number[] = [];
     /** Flat yellow tiles marking everything the selected animal can see; one instance per tile in range. */
-    private viewOverlay: THREE.InstancedMesh | null = null;
+    private viewOverlay: THREE.Mesh | null = null;
     /** Last sim position and species of the selected animal, so the overlay can be rebuilt on selection. */
     private selectedRow: { x: number; y: number; range: number } | null = null;
     /** Latest sim position and species of every living animal, for showing the overlay as soon as one is selected. */
@@ -239,7 +240,7 @@ export class SimActors {
 
     /** Hides the view-range overlay. */
     private hideViewRange(): void {
-        if (this.viewOverlay) this.viewOverlay.count = 0;
+        this.viewOverlay?.geometry.setDrawRange(0, 0);
     }
 
     /**
@@ -249,8 +250,9 @@ export class SimActors {
     private showViewRange(x: number, y: number, range: number): void {
         const overlay = this.viewOverlay;
         if (!overlay || !range) { this.hideViewRange(); return; }
-        const m = new THREE.Matrix4();
-        const pos = new THREE.Vector3();
+        const positions = overlay.geometry.getAttribute('position') as THREE.BufferAttribute;
+        const capacity = positions.count / 4;
+        const corner = new THREE.Vector3();
         const r2 = range * range;
         let n = 0;
         const x0 = Math.max(0, Math.floor(x - range)), x1 = Math.min(this.tilesWide - 1, Math.floor(x + range));
@@ -258,13 +260,18 @@ export class SimActors {
         for (let ty = y0; ty <= y1; ty++) {
             for (let tx = x0; tx <= x1; tx++) {
                 const dx = tx + 0.5 - x, dy = ty + 0.5 - y;
-                if (dx * dx + dy * dy > r2 || n >= overlay.instanceMatrix.count) continue;
-                m.makeTranslation(...this.place(tx + 0.5, ty + 0.5, 0.06, pos).toArray());
-                overlay.setMatrixAt(n++, m);
+                if (dx * dx + dy * dy > r2 || n >= capacity) continue;
+                // Each tile's four corners sit on the terrain's own corner heights, so neighbouring tiles
+                // share edges exactly and the layer follows slopes instead of stepping from tile to tile.
+                for (let c = 0; c < 4; c++) {
+                    this.place(tx + (c & 1), ty + (c >> 1), VIEW_LAYER_LIFT, corner);
+                    positions.setXYZ(n * 4 + c, corner.x, corner.y, corner.z);
+                }
+                n++;
             }
         }
-        overlay.count = n;
-        overlay.instanceMatrix.needsUpdate = true;
+        positions.needsUpdate = true;
+        overlay.geometry.setDrawRange(0, n * 6);
     }
 
     /** Writes the animal's current drawn (smoothed) world-space position into `out`; false if it is not alive. */
@@ -318,13 +325,18 @@ export class SimActors {
         this.viewRanges = info.species.map((sp) => sp.viewRange);
         if (this.viewOverlay) {
             this.group.remove(this.viewOverlay);
-            this.viewOverlay.dispose();
+            this.viewOverlay.geometry.dispose();
         }
         // Inherited view ranges can reach twice the founder value (AnimalStats.MAX_RATIO), so size for that.
         const widest = Math.ceil(Math.max(0, ...this.viewRanges) * 2);
         const capacity = (2 * widest + 2) ** 2;
-        this.viewOverlay = new THREE.InstancedMesh(this.viewTileGeo, this.viewTileMat, capacity);
-        this.viewOverlay.count = 0;
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(capacity * 12), 3));
+        const index: number[] = [];
+        for (let i = 0; i < capacity; i++) index.push(i * 4, i * 4 + 2, i * 4 + 1, i * 4 + 1, i * 4 + 2, i * 4 + 3);
+        geo.setIndex(index);
+        geo.setDrawRange(0, 0);
+        this.viewOverlay = new THREE.Mesh(geo, this.viewTileMat);
         this.viewOverlay.frustumCulled = false;
         this.viewOverlay.renderOrder = 9;
         this.viewOverlay.visible = this.animalGroup.visible;
@@ -659,7 +671,7 @@ export class SimActors {
         this.textures.forEach((t) => t.dispose());
         this.textures.clear();
         this.clearScenery();
-        this.viewOverlay?.dispose();
+        this.viewOverlay?.geometry.dispose();
         this.routeArrows.dispose();
         this.animalGeos.forEach((g) => g.dispose());
         this.owned.forEach((r) => r.dispose());
