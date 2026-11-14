@@ -25,8 +25,10 @@ const ROUTE_COLORS: Record<string, number> = {
 const ROUTE_FALLBACK_COLOR = 0xffffff;
 /** How far (world units) the view-range layer floats above the terrain so it never sinks into it. */
 const VIEW_LAYER_LIFT = 0.1;
-/** Emissive intensity of animals at full night, so they stay visible in the dark. */
-const NIGHT_GLOW_MAX = 0.45;
+/** Fixed noon lighting for animals (matches the scene's midday hemisphere and sun) so their colours never change at night. */
+const FIXED_SKY = new THREE.Color(0xffffff);
+const FIXED_GROUND = new THREE.Color(0x88aa88);
+const FIXED_SUN_DIR = new THREE.Vector3(0, 100, 40).normalize();
 /** Colours of the direction arrow shown when there is no destination (fleeing, wandering). */
 const HEADING_COLORS: Record<string, number> = { RUN_FROM_PREDATOR: 0xffa63d, WANDER: 0xd5dde2 };
 /** Length (world units) of the direction arrow. */
@@ -460,13 +462,14 @@ export class SimActors {
     }
 
     /**
-     * Material for animals: standard lighting, but the position, heading and walking bob come from per-instance
-     * attributes interpolated in the vertex shader (the same formula as [pose]), so no per-animal CPU work per frame.
+     * Material for animals. The position, heading and walking bob come from per-instance attributes interpolated in the
+     * vertex shader (the same formula as [pose]), so no per-animal CPU work per frame.
+     *
+     * Shading is fixed to the scene's noon lighting (same sky/ground hemisphere and overhead sun) instead of the live
+     * lights, so animals keep exactly the same colours through the whole day-night cycle and are always easy to see and select.
      */
     private makeAnimalMaterial(): THREE.MeshStandardMaterial {
-        const mat = new THREE.MeshStandardMaterial({
-            vertexColors: true, flatShading: true, emissive: new THREE.Color(0xffe9a8), emissiveIntensity: 0,
-        });
+        const mat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true });
         mat.onBeforeCompile = (shader) => {
             shader.uniforms.uNow = this.uNow;
             shader.uniforms.uScale = { value: ANIMAL_SCALE };
@@ -485,6 +488,20 @@ vec3 objectTangent = vec3(tangent.xyz);
                 .replace('#include <begin_vertex>', `float aMoving = (aK < 0.999 && distance(aFrom, aTo) > 0.001) ? 1.0 : 0.0;
 float aBob = aMoving * abs(sin(uNow * 12.0 + aSeed)) * 0.05;
 vec3 transformed = aRot * (position + vec3(0.0, aBob, 0.0)) * uScale + mix(aFrom, aTo, aK);`);
+            shader.uniforms.uSky = { value: FIXED_SKY };
+            shader.uniforms.uGround = { value: FIXED_GROUND };
+            shader.uniforms.uSunDir = { value: FIXED_SUN_DIR };
+            // Replace the live-light result with fixed noon lighting: hemisphere (intensity 1.1) + sun (1.6), Lambert (1/PI).
+            shader.fragmentShader = shader.fragmentShader
+                .replace('#include <common>', `#include <common>
+uniform vec3 uSky; uniform vec3 uGround; uniform vec3 uSunDir;`)
+                .replace('#include <opaque_fragment>', `{
+vec3 fN = inverseTransformDirection(normal, viewMatrix);
+vec3 fHemi = mix(uGround, uSky, 0.5 * fN.y + 0.5) * 1.1;
+float fSun = max(dot(fN, uSunDir), 0.0) * 1.6;
+outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
+}
+#include <opaque_fragment>`);
         };
         return mat;
     }
@@ -504,11 +521,6 @@ vec3 transformed = aRot * (position + vec3(0.0, aBob, 0.0)) * uScale + mix(aFrom
     /** Converts tile coordinates to a world-space position standing on the ground. */
     private place(tx: number, ty: number, lift = 0, out = new THREE.Vector3()): THREE.Vector3 {
         return out.set(tx - this.tilesWide / 2, this.heightAt(tx, ty) + lift, ty - this.tilesHigh / 2);
-    }
-
-    /** Makes animals glow softly: 0 = no glow (daytime), 1 = full glow (deep night). */
-    setNightGlow(strength: number): void {
-        this.animalMat.emissiveIntensity = NIGHT_GLOW_MAX * strength;
     }
 
     /** Shows or hides the animals (they are only meaningful while the simulation screen is open). */

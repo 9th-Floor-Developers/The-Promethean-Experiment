@@ -69,8 +69,6 @@ export class WorldScene {
     private readonly hemiLight = new THREE.HemisphereLight(0xffffff, 0x88aa88, 1.1);
     private readonly sunLight = new THREE.DirectionalLight(0xffffff, 1.6);
     private readonly skyColor = new THREE.Color();
-    /** How strongly animals glow right now: 0 by day, 1 at night. Reapplied whenever the actors are rebuilt. */
-    private nightGlow = 0;
     /** When true the visual day-night cycle is off and the scene always looks like midday (the simulation's clock still runs). */
     private alwaysDay = false;
     private pathProvider: ((id: number) => number[]) | null = null;
@@ -274,8 +272,6 @@ export class WorldScene {
         this.sunLight.intensity = 0.25 + 1.35 * daylight; // dim moonlight at night
         this.sunLight.color.copy(MOON_COLOR).lerp(SUN_COLOR, daylight).lerp(HORIZON_TINT, glow * 0.5);
         this.sunLight.position.set(Math.cos(angle) * 100, Math.max(elevation, 0.2) * 100, 40);
-        this.nightGlow = 1 - daylight;
-        this.actors?.setNightGlow(this.nightGlow);
     }
 
     /** Highlights the selected animal in the scene (null clears). */
@@ -302,7 +298,6 @@ export class WorldScene {
         const t = this.terrainData;
         this.actors = new SimActors(t.width, t.height, createHeightSampler(t));
         this.actors.setInfo(this.simInfo);
-        this.actors.setNightGlow(this.nightGlow);
         this.actors.setPathProvider(this.pathProvider);
         this.actors.setAnimalsVisible(this.screen === 'simulation');
         this.actors.setSelected(this.selectedId);
