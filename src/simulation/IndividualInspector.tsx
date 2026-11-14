@@ -29,7 +29,7 @@ function Meter({ label, value, max, tone }: { label: string; value: number; max:
             <div className="meter__track" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={max} aria-valuenow={Math.round(value)}>
                 <div className={`meter__fill meter__fill--${tone}`} style={{ width: `${pct}%` }} />
             </div>
-            <span className="meter__value">{Math.round(value)}/{max}</span>
+            <span className="meter__value">{Math.round(value)}/{Math.round(max)}</span>
         </div>
     );
 }
@@ -75,10 +75,20 @@ export function IndividualInspector({ snapshot, info, selectedId, onSelect, foll
                     <dt>Hunger</dt><dd>{row[A.hunger]!.toFixed(2)}</dd>
                     <dt>Thirst</dt><dd>{row[A.thirst]!.toFixed(2)}</dd>
                     <dt>Libido</dt><dd>{row[A.libido]!.toFixed(2)}</dd>
-                    <dt>Speed</dt><dd>{row[A.speed]!.toFixed(3)}</dd>
-                    <dt>Damage</dt><dd>{row[A.damage]!.toFixed(1)}</dd>
+                </dl>
+                <h3 className="inspector__subhead">Inherited stats</h3>
+                <dl className="inspector__facts">
+                    <dt>Max HP</dt><dd>{row[A.maxHp]!.toFixed(1)}</dd>
+                    <dt>Speed</dt><dd>{row[A.speed]!.toFixed(3)} tiles/tick</dd>
+                    <dt>Damage</dt><dd>{row[A.damage]!.toFixed(2)}</dd>
                     <dt>Armor</dt><dd>{row[A.armor]!.toFixed(1)}%</dd>
                     <dt>View range</dt><dd>{row[A.viewRange]!.toFixed(1)} tiles</dd>
+                </dl>
+                <h3 className="inspector__subhead">Calculated stats</h3>
+                <dl className="inspector__facts">
+                    <dt>Base stamina use</dt><dd>{row[A.baseStaminaUsage]!.toFixed(4)}/tick</dd>
+                    <dt>Walking stamina use</dt><dd>{row[A.walkingStaminaUsage]!.toFixed(4)}/tick</dd>
+                    <dt>Elderly at</dt><dd>{row[A.elderlyAge]!.toFixed(2)} days{row[A.age]! >= row[A.elderlyAge]! ? ' (elderly)' : ''}</dd>
                 </dl>
                 <p className="inspector__traits">{species.traits.map((t) => t.toLowerCase().replace(/_/g, ' ')).join(' · ')}</p>
             </>

@@ -311,7 +311,8 @@ export class SimActors {
             this.group.remove(this.viewOverlay);
             this.viewOverlay.dispose();
         }
-        const widest = Math.ceil(Math.max(0, ...this.viewRanges));
+        // Inherited view ranges can reach twice the founder value (AnimalStats.MAX_RATIO), so size for that.
+        const widest = Math.ceil(Math.max(0, ...this.viewRanges) * 2);
         const capacity = (2 * widest + 2) ** 2;
         this.viewOverlay = new THREE.InstancedMesh(this.viewTileGeo, this.viewTileMat, capacity);
         this.viewOverlay.count = 0;
