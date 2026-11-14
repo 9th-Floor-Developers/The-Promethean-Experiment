@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-    CATEGORIES, EXTRA_TRAITS, MAP_SIZE, MAX_COUNT, RESOURCE, MAX_SPECIES, MIN_COUNT, STATS, carnivoreTemplate, defaultSettings, herbivoreTemplate,
+    CATEGORIES, EXTRA_TRAITS, MAP_SIZE, MAX_COUNT, RESOURCE, MAX_SPECIES, MIN_COUNT, STATS, carnivoreTemplate, herbivoreTemplate,
     newSpeciesName, type SimSettings, type SpeciesSettings, type StatKey,
 } from '../settings/speciesSettings';
+import { activePreset, builtInSettings, createPreset, duplicatePreset, type PresetStore } from '../settings/presets';
 
 interface Props {
-    settings: SimSettings;
-    onChange: (next: SimSettings) => void;
+    store: PresetStore;
+    onChange: (next: PresetStore) => void;
     onDone: () => void;
 }
 
@@ -27,7 +28,21 @@ function formatStat(v: number, step: number): string {
  * Every control has a plain-language label and help text. Changes apply the next time the simulation starts;
  * Done (or Escape) returns to the main menu.
  */
-export function SettingsScreen({ settings, onChange, onDone }: Props) {
+export function SettingsScreen({ store, onChange: onStoreChange, onDone }: Props) {
+    const preset = activePreset(store);
+    const settings = preset.settings;
+    /** Edits the active preset's settings. */
+    const onChange = (next: SimSettings) =>
+        onStoreChange({ ...store, presets: store.presets.map((p) => (p.id === preset.id ? { ...p, settings: next } : p)) });
+    const select = (id: string) => onStoreChange({ ...store, activeId: id });
+    const rename = (name: string) => onStoreChange({ ...store, presets: store.presets.map((p) => (p.id === preset.id ? { ...p, name } : p)) });
+    const addPreset = (p: ReturnType<typeof createPreset>) => onStoreChange({ presets: [...store.presets, p], activeId: p.id });
+    const remove = () => {
+        if (store.presets.length < 2 || !window.confirm(`Delete the preset "${preset.name}"? This cannot be undone.`)) return;
+        const presets = store.presets.filter((p) => p.id !== preset.id);
+        onStoreChange({ presets, activeId: presets[0]!.id });
+    };
+
     const doneRef = useRef<HTMLButtonElement>(null);
     const [tab, setTab] = useState<'species' | 'world'>('species');
 
@@ -53,13 +68,33 @@ export function SettingsScreen({ settings, onChange, onDone }: Props) {
             <header className="settings__top">
                 <div>
                     <h1 id="settings-heading" className="settings__heading">Settings</h1>
-                    <p className="settings__intro">Design the animals that will live on the island. Changes are used the next time you press Start Simulation.</p>
+                    <p className="settings__intro">Design the animals that will live on the island. Changes are saved automatically and used the next time you press Start Simulation.</p>
                 </div>
                 <div className="settings__actions">
-                    <button type="button" className="btn" onClick={() => onChange(defaultSettings())}>Reset to default</button>
                     <button ref={doneRef} type="button" className="btn btn--primary" onClick={onDone}>Done</button>
                 </div>
             </header>
+
+            <section className="presets" aria-label="Presets">
+                <label className="field">
+                    <span className="field__label">Preset (the one that runs)</span>
+                    <select className="input" value={preset.id} onChange={(e) => select(e.target.value)}>
+                        {store.presets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                </label>
+                <label className="field field--grow">
+                    <span className="field__label">Preset name</span>
+                    <input className="input" value={preset.name} maxLength={40} onChange={(e) => rename(e.target.value)}
+                        onBlur={(e) => { if (!e.target.value.trim()) rename('Preset'); }} />
+                </label>
+                <div className="presets__buttons">
+                    <button type="button" className="btn" onClick={() => addPreset(createPreset())}>New</button>
+                    <button type="button" className="btn" onClick={() => addPreset(duplicatePreset(preset))}>Duplicate</button>
+                    {preset.builtIn && <button type="button" className="btn" title="Put this preset back to how it came"
+                        onClick={() => onChange(builtInSettings(preset.builtIn!))}>Reset to original</button>}
+                    <button type="button" className="btn" disabled={store.presets.length < 2} onClick={remove}>Delete</button>
+                </div>
+            </section>
 
             <div className="tabs" role="tablist" aria-label="Settings sections">
                 <button type="button" role="tab" id="tab-species" aria-selected={tab === 'species'} aria-controls="panel-species"

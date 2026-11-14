@@ -171,22 +171,25 @@ export function toSpeciesConfig(settings: SimSettings): string {
 
 const STORAGE_KEY = 'prometheus.settings.v1';
 
-/** Loads saved settings, or the defaults if none are saved or storage is unavailable. */
-export function loadSettings(): SimSettings {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw) as SimSettings;
-            if (Array.isArray(parsed.species) && parsed.species.length > 0) {
-                const res = (v: unknown) => Math.max(RESOURCE.min, Math.min(RESOURCE.max, Number(v) || 1));
-                return { water: res(parsed.water), trees: res(parsed.trees), grass: res(parsed.grass), mapSize: Math.max(MAP_SIZE.min, Math.min(MAP_SIZE.max, Number(parsed.mapSize) || MAP_SIZE.default)), species: parsed.species.map((s) => ({ ...s, uid: nextUid++, stats: { ...DEFAULT_STATS, ...s.stats } })) };
-            }
-        }
-    } catch { /* storage blocked or corrupt: fall back to defaults */ }
-    return defaultSettings();
+/**
+ * Validates settings read from storage (clamping numbers, filling missing stats) and gives every species a fresh uid.
+ * Returns null if `raw` is not usable settings. Also used to deep-copy settings.
+ */
+export function sanitizeSettings(raw: unknown): SimSettings | null {
+    const parsed = raw as Partial<SimSettings> | null;
+    if (!parsed || !Array.isArray(parsed.species) || parsed.species.length === 0) return null;
+    const res = (v: unknown) => Math.max(RESOURCE.min, Math.min(RESOURCE.max, Number(v) || 1));
+    return {
+        water: res(parsed.water), trees: res(parsed.trees), grass: res(parsed.grass),
+        mapSize: Math.max(MAP_SIZE.min, Math.min(MAP_SIZE.max, Number(parsed.mapSize) || MAP_SIZE.default)),
+        species: parsed.species.map((s) => ({ ...s, uid: nextUid++, stats: { ...DEFAULT_STATS, ...s.stats }, traits: [...s.traits] })),
+    };
 }
 
-/** Saves settings so they survive a page reload; failures are ignored. */
-export function saveSettings(settings: SimSettings): void {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)); } catch { /* ignore */ }
+/** Settings saved by the version before presets existed, or null; used once to migrate them into a preset. */
+export function loadLegacySettings(): SimSettings | null {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? sanitizeSettings(JSON.parse(raw)) : null;
+    } catch { return null; }
 }
