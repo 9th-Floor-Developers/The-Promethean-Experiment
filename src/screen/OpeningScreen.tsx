@@ -75,7 +75,7 @@ export function OpeningScreen({ onStartSimulation, onOpenCredits, focusCredits, 
 
     return (
         <div className="opening">
-            <h1 className="opening__title">The Prometheus Experiment</h1>
+            <h1 className="opening__title">The Promethean Experiment</h1>
             <nav className="opening__menu" aria-label="Main menu" onKeyDown={ignoreRepeat}>
                 <button ref={startRef} type="button" className="btn btn--primary" onClick={onStartSimulation}>
                     Start Simulation

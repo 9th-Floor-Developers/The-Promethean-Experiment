@@ -5,12 +5,12 @@ Read `PROJECT_OVERVIEW.md` and inspect the files/implementation produced by the 
 
 ## Goal
 
-Integrate and polish the existing The Prometheus Experiment menu experience. Do not rewrite working components unnecessarily.
+Integrate and polish the existing The Promethean Experiment menu experience. Do not rewrite working components unnecessarily.
 
 ## Verify the complete flow
 
 1. App loads at one URL with the terrain visible.
-2. Landing displays The Prometheus Experiment and click-to-start.
+2. Landing displays The Promethean Experiment and click-to-start.
 3. Clicking anywhere in Landing transitions to Opening.
 4. The background remains the same terrain/scene, with a subtle zoom transition.
 5. Opening displays the title at top-left and Start Simulation, Settings, and Credits controls.

@@ -1,4 +1,4 @@
-# v1.0.0 — The Prometheus Experiment
+# v1.0.0 — The Promethean Experiment
 
 First public release. An evolution sandbox built to ask one question: **is intelligence an inevitable outcome of evolution?**
 

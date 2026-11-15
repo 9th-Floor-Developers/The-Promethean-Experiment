@@ -1,11 +1,11 @@
 
-# The Prometheus Experiment — Shared Project Brief
+# The Promethean Experiment — Shared Project Brief
 
 This document is the shared source of truth for every Claude conversation working on this project. Read it before the task-specific prompt.
 
 ## Project
 
-**The Prometheus Experiment** is a hackathon artificial-life / evolutionary simulation. The eventual simulation will contain organisms and evolutionary mechanics, but those are explicitly out of scope for the current implementation.
+**The Promethean Experiment** is a hackathon artificial-life / evolutionary simulation. The eventual simulation will contain organisms and evolutionary mechanics, but those are explicitly out of scope for the current implementation.
 
 This is a completely new project. The developer is using Claude Web and will manually copy generated files into the repository. Claude must not assume it can directly edit the local filesystem.
 

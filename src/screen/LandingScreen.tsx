@@ -10,13 +10,13 @@ interface Props {
 export function LandingScreen({ onStart }: Props) {
     return (
         <div className="landing">
-            <h1 className="landing__title">The Prometheus Experiment</h1>
+            <h1 className="landing__title">The Promethean Experiment</h1>
             <p className="landing__prompt" aria-hidden="true">Click anywhere to start</p>
             <button
                 type="button"
                 className="landing__hit"
                 onClick={onStart}
-                aria-label="The Prometheus Experiment. Click anywhere to start"
+                aria-label="The Promethean Experiment. Click anywhere to start"
                 autoFocus
             />
         </div>

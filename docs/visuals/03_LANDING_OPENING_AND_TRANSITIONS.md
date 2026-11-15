@@ -9,7 +9,7 @@ Implement the landing and opening/menu interfaces over the persistent Three.js t
 
 ## Landing screen
 
-- Display the project title: **The Prometheus Experiment**.
+- Display the project title: **The Promethean Experiment**.
 - Display a clear click-to-start prompt.
 - Clicking anywhere within the landing screen transitions to the Opening screen.
 - Make the interaction accessible: keyboard activation and appropriate focus behavior must also work.
