@@ -34,7 +34,7 @@ class Mind(val net: NeuralNet) {
         val OUTPUTS = Drive.entries.size
 
         /** Hidden layers of the founders of a species. */
-        val FOUNDER_HIDDEN = intArrayOf(12)
+        val FOUNDER_HIDDEN = intArrayOf(2)
 
         /** Own decisions remembered per animal; the oldest are forgotten first. */
         const val MEMORY = 200

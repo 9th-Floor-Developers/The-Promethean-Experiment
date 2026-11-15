@@ -61,7 +61,7 @@ every tick an animal is in REST it replays 16 remembered decisions through Q-lea
 
 children inherit the hidden layer shape (from a random parent, sizes averaged where both parents have the layer)
 and weights that are only 25% the parents' average and 75% fresh random (so behaviour is mainly learned, not passed on), both with mutation: +/- 2 neurons per layer (30% chance), add or remove a layer (5% each, 1 to 4 layers, 2 to 64 neurons)
-founders start with one hidden layer of 12 neurons and random weights
+founders start with one hidden layer of 2 neurons and random weights
 every hidden neuron costs stamina each tick, so a bigger brain has to earn its keep
 'intelligence' (shown in the inspector) = the number of hidden neurons; the inspector also draws the network
 the statistics page shows thirst & hunger deaths per 100 animal-days per species, which measures how well each animal copes regardless of population size
