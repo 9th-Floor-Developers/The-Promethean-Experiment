@@ -39,7 +39,7 @@ export function neuralSpecies(info: SimInfo | null): number[] {
 function niceMax(v: number): number {
     if (!(v > 0)) return 1;
     const mag = 10 ** Math.floor(Math.log10(v));
-    for (const m of [1, 1.5, 2, 3, 5, 10]) if (v <= m * mag) return m * mag;
+    for (const m of [1, 1.5, 2, 3, 5, 7, 10]) if (v <= m * mag) return m * mag;
     return 10 * mag;
 }
 
@@ -175,7 +175,7 @@ function IntelligenceTrend({ info, history, snapshot, shown }: { info: SimInfo; 
             </ul>
             <p className="radar__note">
                 {hs ? `Day ${day(hs.tick)}. ` : 'Latest values. '}
-                Average hidden neurons of the living animals (band = smallest to largest brain alive). Above the dashed line evolution has grown the brain; below it, the stamina each neuron costs is not paying off.
+                Average hidden neurons of the living animals (band = smallest to largest brain alive). The axis is zoomed to the sizes actually seen: above the dashed founder line evolution has grown the brain, below it the stamina each neuron costs is not paying off.
             </p>
         </section>
     );
@@ -257,7 +257,7 @@ function IntelligenceLifespan({ info, deaths, shown }: { info: SimInfo; deaths: 
     /** x ticks: every brain size when they are few, otherwise about eight evenly spaced ones. */
     const tickStep = Math.max(1, Math.ceil((x1 - x0) / 8));
     const ticks: number[] = [];
-    for (let v = Math.ceil(x0); v <= Math.floor(x1); v += tickStep) ticks.push(v);
+    for (let v = Math.max(0, Math.ceil(x0)); v <= Math.floor(x1); v += tickStep) ticks.push(v);
 
     return (
         <section className="radar radar--wide">
@@ -266,7 +266,7 @@ function IntelligenceLifespan({ info, deaths, shown }: { info: SimInfo; deaths: 
                 {[0, 0.5, 1].map((f) => (
                     <g key={f}>
                         <line x1={PAD.l} x2={W - PAD.r} y1={py(yMax * f)} y2={py(yMax * f)} stroke={GRID} />
-                        <text x={PAD.l - 4} y={py(yMax * f) + 3} textAnchor="end" className="popgraph__tick">{(yMax * f).toFixed(yMax < 4 ? 1 : 0)}</text>
+                        <text x={PAD.l - 4} y={py(yMax * f) + 3} textAnchor="end" className="popgraph__tick">{axisLabel(yMax * f, yMax)}</text>
                     </g>
                 ))}
                 {ticks.map((v) => (
