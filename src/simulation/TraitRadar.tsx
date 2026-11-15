@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { SimInfo } from '../sim/types';
 import { TRAIT_AXES, type TraitStats } from '../sim/useTraitStats';
+import { Hint } from '../ui/Hint';
+import { CHART_HELP } from '../ui/helpText';
 
 interface Props {
     info: SimInfo | null;
@@ -50,8 +52,8 @@ export function TraitRadar({ info, stats }: Props) {
     return (
         <section className="radar">
             <div className="radar__head">
-                <h3 className="radar__title">Species traits</h3>
-                <select value={sp} onChange={(e) => setPicked(Number(e.target.value))} aria-label="Species to show">
+                <h3 className="radar__title"><Hint text={CHART_HELP.radar}>Species traits</Hint></h3>
+                <select value={sp} onChange={(e) => setPicked(Number(e.target.value))} aria-label="Species to show" title="Which species this chart shows.">
                     {info.species.map((s, i) => <option key={i} value={i}>{s.name}</option>)}
                 </select>
             </div>

@@ -1,6 +1,7 @@
 import { SimulationClock } from './SimulationClock';
 import { SimulationSpeed } from './SimulationSpeed';
 import type { SimSnapshot } from '../sim/types';
+import { HEADER_HELP } from '../ui/helpText';
 
 interface Props {
     snapshot: SimSnapshot | null;
@@ -19,10 +20,10 @@ interface Props {
 export function SimulationHeader({ snapshot, ended, onEnd, speed, onSpeedChange, onBack, sidebarOpen, onToggleSidebar }: Props) {
     return (
         <header className="sim__header">
-            <button type="button" className="sim__back" onClick={onBack}>← Back</button>
+            <button type="button" className="sim__back" onClick={onBack} title={HEADER_HELP.back}>← Back</button>
             <SimulationClock snapshot={snapshot} />
             <SimulationSpeed speed={speed} onChange={onSpeedChange} />
-            {!ended && <button type="button" className="sim__end" onClick={onEnd}>End Simulation</button>}
+            {!ended && <button type="button" className="sim__end" onClick={onEnd} title={HEADER_HELP.end}>End Simulation</button>}
             <button type="button" className="sim__sidebar-toggle" onClick={onToggleSidebar}
                     aria-pressed={sidebarOpen} aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
                     title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}>

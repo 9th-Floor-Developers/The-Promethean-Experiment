@@ -1,5 +1,7 @@
 import { A, type SimInfo, type SimSnapshot } from '../sim/types';
 import { AnimalPortrait } from './AnimalPortrait';
+import { Hint } from '../ui/Hint';
+import { LEADERBOARD_HELP, STATUS_HELP } from '../ui/helpText';
 
 /** The user's leaderboard choices. Owned by a parent that outlives the leaderboard, so they survive selecting an animal. */
 export interface LeaderboardSettings {
@@ -28,19 +30,21 @@ interface Stat {
     label: string;
     column: number;
     format: (v: number) => string;
+    /** What the value means, shown when hovering the option or the chosen stat. */
+    help: string;
 }
 
 /** Rankable stats. Every species has all of them, so they work for any species mix. */
 const STATS: Stat[] = [
-    { key: 'hp', label: 'Health', column: A.hp, format: (v) => Math.round(v).toString() },
-    { key: 'age', label: 'Age', column: A.age, format: (v) => `${v.toFixed(2)} d` },
-    { key: 'stamina', label: 'Stamina', column: A.stamina, format: (v) => Math.round(v).toString() },
-    { key: 'nutrition', label: 'Nutrition', column: A.nutrition, format: (v) => Math.round(v).toString() },
-    { key: 'hydration', label: 'Hydration', column: A.hydration, format: (v) => Math.round(v).toString() },
-    { key: 'hunger', label: 'Hunger', column: A.hunger, format: (v) => v.toFixed(2) },
-    { key: 'thirst', label: 'Thirst', column: A.thirst, format: (v) => v.toFixed(2) },
-    { key: 'fear', label: 'Fear', column: A.fear, format: (v) => v.toFixed(2) },
-    { key: 'libido', label: 'Libido', column: A.libido, format: (v) => v.toFixed(2) },
+    { key: 'hp', label: 'Health', column: A.hp, format: (v) => Math.round(v).toString(), help: STATUS_HELP.hp },
+    { key: 'age', label: 'Age', column: A.age, format: (v) => `${v.toFixed(2)} d`, help: STATUS_HELP.age },
+    { key: 'stamina', label: 'Stamina', column: A.stamina, format: (v) => Math.round(v).toString(), help: STATUS_HELP.stamina },
+    { key: 'nutrition', label: 'Nutrition', column: A.nutrition, format: (v) => Math.round(v).toString(), help: STATUS_HELP.nutrition },
+    { key: 'hydration', label: 'Hydration', column: A.hydration, format: (v) => Math.round(v).toString(), help: STATUS_HELP.hydration },
+    { key: 'hunger', label: 'Hunger', column: A.hunger, format: (v) => v.toFixed(2), help: STATUS_HELP.hunger },
+    { key: 'thirst', label: 'Thirst', column: A.thirst, format: (v) => v.toFixed(2), help: STATUS_HELP.thirst },
+    { key: 'fear', label: 'Fear', column: A.fear, format: (v) => v.toFixed(2), help: STATUS_HELP.fear },
+    { key: 'libido', label: 'Libido', column: A.libido, format: (v) => v.toFixed(2), help: STATUS_HELP.libido },
 ];
 
 /** How many ranked animals are shown (each has a live portrait). */
@@ -82,19 +86,19 @@ export function Leaderboard({ settings, onSettingsChange, snapshot, info, onSele
     return (
         <div className="leaderboard">
             <div className="leaderboard__controls">
-                <label>
-                    Rank by
+                <label title={stat.help}>
+                    <Hint text={LEADERBOARD_HELP.rankBy}>Rank by</Hint>
                     <select value={statKey} onChange={(e) => onSettingsChange({ ...settings, statKey: e.target.value })}>
-                        {STATS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                        {STATS.map((s) => <option key={s.key} value={s.key} title={s.help}>{s.label}</option>)}
                     </select>
                 </label>
                 <label>
-                    Show
+                    <Hint text={LEADERBOARD_HELP.show}>Show</Hint>
                     <select value={filter.key} onChange={(e) => onSettingsChange({ ...settings, filterKey: e.target.value })}>
                         {filters.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
                     </select>
                 </label>
-                <button type="button" onClick={() => onSettingsChange({ ...settings, descending: !descending })} title="Reverse the order">
+                <button type="button" onClick={() => onSettingsChange({ ...settings, descending: !descending })} title={LEADERBOARD_HELP.order}>
                     {descending ? 'Highest ▼' : 'Lowest ▲'}
                 </button>
             </div>
@@ -106,7 +110,8 @@ export function Leaderboard({ settings, onSettingsChange, snapshot, info, onSele
                         const sp = info.species[r[A.species]!]!;
                         return (
                             <li key={r[A.id]}>
-                                <button type="button" className="leaderboard__row" onClick={() => onSelect(r[A.id]!)}>
+                                <button type="button" className="leaderboard__row" onClick={() => onSelect(r[A.id]!)}
+                                        title={`${sp.name} #${r[A.id]} · ${stat.label} ${stat.format(r[stat.column]!)}. ${LEADERBOARD_HELP.row}`}>
                                     <span className="leaderboard__rank">{i + 1}</span>
                                     <AnimalPortrait look={sp.look} x={r[A.x]!} y={r[A.y]!} />
                                     <span className="leaderboard__who">

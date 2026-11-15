@@ -2,6 +2,9 @@ import { Leaderboard, type LeaderboardSettings } from './Leaderboard';
 import { A, type BrainInfo, type ObjectInfo, type SimInfo, type SimSnapshot } from '../sim/types';
 import { NeuralNetView } from './NeuralNetView';
 import { TraitChips } from './TraitIcons';
+import { Hint } from '../ui/Hint';
+import { STATS, type StatKey } from '../settings/speciesSettings';
+import { ACTION_HELP, CALCULATED_HELP, OBJECT_HELP, STATUS_HELP } from '../ui/helpText';
 
 const TICKS_PER_DAY = 1200;
 
@@ -22,18 +25,23 @@ interface Props {
     onFollowChange: (following: boolean) => void;
 }
 
+/** The settings-screen explanation of an inherited stat, with a note that it is inherited. */
+function statHelp(key: StatKey): string {
+    return `${STATS.find((d) => d.key === key)!.help} ${CALCULATED_HELP.inherited}`;
+}
+
 /** "RUN_FROM_PREDATOR" -> "Run from predator". */
 function actionLabel(name: string): string {
     const text = name.toLowerCase().replace(/_/g, ' ');
     return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-/** A labelled status bar: `value` out of `max`, drawn as a filled track with the number beside it. */
-function Meter({ label, value, max, tone }: { label: string; value: number; max: number; tone: string }) {
+/** A labelled status bar: `value` out of `max`, drawn as a filled track with the number beside it. The label explains itself on hover. */
+function Meter({ label, value, max, tone, help }: { label: string; value: number; max: number; tone: string; help: string }) {
     const pct = Math.max(0, Math.min(100, (value / max) * 100));
     return (
         <div className="meter">
-            <span className="meter__label">{label}</span>
+            <Hint text={help} className="meter__label">{label}</Hint>
             <div className="meter__track" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={max} aria-valuenow={Math.round(value)}>
                 <div className={`meter__fill meter__fill--${tone}`} style={{ width: `${pct}%` }} />
             </div>
@@ -61,36 +69,36 @@ function ObjectDetails({ id, object, onBack }: { id: number; object: ObjectInfo;
             {(object.type === 'TREE' || object.type === 'GRASS') && (
                 <>
                     <div className="inspector__action">
-                        <span className="meter__label">State</span>
+                        <Hint text={OBJECT_HELP.state} className="meter__label">State</Hint>
                         <span className="inspector__action-value">{object.edible ? 'Ready to eat' : 'Regrowing'}</span>
                     </div>
-                    <Meter label="Regrowth" value={object.cooldownTicks - object.cooldownRemaining} max={object.cooldownTicks} tone="stamina" />
+                    <Meter label="Regrowth" help={OBJECT_HELP.regrowth} value={object.cooldownTicks - object.cooldownRemaining} max={object.cooldownTicks} tone="stamina" />
                     <dl className="inspector__facts">
-                        <dt>Cooldown left</dt><dd>{object.edible ? 'none' : formatTicks(object.cooldownRemaining)}</dd>
-                        <dt>Full cooldown</dt><dd>{formatTicks(object.cooldownTicks)}</dd>
-                        <dt>Nutrition</dt><dd>{object.nutrition}</dd>
-                        <dt>Position</dt><dd>{object.x.toFixed(1)}, {object.y.toFixed(1)}</dd>
+                        <dt><Hint text={OBJECT_HELP.cooldownLeft}>Cooldown left</Hint></dt><dd>{object.edible ? 'none' : formatTicks(object.cooldownRemaining)}</dd>
+                        <dt><Hint text={OBJECT_HELP.cooldownFull}>Full cooldown</Hint></dt><dd>{formatTicks(object.cooldownTicks)}</dd>
+                        <dt><Hint text={OBJECT_HELP.nutrition}>Nutrition</Hint></dt><dd>{object.nutrition}</dd>
+                        <dt><Hint text={OBJECT_HELP.position}>Position</Hint></dt><dd>{object.x.toFixed(1)}, {object.y.toFixed(1)}</dd>
                     </dl>
                 </>
             )}
             {object.type === 'CARCASS' && (
                 <>
-                    <Meter label="Meat left" value={object.nutrition} max={object.initialNutrition} tone="nutrition" />
+                    <Meter label="Meat left" help={OBJECT_HELP.meat} value={object.nutrition} max={object.initialNutrition} tone="nutrition" />
                     <dl className="inspector__facts">
-                        <dt>Rots away in</dt><dd>{formatTicks(object.rotTicksLeft)}</dd>
-                        <dt>Nutrition</dt><dd>{object.nutrition.toFixed(1)} of {object.initialNutrition.toFixed(1)}</dd>
-                        <dt>Position</dt><dd>{object.x.toFixed(1)}, {object.y.toFixed(1)}</dd>
+                        <dt><Hint text={OBJECT_HELP.rot}>Rots away in</Hint></dt><dd>{formatTicks(object.rotTicksLeft)}</dd>
+                        <dt><Hint text={OBJECT_HELP.nutrition}>Nutrition</Hint></dt><dd>{object.nutrition.toFixed(1)} of {object.initialNutrition.toFixed(1)}</dd>
+                        <dt><Hint text={OBJECT_HELP.position}>Position</Hint></dt><dd>{object.x.toFixed(1)}, {object.y.toFixed(1)}</dd>
                     </dl>
                 </>
             )}
             {object.type === 'EGG' && (
                 <>
-                    <Meter label="Hatching" value={object.hatchTicks - object.ticksLeft} max={object.hatchTicks} tone="hp" />
+                    <Meter label="Hatching" help={OBJECT_HELP.hatching} value={object.hatchTicks - object.ticksLeft} max={object.hatchTicks} tone="hp" />
                     <dl className="inspector__facts">
-                        <dt>Species</dt><dd>{object.species}</dd>
-                        <dt>Hatches in</dt><dd>{formatTicks(object.ticksLeft)}</dd>
-                        <dt>Nutrition</dt><dd>{object.nutrition.toFixed(1)}</dd>
-                        <dt>Position</dt><dd>{object.x.toFixed(1)}, {object.y.toFixed(1)}</dd>
+                        <dt><Hint text={OBJECT_HELP.eggSpecies}>Species</Hint></dt><dd>{object.species}</dd>
+                        <dt><Hint text={OBJECT_HELP.hatching}>Hatches in</Hint></dt><dd>{formatTicks(object.ticksLeft)}</dd>
+                        <dt><Hint text={OBJECT_HELP.nutrition}>Nutrition</Hint></dt><dd>{object.nutrition.toFixed(1)}</dd>
+                        <dt><Hint text={OBJECT_HELP.position}>Position</Hint></dt><dd>{object.x.toFixed(1)}, {object.y.toFixed(1)}</dd>
                     </dl>
                 </>
             )}
@@ -117,6 +125,8 @@ export function IndividualInspector({ snapshot, info, selectedId, onSelect, obje
     } else if (!row || !species || !info) {
         body = <div className="panel__empty">Animal #{selectedId} is no longer alive.</div>;
     } else {
+        // Feelings mean the same thing either way, but a neural-network animal's come out of its brain.
+        const feelingsNote = (row[A.intelligence] ?? -1) >= 0 ? STATUS_HELP.softCodedFeelings : '';
         body = (
             <>
                 <div className="inspector__title">
@@ -134,57 +144,59 @@ export function IndividualInspector({ snapshot, info, selectedId, onSelect, obje
                     <button type="button" className="inspector__back" onClick={() => onSelect(null)}>← Leaderboard</button>
                 </div>
                 <div className="inspector__action">
-                    <span className="meter__label">Action</span>
-                    <span className="inspector__action-value">{actionLabel(info.actions[row[A.action]!] ?? 'unknown')}</span>
+                    <Hint text={STATUS_HELP.action} className="meter__label">Action</Hint>
+                    <Hint text={ACTION_HELP[info.actions[row[A.action]!] ?? ''] ?? STATUS_HELP.action} className="inspector__action-value">
+                        {actionLabel(info.actions[row[A.action]!] ?? 'unknown')}
+                    </Hint>
                 </div>
-                <Meter label="HP" value={row[A.hp]!} max={row[A.maxHp]!} tone="hp" />
-                <Meter label="Stamina" value={row[A.stamina]!} max={species.maxStamina} tone="stamina" />
+                <Meter label="HP" help={STATUS_HELP.hp} value={row[A.hp]!} max={row[A.maxHp]!} tone="hp" />
+                <Meter label="Stamina" help={STATUS_HELP.stamina} value={row[A.stamina]!} max={species.maxStamina} tone="stamina" />
                 {/* Trait SPRINTING: only species that can sprint have a reserve to show. */}
                 {species.traits.includes('SPRINTING') && (
-                    <Meter label={row[A.sprinting] ? 'Sprint (running)' : 'Sprint'} value={row[A.sprintCharge]!} max={species.sprintChargeTicks} tone="sprint" />
+                    <Meter label={row[A.sprinting] ? 'Sprint (running)' : 'Sprint'} help={STATUS_HELP.sprint} value={row[A.sprintCharge]!} max={species.sprintChargeTicks} tone="sprint" />
                 )}
-                <Meter label="Nutrition" value={row[A.nutrition]!} max={species.maxNutrition} tone="nutrition" />
-                <Meter label="Hydration" value={row[A.hydration]!} max={species.maxHydration} tone="hydration" />
+                <Meter label="Nutrition" help={STATUS_HELP.nutrition} value={row[A.nutrition]!} max={species.maxNutrition} tone="nutrition" />
+                <Meter label="Hydration" help={STATUS_HELP.hydration} value={row[A.hydration]!} max={species.maxHydration} tone="hydration" />
                 <dl className="inspector__facts">
-                    <dt>Age</dt><dd>{row[A.age]!.toFixed(2)} days</dd>
+                    <dt><Hint text={STATUS_HELP.age}>Age</Hint></dt><dd>{row[A.age]!.toFixed(2)} days</dd>
                     {/* Traits ALARM_CALLING and HEARING: only shown for species that actually have them. */}
                     {species.traits.includes('ALARM_CALLING') && (
-                        <><dt>Alarm call</dt><dd>{row[A.calling] ? 'raising' : 'quiet'}</dd></>
+                        <><dt><Hint text={STATUS_HELP.calling}>Alarm call</Hint></dt><dd>{row[A.calling] ? 'raising' : 'quiet'}</dd></>
                     )}
                     {species.traits.includes('HEARING') && (
-                        <><dt>Earshot</dt><dd>{species.hearingRange.toFixed(0)} tiles</dd></>
+                        <><dt><Hint text={STATUS_HELP.earshot}>Earshot</Hint></dt><dd>{species.hearingRange.toFixed(0)} tiles</dd></>
                     )}
                     {/* Traits VENOMOUS and POISONOUS: any animal can be carrying a toxin, whatever its own traits. */}
                     {(row[A.toxinTicks] ?? 0) > 0 && (
-                        <><dt>Poisoned</dt><dd>{formatTicks(row[A.toxinTicks]!)} left</dd></>
+                        <><dt><Hint text={STATUS_HELP.toxin}>Poisoned</Hint></dt><dd>{formatTicks(row[A.toxinTicks]!)} left</dd></>
                     )}
-                    <dt>Fear</dt><dd>{row[A.fear]!.toFixed(2)}</dd>
-                    <dt>Hunger</dt><dd>{row[A.hunger]!.toFixed(2)}</dd>
-                    <dt>Thirst</dt><dd>{row[A.thirst]!.toFixed(2)}</dd>
-                    <dt>Libido</dt><dd>{row[A.libido]!.toFixed(2)}</dd>
+                    <dt><Hint text={STATUS_HELP.fear + feelingsNote}>Fear</Hint></dt><dd>{row[A.fear]!.toFixed(2)}</dd>
+                    <dt><Hint text={STATUS_HELP.hunger + feelingsNote}>Hunger</Hint></dt><dd>{row[A.hunger]!.toFixed(2)}</dd>
+                    <dt><Hint text={STATUS_HELP.thirst + feelingsNote}>Thirst</Hint></dt><dd>{row[A.thirst]!.toFixed(2)}</dd>
+                    <dt><Hint text={STATUS_HELP.libido + feelingsNote}>Libido</Hint></dt><dd>{row[A.libido]!.toFixed(2)}</dd>
                 </dl>
-                <h3 className="inspector__subhead">Inherited stats</h3>
+                <h3 className="inspector__subhead"><Hint text={CALCULATED_HELP.inherited}>Inherited stats</Hint></h3>
                 <dl className="inspector__facts">
-                    <dt>Max HP</dt><dd>{row[A.maxHp]!.toFixed(1)}</dd>
-                    <dt>Speed</dt><dd>{row[A.speed]!.toFixed(3)} tiles/tick</dd>
-                    <dt>Damage</dt><dd>{row[A.damage]!.toFixed(2)}</dd>
-                    <dt>Armor</dt><dd>{row[A.armor]!.toFixed(1)}%</dd>
-                    <dt>View range</dt><dd>{row[A.viewRange]!.toFixed(1)} tiles</dd>
+                    <dt><Hint text={statHelp('maxHp')}>Max HP</Hint></dt><dd>{row[A.maxHp]!.toFixed(1)}</dd>
+                    <dt><Hint text={statHelp('speed')}>Speed</Hint></dt><dd>{row[A.speed]!.toFixed(3)} tiles/tick</dd>
+                    <dt><Hint text={statHelp('damage')}>Damage</Hint></dt><dd>{row[A.damage]!.toFixed(2)}</dd>
+                    <dt><Hint text={statHelp('armor')}>Armor</Hint></dt><dd>{row[A.armor]!.toFixed(1)}%</dd>
+                    <dt><Hint text={statHelp('viewRange')}>View range</Hint></dt><dd>{row[A.viewRange]!.toFixed(1)} tiles</dd>
                 </dl>
-                <h3 className="inspector__subhead">Calculated stats</h3>
+                <h3 className="inspector__subhead"><Hint text="Worked out from the inherited stats, so they change with them.">Calculated stats</Hint></h3>
                 <dl className="inspector__facts">
-                    <dt>Base stamina use</dt><dd>{row[A.baseStaminaUsage]!.toFixed(4)}/tick</dd>
-                    <dt>Walking stamina use</dt><dd>{row[A.walkingStaminaUsage]!.toFixed(4)}/tick</dd>
-                    <dt>Elderly at</dt><dd>{row[A.elderlyAge]!.toFixed(2)} days{row[A.age]! >= row[A.elderlyAge]! ? ' (elderly)' : ''}</dd>
-                    <dt>Intelligence</dt><dd>{(row[A.intelligence] ?? -1) >= 0 ? `${row[A.intelligence]} neurons` : 'instinct (no network)'}</dd>
+                    <dt><Hint text={CALCULATED_HELP.baseStaminaUsage}>Base stamina use</Hint></dt><dd>{row[A.baseStaminaUsage]!.toFixed(4)}/tick</dd>
+                    <dt><Hint text={CALCULATED_HELP.walkingStaminaUsage}>Walking stamina use</Hint></dt><dd>{row[A.walkingStaminaUsage]!.toFixed(4)}/tick</dd>
+                    <dt><Hint text={CALCULATED_HELP.elderlyAge}>Elderly at</Hint></dt><dd>{row[A.elderlyAge]!.toFixed(2)} days{row[A.age]! >= row[A.elderlyAge]! ? ' (elderly)' : ''}</dd>
+                    <dt><Hint text={CALCULATED_HELP.intelligence}>Intelligence</Hint></dt><dd>{(row[A.intelligence] ?? -1) >= 0 ? `${row[A.intelligence]} neurons` : 'instinct (no network)'}</dd>
                 </dl>
                 {brain && (
                     <>
-                        <h3 className="inspector__subhead">Neural network</h3>
+                        <h3 className="inspector__subhead"><Hint text={CALCULATED_HELP.network}>Neural network</Hint></h3>
                         <NeuralNetView brain={brain} />
                     </>
                 )}
-                <h3 className="inspector__subhead">Traits</h3>
+                <h3 className="inspector__subhead"><Hint text="The species' traits. Hover one to see what it does; they are chosen in Settings and never change during a run.">Traits</Hint></h3>
                 <TraitChips traits={species.traits} />
             </>
         );

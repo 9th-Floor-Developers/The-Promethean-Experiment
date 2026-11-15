@@ -1,4 +1,5 @@
 import { SPEEDS } from '../sim/useSimulation';
+import { HEADER_HELP } from '../ui/helpText';
 
 interface Props {
     speed: number;
@@ -9,7 +10,7 @@ interface Props {
 export function SimulationSpeed({ speed, onChange }: Props) {
     const index = Math.max(0, SPEEDS.findIndex((v) => v >= speed));
     return (
-        <label className="sim-speed">
+        <label className="sim-speed" title={HEADER_HELP.speed}>
             <span className="sim-clock__label">Speed</span>
             <input
                 type="range"

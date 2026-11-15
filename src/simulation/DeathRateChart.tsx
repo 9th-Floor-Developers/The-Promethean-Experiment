@@ -2,6 +2,8 @@ import { useState, type MouseEvent } from 'react';
 import type { SimInfo } from '../sim/types';
 import type { DeathRateSample } from '../sim/useDeathRates';
 import { LINE_COLORS } from './PopulationGraph';
+import { Hint } from '../ui/Hint';
+import { CHART_HELP } from '../ui/helpText';
 
 interface Props {
     info: SimInfo | null;
@@ -60,7 +62,7 @@ function niceMax(v: number): number {
  */
 export function DeathRateChart({ info, samples }: Props) {
     const [hover, setHover] = useState<number | null>(null);
-    const head = <div className="radar__head"><h3 className="radar__title">Thirst &amp; hunger deaths per 100 animal-days</h3></div>;
+    const head = <div className="radar__head"><h3 className="radar__title"><Hint text={CHART_HELP.deathRate}>Thirst &amp; hunger deaths per 100 animal-days</Hint></h3></div>;
     if (!info) return null;
     const pts = ratePoints(samples, info.species.length);
     if (pts.length < 2) return <section className="radar radar--wide">{head}<div className="panel__empty">Collecting data…</div></section>;

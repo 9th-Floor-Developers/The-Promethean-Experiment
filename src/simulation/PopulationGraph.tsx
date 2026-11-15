@@ -9,6 +9,8 @@ import type { DeathCauseSample } from '../sim/useDeathCauses';
 import type { DeathAges } from '../sim/useDeathAges';
 import type { TraitStats } from '../sim/useTraitStats';
 import type { PopulationSample } from '../sim/usePopulationHistory';
+import { Hint } from '../ui/Hint';
+import { CHART_HELP, HEADER_HELP } from '../ui/helpText';
 
 interface Props {
     history: PopulationSample[];
@@ -143,8 +145,8 @@ export function PopulationGraph({ onExpand, ...props }: Props & { onExpand?: () 
     return (
         <section className="panel" aria-labelledby="population-h">
             <h2 id="population-h" className="panel__header panel__header--row">
-                <span>Population · last {LIVE_WINDOW_DAYS} days</span>
-                {onExpand && <button type="button" className="panel__action" onClick={onExpand} title="Open the overview page">Expand ⤢</button>}
+                <Hint text={CHART_HELP.populationLive}>Population · last {LIVE_WINDOW_DAYS} days</Hint>
+                {onExpand && <button type="button" className="panel__action" onClick={onExpand} title={HEADER_HELP.expand}>Expand ⤢</button>}
             </h2>
             <div className="panel__body popgraph-body">
                 <PopulationChart {...props} windowDays={LIVE_WINDOW_DAYS} />
@@ -161,7 +163,7 @@ export function StatisticsPage({ ended, onAction, traitStats, deathAges, deathCa
     return (
         <section className="sim-overview" aria-labelledby="overview-h">
             <h2 id="overview-h" className="panel__header panel__header--row">
-                <span>{ended ? 'Simulation ended · statistics' : 'Overview · statistics'}</span>
+                <Hint text={`Everything that has happened in this run so far, species by species. ${CHART_HELP.population}`}>{ended ? 'Simulation ended · statistics' : 'Overview · statistics'}</Hint>
                 <button type="button" className="panel__action" onClick={onAction}>{ended ? '← Leave simulation' : '← Back to simulation'}</button>
             </h2>
             <div className="sim-overview__body">

@@ -1,4 +1,5 @@
 import { BRAIN_INPUTS, BRAIN_OUTPUTS, type BrainInfo } from '../sim/types';
+import { BRAIN_INPUT_HELP, BRAIN_OUTPUT_HELP } from '../ui/helpText';
 
 /** Most neurons drawn per layer; bigger layers show the first ones and a "+n" note. */
 const MAX_DRAWN = 14;
@@ -48,7 +49,9 @@ export function NeuralNetView({ brain }: { brain: BrainInfo }) {
                             return (
                                 <circle key={i} cx={colX(l)} cy={rowY(l, i)} r={isOut && i === best ? 4.2 : 3.2}
                                         fill={isOut && i === best ? '#ffd25e' : `rgba(232, 238, 252, ${0.2 + 0.8 * glow})`} stroke="#2a3656" strokeWidth={0.8}>
-                                    <title>{isIn ? `${BRAIN_INPUTS[i]}: ${(inputs[i] ?? 0).toFixed(2)}` : isOut ? `${BRAIN_OUTPUTS[i]}: ${(outputs[i] ?? 0).toFixed(2)}` : `Hidden layer ${l}, neuron ${i + 1}`}</title>
+                                    <title>{isIn ? `${BRAIN_INPUTS[i]}: ${(inputs[i] ?? 0).toFixed(2)} — ${BRAIN_INPUT_HELP[i] ?? ''}`
+                                        : isOut ? `${BRAIN_OUTPUTS[i]}: ${(outputs[i] ?? 0).toFixed(2)} — ${BRAIN_OUTPUT_HELP[i] ?? ''}`
+                                        : `Hidden layer ${l}, neuron ${i + 1}. Hidden neurons are where the animal's learned behaviour lives.`}</title>
                                 </circle>
                             );
                         })}
@@ -56,14 +59,20 @@ export function NeuralNetView({ brain }: { brain: BrainInfo }) {
                     </g>
                 ))}
                 {Array.from({ length: drawn[0]! }, (_, i) => (
-                    <text key={`in${i}`} x={colX(0) - 6} y={rowY(0, i) + 2.5} textAnchor="end" className="netview__label">{BRAIN_INPUTS[i]}</text>
+                    <text key={`in${i}`} x={colX(0) - 6} y={rowY(0, i) + 2.5} textAnchor="end" className="netview__label">
+                        {BRAIN_INPUTS[i]}<title>{`${BRAIN_INPUTS[i]}: what it senses now (${(inputs[i] ?? 0).toFixed(2)}). ${BRAIN_INPUT_HELP[i] ?? ''}`}</title>
+                    </text>
                 ))}
                 {Array.from({ length: drawn[sizes.length - 1]! }, (_, i) => (
                     <text key={`out${i}`} x={colX(sizes.length - 1) + 7} y={rowY(sizes.length - 1, i) + 2.5}
-                          className={`netview__label${i === best ? ' netview__label--best' : ''}`}>{BRAIN_OUTPUTS[i]} {(outputs[i] ?? 0).toFixed(1)}</text>
+                          className={`netview__label${i === best ? ' netview__label--best' : ''}`}>
+                        {BRAIN_OUTPUTS[i]} {(outputs[i] ?? 0).toFixed(1)}
+                        <title>{`${BRAIN_OUTPUTS[i]}: ${BRAIN_OUTPUT_HELP[i] ?? ''} The strongest drive is the one it acts on.`}</title>
+                    </text>
                 ))}
             </svg>
-            <figcaption className="netview__caption">
+            <figcaption className="netview__caption"
+                        title="Neurons per layer, from senses to drives, and how many past decisions it can learn from: its own, plus ones it watched other animals of its species make. It replays them while resting.">
                 Layers {sizes.join(' → ')} · remembers {brain.own} own and {brain.observed} observed decisions
             </figcaption>
         </figure>

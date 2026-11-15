@@ -1,5 +1,7 @@
 import { useState, type MouseEvent } from 'react';
 import type { DeathCauseSample } from '../sim/useDeathCauses';
+import { Hint } from '../ui/Hint';
+import { CHART_HELP } from '../ui/helpText';
 
 interface Props {
     samples: DeathCauseSample[];
@@ -33,7 +35,7 @@ export function DeathCauseCharts({ samples }: Props) {
     if (total === 0) {
         return (
             <section className="radar radar--wide">
-                <div className="radar__head"><h3 className="radar__title">Cause of death</h3></div>
+                <div className="radar__head"><h3 className="radar__title"><Hint text={CHART_HELP.deathCause}>Cause of death</Hint></h3></div>
                 <div className="panel__empty">No animals have died yet…</div>
             </section>
         );
@@ -60,7 +62,7 @@ export function DeathCauseCharts({ samples }: Props) {
     const a = (predatory / total) * 2 * Math.PI;
     return (
         <section className="radar radar--wide">
-            <div className="radar__head"><h3 className="radar__title">Cause of death</h3></div>
+            <div className="radar__head"><h3 className="radar__title"><Hint text={CHART_HELP.deathCause}>Cause of death</Hint></h3></div>
             <div className="deathcause">
                 <figure className="deathcause__fig">
                     <svg viewBox="0 0 200 200" role="img" aria-label={`Deaths: ${predatory} predatory, ${natural} natural`}>

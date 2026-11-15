@@ -7,6 +7,8 @@ import { activePreset, builtInSettings, createPreset, duplicatePreset, type Pres
 import type { DisplaySettings } from '../settings/displaySettings';
 import { pickDistinctLook } from '../scene/animalLook';
 import { drawAnimalPortrait } from '../scene/animalPortrait';
+import { Hint } from '../ui/Hint';
+import { SETTINGS_HELP } from '../ui/helpText';
 
 interface Props {
     store: PresetStore;
@@ -78,38 +80,38 @@ export function SettingsScreen({ store, onChange: onStoreChange, display, onDisp
                     <p className="settings__intro">Design the animals that will live on the island. Changes are saved automatically and used the next time you press Start Simulation.</p>
                 </div>
                 <div className="settings__actions">
-                    <button ref={doneRef} type="button" className="btn btn--primary" onClick={onDone}>Done</button>
+                    <button ref={doneRef} type="button" className="btn btn--primary" onClick={onDone} title={SETTINGS_HELP.done}>Done</button>
                 </div>
             </header>
 
             <section className="presets" aria-label="Presets">
                 <label className="field">
-                    <span className="field__label">Preset (the one that runs)</span>
+                    <span className="field__label"><Hint text={SETTINGS_HELP.preset}>Preset (the one that runs)</Hint></span>
                     <select className="input" value={preset.id} onChange={(e) => select(e.target.value)}>
                         {store.presets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                 </label>
                 <label className="field field--grow">
-                    <span className="field__label">Preset name</span>
+                    <span className="field__label"><Hint text={SETTINGS_HELP.presetName}>Preset name</Hint></span>
                     <input className="input" value={preset.name} maxLength={40} onChange={(e) => rename(e.target.value)}
                         onBlur={(e) => { if (!e.target.value.trim()) rename('Preset'); }} />
                 </label>
                 <div className="presets__buttons">
-                    <button type="button" className="btn" onClick={() => addPreset(createPreset())}>New</button>
-                    <button type="button" className="btn" onClick={() => addPreset(duplicatePreset(preset))}>Duplicate</button>
+                    <button type="button" className="btn" onClick={() => addPreset(createPreset())} title={SETTINGS_HELP.newPreset}>New</button>
+                    <button type="button" className="btn" onClick={() => addPreset(duplicatePreset(preset))} title={SETTINGS_HELP.duplicate}>Duplicate</button>
                     {preset.builtIn && <button type="button" className="btn" title="Put this preset back to how it came"
                         onClick={() => onChange(builtInSettings(preset.builtIn!))}>Reset to original</button>}
-                    <button type="button" className="btn" disabled={store.presets.length < 2} onClick={remove}>Delete</button>
+                    <button type="button" className="btn" disabled={store.presets.length < 2} onClick={remove} title={SETTINGS_HELP.deletePreset}>Delete</button>
                 </div>
             </section>
 
             <div className="tabs" role="tablist" aria-label="Settings sections">
                 <button type="button" role="tab" id="tab-species" aria-selected={tab === 'species'} aria-controls="panel-species"
-                    className={`tab${tab === 'species' ? ' tab--on' : ''}`} onClick={() => setTab('species')}>Species</button>
+                    className={`tab${tab === 'species' ? ' tab--on' : ''}`} onClick={() => setTab('species')} title={SETTINGS_HELP.tabSpecies}>Species</button>
                 <button type="button" role="tab" id="tab-world" aria-selected={tab === 'world'} aria-controls="panel-world"
-                    className={`tab${tab === 'world' ? ' tab--on' : ''}`} onClick={() => setTab('world')}>World</button>
+                    className={`tab${tab === 'world' ? ' tab--on' : ''}`} onClick={() => setTab('world')} title={SETTINGS_HELP.tabWorld}>World</button>
                 <button type="button" role="tab" id="tab-display" aria-selected={tab === 'display'} aria-controls="panel-display"
-                    className={`tab${tab === 'display' ? ' tab--on' : ''}`} onClick={() => setTab('display')}>Display</button>
+                    className={`tab${tab === 'display' ? ' tab--on' : ''}`} onClick={() => setTab('display')} title={SETTINGS_HELP.tabDisplay}>Display</button>
             </div>
 
             {tab === 'world' && (
@@ -212,15 +214,15 @@ function SpeciesCard({ sp, index, canRemove, otherLooks, onPatch, onRemove }: Ca
             <header className="species-card__head">
                 <span className="species-card__badge">{index + 1}</span>
                 <label className="field field--grow">
-                    <span className="field__label">Species name</span>
+                    <span className="field__label"><Hint text={SETTINGS_HELP.speciesName}>Species name</Hint></span>
                     <input className="input" value={sp.name} maxLength={24} onChange={(e) => onPatch((s) => ({ ...s, name: e.target.value }))} />
                 </label>
                 <label className="field">
-                    <span className="field__label">Starting animals</span>
+                    <span className="field__label"><Hint text={SETTINGS_HELP.startingAnimals}>Starting animals</Hint></span>
                     <input className="input input--num" type="number" min={MIN_COUNT} max={MAX_COUNT} value={sp.count}
                         onChange={(e) => onPatch((s) => ({ ...s, count: Math.max(MIN_COUNT, Math.min(MAX_COUNT, Number(e.target.value) || MIN_COUNT)) }))} />
                 </label>
-                {canRemove && <button type="button" className="btn species-card__remove" onClick={onRemove} aria-label={`Remove ${sp.name}`}>Remove</button>}
+                {canRemove && <button type="button" className="btn species-card__remove" onClick={onRemove} aria-label={`Remove ${sp.name}`} title={SETTINGS_HELP.removeSpecies}>Remove</button>}
             </header>
 
             <div className="look-preview">
@@ -228,7 +230,7 @@ function SpeciesCard({ sp, index, canRemove, otherLooks, onPatch, onRemove }: Ca
                 <div>
                     <h2 className="species-card__title">Appearance</h2>
                     <p className="stat__help">A random, made-up animal chosen to look different from the other species. It has no effect on how the species behaves.</p>
-                    <button type="button" className="btn" onClick={() => onPatch((s) => ({ ...s, look: pickDistinctLook(otherLooks) }))}>New look</button>
+                    <button type="button" className="btn" onClick={() => onPatch((s) => ({ ...s, look: pickDistinctLook(otherLooks) }))} title={SETTINGS_HELP.newLook}>New look</button>
                 </div>
             </div>
 
@@ -262,10 +264,12 @@ function SpeciesCard({ sp, index, canRemove, otherLooks, onPatch, onRemove }: Ca
                     const current = c.options.find((o) => sp.traits.includes(o.id));
                     return (
                         <div key={c.key} className="trait">
-                            <label htmlFor={`${id}-${c.key}`} className="trait__label">{c.label}</label>
+                            <label htmlFor={`${id}-${c.key}`} className="trait__label">
+                                <Hint text={`${c.question} Every species has exactly one: ${c.options.map((o) => o.label).join(', ')}.`}>{c.label}</Hint>
+                            </label>
                             <select id={`${id}-${c.key}`} className="input" value={current?.id ?? ''} onChange={(e) => setTrait(c.key, e.target.value)}>
                                 {!current && <option value="" disabled>Choose…</option>}
-                                {c.options.map((o) => <option key={o.id} value={o.id} disabled={o.unavailable}>{o.label}{o.unavailable ? ' (coming soon)' : ''}</option>)}
+                                {c.options.map((o) => <option key={o.id} value={o.id} disabled={o.unavailable} title={o.help}>{o.label}{o.unavailable ? ' (coming soon)' : ''}</option>)}
                             </select>
                             <p className="stat__help">{current?.help ?? c.question}</p>
                         </div>
