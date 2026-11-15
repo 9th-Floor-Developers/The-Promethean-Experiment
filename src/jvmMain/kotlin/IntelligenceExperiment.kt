@@ -58,17 +58,17 @@ private class RunResult(val seed: Long, val deaths: Map<String, List<Death>>, va
  * Runs one world for [days] in-game days and records every death of a SOFT_CODED animal. Deaths are found the way the
  * frontend finds them: an animal present before a tick and gone after it has died.
  */
-private fun runSeed(seed: Long, days: Int, size: Int, config: String, resources: Resources, founderShapes: List<IntArray>?): RunResult {
+private fun runSeed(seed: Long, days: Int, size: Int, config: String, resources: Resources, founderShapes: List<IntArray>?, all: Boolean): RunResult {
     val setups = parseSpeciesConfig(config)
     val world = createWorld(seed, size, setups, resources)
-    val soft = setups.map { it.species }.filter { Trait.SOFT_CODED in it.traits }.toSet()
+    val soft = setups.map { it.species }.filter { all || Trait.SOFT_CODED in it.traits }.toSet()
     // Controlled test: give the neural founders brains of different shapes (round robin) instead of all the same one.
     if (founderShapes != null) {
         val rng = Random(seed * 31 + 7)
         var k = 0
         for (i in world.animals.indices) {
             val a = world.animals[i]
-            if (a.species !in soft) continue
+            if (a.mind == null) continue
             val hidden = founderShapes[k++ % founderShapes.size]
             val mind = Mind(NeuralNet.random(intArrayOf(Mind.INPUTS, *hidden, Mind.OUTPUTS), rng))
             world.animals[i] = Animal(a.id, a.species, a.position, a.stats, mind = mind)
@@ -80,7 +80,7 @@ private fun runSeed(seed: Long, days: Int, size: Int, config: String, resources:
         world.tick()
         val alive = HashSet<Animal>(world.animals)
         for (a in before) if (a !in alive && a.species in soft) {
-            deaths[a.species.name]!!.add(Death(a.age, a.mind!!.net.connections, world.clock.tick.toDouble() / TICKS_PER_DAY, causeKind(a.causeOfDeath)))
+            deaths[a.species.name]!!.add(Death(a.age, a.mind?.net?.connections ?: -1, world.clock.tick.toDouble() / TICKS_PER_DAY, causeKind(a.causeOfDeath)))
         }
         before = world.animals.toList()
         if (world.animals.none { it.species in soft }) {
@@ -126,7 +126,7 @@ fun main(args: Array<String>) {
     val out = System.out
     System.setOut(PrintStream(OutputStream.nullOutputStream())) // simEvent prints every birth and death
     val pool = Executors.newFixedThreadPool(threads)
-    val results = seeds.map { s -> pool.submit<RunResult> { runSeed(s, days, size, config, resources, shapes) } }.map { it.get() }
+    val results = seeds.map { s -> pool.submit<RunResult> { runSeed(s, days, size, config, resources, shapes, "--all" in args) } }.map { it.get() }
     pool.shutdown()
 
     out.println("########## PROCESS: Intelligence experiment (${args[0]}, $days days, map $size, seeds $seeds) ##########")

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { buildLookGeometry, describeLook } from './animalLook';
+import { buildLookGeometry, buildSphereGeometry, describeLook } from './animalLook';
 import { A, NO_HEADING, type SimInfo, type SimSnapshot } from '../sim/types';
 
 /** Ground height at continuous tile coordinates, see createHeightSampler. */
@@ -127,7 +127,7 @@ class AnimalBatch {
     readonly mesh: THREE.Mesh;
     /** Animal id stored in each slot, so a swap-removal can tell which animal moved. */
     readonly ids: number[] = [];
-    private readonly geo = new THREE.InstancedBufferGeometry();
+    private geo = new THREE.InstancedBufferGeometry();
     private capacity = 0;
     from = new Float32Array(0);
     to = new Float32Array(0);
@@ -145,6 +145,17 @@ class AnimalBatch {
     }
 
     get count(): number { return this.ids.length; }
+
+    /** Swaps the drawn shape for `source` (e.g. detailed model <-> sphere), keeping every animal's slot and motion. */
+    setShape(source: THREE.BufferGeometry): void {
+        const next = new THREE.InstancedBufferGeometry();
+        next.copy(source as unknown as THREE.InstancedBufferGeometry);
+        for (const name of ['aFrom', 'aTo', 'aInfo', 'aSeed']) next.setAttribute(name, this.geo.getAttribute(name));
+        next.instanceCount = this.ids.length;
+        this.geo.dispose();
+        this.geo = next;
+        this.mesh.geometry = next;
+    }
 
     /** Reallocates the instance buffers with room for at least `cap` animals, keeping the existing data. */
     private grow(cap: number): void {
@@ -257,8 +268,12 @@ export class SimActors {
     private clockTime = 0;
     private readonly owned: { dispose(): void }[] = [];
 
-    /** One merged mesh geometry per species (body, head, ears and eyes baked together). */
+    /** One merged mesh geometry per species (body, head, ears and eyes baked together), or one sphere each in sphere mode. */
     private readonly animalGeos: THREE.BufferGeometry[] = [];
+    /** Each species' look seed, kept so the shapes can be rebuilt when the sphere setting changes. */
+    private looks: number[] = [];
+    /** Draw animals as plain species-coloured spheres instead of their detailed models. */
+    private sphereAnimals = false;
     /** One instanced draw call per species. */
     private batches: AnimalBatch[] = [];
     /** Scene clock (seconds) shared with the animal shader, which interpolates positions from it. */
@@ -527,6 +542,26 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
         return out.set(tx - this.tilesWide / 2, this.heightAt(tx, ty) + lift, ty - this.tilesHigh / 2);
     }
 
+    /**
+     * (Re)builds one shape per species into [animalGeos]: its random fictional model and colours, or a plain sphere in
+     * its main colour when sphere mode is on. The last entry is a fallback for unknown species.
+     */
+    private buildAnimalGeos(): void {
+        this.animalGeos.forEach((g) => g.dispose());
+        this.animalGeos.length = 0;
+        const build = this.sphereAnimals ? buildSphereGeometry : buildLookGeometry;
+        for (const look of [...this.looks, 0]) this.animalGeos.push(build(look));
+    }
+
+    /** Switches animals between detailed models and plain spheres; the animals keep their places and motion. */
+    setSphereAnimals(on: boolean): void {
+        if (this.sphereAnimals === on) return;
+        this.sphereAnimals = on;
+        if (this.batches.length === 0) return; // setInfo has not run yet; it builds the right shapes
+        this.buildAnimalGeos();
+        this.batches.forEach((b, i) => b.setShape(this.animalGeos[i]!));
+    }
+
     /** Shows or hides the animals (they are only meaningful while the simulation screen is open). */
     setAnimalsVisible(visible: boolean): void {
         this.animalGroup.visible = visible;
@@ -538,11 +573,8 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
     /** Builds the static scenery (trees and grass) as instanced meshes. Call once per simulation. */
     setInfo(info: SimInfo): void {
         this.actionNames = info.actions;
-        this.animalGeos.forEach((g) => g.dispose());
-        this.animalGeos.length = 0;
-        // Every species has its own random fictional model and colours; the last batch is a fallback for unknown species.
-        for (const sp of info.species) this.animalGeos.push(buildLookGeometry(sp.look));
-        this.animalGeos.push(buildLookGeometry(0));
+        this.looks = info.species.map((sp) => sp.look);
+        this.buildAnimalGeos();
         for (const b of this.batches) { this.animalGroup.remove(b.mesh); b.dispose(); }
         this.actors.clear();
         this.batches = this.animalGeos.map((g) => new AnimalBatch(g, this.animalMat));

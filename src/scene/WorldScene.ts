@@ -71,6 +71,8 @@ export class WorldScene {
     private readonly skyColor = new THREE.Color();
     /** When true the visual day-night cycle is off and the scene always looks like midday (the simulation's clock still runs). */
     private alwaysDay = false;
+    /** When true animals are drawn as plain species-coloured spheres instead of their detailed models. */
+    private sphereAnimals = false;
     private pathProvider: ((id: number) => number[]) | null = null;
     private target: CameraPreset = PRESETS.landing;
     private readonly lookAt = PRESETS.landing.lookAt.clone();
@@ -247,6 +249,13 @@ export class WorldScene {
         this.refreshLighting();
     }
 
+    /** Switches animals between their detailed models and plain species-coloured spheres (display only). */
+    setSphereAnimals(on: boolean): void {
+        if (this.sphereAnimals === on) return;
+        this.sphereAnimals = on;
+        this.actors?.setSphereAnimals(on);
+    }
+
     /** Applies the lighting the scene should show now: midday on menus or when always-day is on, else the simulation's time. */
     private refreshLighting(): void {
         if (this.screen !== 'simulation' || this.alwaysDay) this.applyTimeOfDay(0.5); // menus are always bright midday
@@ -297,6 +306,7 @@ export class WorldScene {
         if (!this.terrainData || !this.simInfo) return;
         const t = this.terrainData;
         this.actors = new SimActors(t.width, t.height, createHeightSampler(t));
+        this.actors.setSphereAnimals(this.sphereAnimals);
         this.actors.setInfo(this.simInfo);
         this.actors.setPathProvider(this.pathProvider);
         this.actors.setAnimalsVisible(this.screen === 'simulation');

@@ -17,6 +17,7 @@ import {SettingsScreen} from "./screen/SettingsScreen.tsx";
 import { toSpeciesConfig } from './settings/speciesSettings';
 import { activePreset, loadPresetStore, savePresetStore, type PresetStore } from './settings/presets';
 import { loadDisplaySettings, saveDisplaySettings, type DisplaySettings } from './settings/displaySettings';
+import { setUiSoundsEnabled } from './ui/uiSounds';
 
 export default function App() {
     const [screen, setScreen] = useState<Screen>('landing');
@@ -34,6 +35,7 @@ export default function App() {
         setDisplay(next);
         saveDisplaySettings(next);
     }, []);
+    useEffect(() => setUiSoundsEnabled(display.uiSounds), [display.uiSounds]);
     const settingsRef = useRef(settings);
     settingsRef.current = settings;
     const settingsDirty = useRef(false);
@@ -99,7 +101,7 @@ export default function App() {
     return (
         <>
             {/* Persistent: never unmounted, so the same 3D scene lives across screens. */}
-            <SceneCanvas screen={screen} terrain={sim?.terrain ?? null} simInfo={sim?.info ?? null} snapshot={snapshot} pathOf={sim?.animalPath ?? null} selectedId={selectedId} onSelect={setSelectedId} followSelected={following} onFollowRelease={releaseFollow} alwaysDay={display.alwaysDay} />
+            <SceneCanvas screen={screen} terrain={sim?.terrain ?? null} simInfo={sim?.info ?? null} snapshot={snapshot} pathOf={sim?.animalPath ?? null} selectedId={selectedId} onSelect={setSelectedId} followSelected={following} onFollowRelease={releaseFollow} alwaysDay={display.alwaysDay} sphereAnimals={display.sphereAnimals} />
             <main className="ui-layer">
                 {screen === 'landing' && <LandingScreen onStart={() => setScreen('opening')} />}
                 {screen === 'opening' && (

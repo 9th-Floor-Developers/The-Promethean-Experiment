@@ -169,6 +169,27 @@ export function SettingsScreen({ store, onChange: onStoreChange, display, onDisp
                             </span>
                         </span>
                     </label>
+                    <label className="toggle">
+                        <input type="checkbox" className="toggle__box" checked={display.sphereAnimals}
+                            onChange={(e) => onDisplayChange({ ...display, sphereAnimals: e.target.checked })} />
+                        <span>
+                            <span className="toggle__label">Show animals as spheres</span>
+                            <span className="stat__help">
+                                Draws every animal as a simple ball in its species' main colour instead of its detailed model.
+                                Makes species easier to tell apart and to spot from far away. Only the look changes, not how they behave.
+                            </span>
+                        </span>
+                    </label>
+
+                    <h2 className="species-card__title">Sound</h2>
+                    <label className="toggle">
+                        <input type="checkbox" className="toggle__box" checked={display.uiSounds}
+                            onChange={(e) => onDisplayChange({ ...display, uiSounds: e.target.checked })} />
+                        <span>
+                            <span className="toggle__label">Sound effects</span>
+                            <span className="stat__help">Plays a click when you press a button or pick an option from a dropdown.</span>
+                        </span>
+                    </label>
                 </article>
             )}
 

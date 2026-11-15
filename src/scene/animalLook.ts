@@ -312,3 +312,21 @@ export function fillMissingLooks<T extends { name: string; look?: unknown }>(spe
     });
     return out;
 }
+
+/** Radius of the plain sphere drawn for an animal when "Show animals as spheres" is on. */
+const SPHERE_RADIUS = 0.3;
+
+/**
+ * A plain low-poly sphere in the species' main colour, resting on the ground (y = -0.2, the same ground line the
+ * detailed models stand on). Used instead of [buildLookGeometry] when the "Show animals as spheres" display setting is on.
+ */
+export function buildSphereGeometry(seed: Look): THREE.BufferGeometry {
+    const g = new THREE.IcosahedronGeometry(SPHERE_RADIUS, 1);
+    g.deleteAttribute('uv');
+    g.translate(0, -0.2 + SPHERE_RADIUS, 0);
+    const color = describeLook(seed).primary;
+    const colors = new Float32Array(g.attributes.position!.count * 3);
+    for (let i = 0; i < colors.length; i += 3) { colors[i] = color.r; colors[i + 1] = color.g; colors[i + 2] = color.b; }
+    g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    return g;
+}

@@ -11,12 +11,19 @@ export interface DisplaySettings {
      * The simulated day-night cycle still runs (nocturnal animals still sleep by day); only the visuals stay bright.
      */
     alwaysDay: boolean;
+    /** Play the interface click sounds (buttons and dropdowns). On by default. */
+    uiSounds: boolean;
+    /**
+     * Draw every animal as a plain sphere in its species' main colour instead of its detailed model.
+     * Easier to tell species apart and to spot animals from far away; behaviour is unchanged.
+     */
+    sphereAnimals: boolean;
 }
 
 const STORAGE_KEY = 'prometheus.display.v1';
 
 /** Defaults used on first launch or when saved data is missing or unreadable. */
-export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = { alwaysDay: false };
+export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = { alwaysDay: false, uiSounds: true, sphereAnimals: false };
 
 /** Loads the saved display settings, falling back to defaults when storage is empty, blocked or corrupt. */
 export function loadDisplaySettings(): DisplaySettings {
@@ -24,7 +31,7 @@ export function loadDisplaySettings(): DisplaySettings {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
             const parsed = JSON.parse(raw) as Partial<DisplaySettings>;
-            return { alwaysDay: parsed.alwaysDay === true };
+            return { alwaysDay: parsed.alwaysDay === true, uiSounds: parsed.uiSounds !== false, sphereAnimals: parsed.sphereAnimals === true };
         }
     } catch { /* fall through to defaults */ }
     return { ...DEFAULT_DISPLAY_SETTINGS };

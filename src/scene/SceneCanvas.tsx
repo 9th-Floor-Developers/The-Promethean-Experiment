@@ -19,9 +19,11 @@ interface Props {
     onFollowRelease?: () => void;
     /** Keep the lighting at midday instead of showing the visual day-night cycle (accessibility / eye strain). */
     alwaysDay?: boolean;
+    /** Draw animals as plain species-coloured spheres instead of their detailed models. */
+    sphereAnimals?: boolean;
 }
 
-export function SceneCanvas({ screen, terrain, simInfo, snapshot, pathOf, selectedId, onSelect, followSelected, onFollowRelease, alwaysDay }: Props) {
+export function SceneCanvas({ screen, terrain, simInfo, snapshot, pathOf, selectedId, onSelect, followSelected, onFollowRelease, alwaysDay, sphereAnimals }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const sceneRef = useRef<WorldScene | null>(null);
 
@@ -74,6 +76,10 @@ export function SceneCanvas({ screen, terrain, simInfo, snapshot, pathOf, select
     useEffect(() => {
         sceneRef.current?.setAlwaysDay(alwaysDay ?? false);
     }, [alwaysDay]);
+
+    useEffect(() => {
+        sceneRef.current?.setSphereAnimals(sphereAnimals ?? false);
+    }, [sphereAnimals]);
 
     return <canvas ref={canvasRef} className="scene-canvas" aria-hidden="true" />;
 }

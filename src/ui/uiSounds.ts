@@ -9,6 +9,8 @@ type UiSound = 'button' | 'dropdown';
 
 const SOUND_URLS: Record<UiSound, string> = { button: buttonClickUrl, dropdown: dropdownClickUrl };
 
+/** Whether the sounds play at all; follows the "Sound effects" display setting. */
+let enabled = true;
 let ctx: AudioContext | null = null;
 let gain: GainNode | null = null;
 const buffers: Partial<Record<UiSound, AudioBuffer>> = {};
@@ -19,6 +21,7 @@ const buffers: Partial<Record<UiSound, AudioBuffer>> = {};
  * a sound whose clip is not decoded yet is skipped rather than played late.
  */
 function play(sound: UiSound): void {
+    if (!enabled) return;
     if (!ctx) {
         ctx = new AudioContext();
         gain = ctx.createGain();
@@ -47,6 +50,11 @@ function start(buffer: AudioBuffer): void {
     source.buffer = buffer;
     source.connect(gain!);
     source.start();
+}
+
+/** Turns the interface sounds on or off (Settings -> Display -> Sound effects). */
+export function setUiSoundsEnabled(on: boolean): void {
+    enabled = on;
 }
 
 /**
