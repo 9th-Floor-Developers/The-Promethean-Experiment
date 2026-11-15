@@ -13,7 +13,7 @@ import kotlin.random.Random
 /** Mock carnivore used until real species definitions exist. */
 val MOCK_CARNIVORE = Species(
     name = "Mock Carnivore",
-    traits = setOf(Trait.HARD_CODED, Trait.CARNIVORE, Trait.LIVE_BIRTH, Trait.FUR, Trait.ENDOTHERMIC, Trait.CREPUSCULAR, Trait.PACK),
+    traits = setOf(Trait.HARD_CODED, Trait.CARNIVORE, Trait.LIVE_BIRTH, Trait.FUR, Trait.ENDOTHERMIC, Trait.CREPUSCULAR),
     speed = 0.09,
     staminaSprintCost = 0.1,
     viewRange = 30.0,

@@ -66,19 +66,10 @@ NOCTURNAL - Primarily active at night.
 CREPUSCULAR - Primarily active around dawn and dusk.
 
 
-SOCIAL BEHAVIOR
-
-SOLITARY - Usually lives independently.
-HERDING - Lives and moves in groups.
-PACK - Lives or hunts in coordinated groups.
-
-
-
 TRAITS WITHOUT A CATEGORY
 These traits can be combined with categorized traits and with one another.
 
-CLIMBING - Can climb trees and vertical surfaces.
-SPRINTING - Can sprint for short amount of time
+SPRINTING - Can sprint for short amount of time uses 3x stamina for 2x speed
 VENOMOUS - Produces venom that can harm other organisms.
 POISONOUS - Contains toxins that can harm organisms that consume it.
 ARMOR - Has protective external covering or structures.

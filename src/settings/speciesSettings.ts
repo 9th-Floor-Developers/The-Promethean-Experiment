@@ -78,11 +78,6 @@ export const CATEGORIES: TraitCategoryDef[] = [
         { id: 'NOCTURNAL', label: 'Nighttime', help: 'Active at night and rests otherwise.' },
         { id: 'CREPUSCULAR', label: 'Dawn and dusk', help: 'Active around sunrise and sunset.' },
     ] },
-    { key: 'SOCIAL_BEHAVIOR', label: 'Social life', question: 'Does it live with others?', options: [
-        { id: 'SOLITARY', label: 'Loner', help: 'Lives on its own.' },
-        { id: 'HERDING', label: 'Herd', help: 'Lives and moves in groups.' },
-        { id: 'PACK', label: 'Pack', help: 'Lives and hunts in coordinated groups.' },
-    ] },
 ];
 
 /** Optional traits that can be switched on in any combination. */
@@ -98,6 +93,9 @@ export const EXTRA_TRAITS: TraitOption[] = [
     { id: 'NIGHT_VISION', label: 'Night vision', help: 'Sees well in the dark.' },
     { id: 'HEARING', label: 'Sharp hearing', help: 'Can detect sounds.' },
 ];
+
+/** Every trait id the simulation knows, so ids of traits that have been removed can be dropped from saved presets. */
+const KNOWN_TRAITS = new Set([...CATEGORIES.flatMap((c) => c.options.map((o) => o.id)), ...EXTRA_TRAITS.map((t) => t.id)]);
 
 /** Settings for one species. `traits` holds every chosen trait id (one per category plus any extras). */
 export interface SpeciesSettings {
@@ -159,7 +157,7 @@ export function withFixedLooks(settings: SimSettings): SimSettings {
 export function herbivoreTemplate(): SpeciesSettings {
     return {
         uid: nextUid++, name: 'Herbivore', count: 40, stats: { ...DEFAULT_STATS, speed: 0.07, viewRange: 16 },
-        traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'HERDING'], mutationRate: MUTATION_RATE.default, look: pickDistinctLook([]),
+        traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL'], mutationRate: MUTATION_RATE.default, look: pickDistinctLook([]),
     };
 }
 
@@ -167,7 +165,7 @@ export function herbivoreTemplate(): SpeciesSettings {
 export function carnivoreTemplate(): SpeciesSettings {
     return {
         uid: nextUid++, name: 'Carnivore', count: 10, stats: { ...DEFAULT_STATS, speed: 0.09, viewRange: 30 },
-        traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR', 'PACK'], mutationRate: MUTATION_RATE.default, look: pickDistinctLook([]),
+        traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR'], mutationRate: MUTATION_RATE.default, look: pickDistinctLook([]),
     };
 }
 
@@ -210,7 +208,7 @@ export function sanitizeSettings(raw: unknown): SimSettings | null {
     return {
         water: res(parsed.water), trees: res(parsed.trees), grass: res(parsed.grass),
         mapSize: Math.max(MAP_SIZE.min, Math.min(MAP_SIZE.max, Number(parsed.mapSize) || MAP_SIZE.default)),
-        species: fillMissingLooks(parsed.species).map((s) => ({ ...s, uid: nextUid++, stats: clampStats({ ...DEFAULT_STATS, ...s.stats }), mutationRate: clampMutationRate(s.mutationRate), traits: [...s.traits] })),
+        species: fillMissingLooks(parsed.species).map((s) => ({ ...s, uid: nextUid++, stats: clampStats({ ...DEFAULT_STATS, ...s.stats }), mutationRate: clampMutationRate(s.mutationRate), traits: s.traits.filter((id) => KNOWN_TRAITS.has(id)) })),
     };
 }
 

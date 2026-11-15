@@ -2,7 +2,7 @@ package sim.species
 
 /** Categories from docs/sim/SPECIES_TRAIT.md. A species holds at most one trait per category. */
 enum class TraitCategory {
-    CONTROLLER, CONSUMPTION, BIRTHING, BODY_COVERING, BODY_TEMPERATURE, ACTIVITY_CYCLE, SOCIAL_BEHAVIOR
+    CONTROLLER, CONSUMPTION, BIRTHING, BODY_COVERING, BODY_TEMPERATURE, ACTIVITY_CYCLE
 }
 
 /** Every trait from docs/sim/SPECIES_TRAIT.md. A null [category] means the trait is uncategorized and freely combinable. */
@@ -38,11 +38,6 @@ enum class Trait(val category: TraitCategory?) {
     DIURNAL(TraitCategory.ACTIVITY_CYCLE),
     NOCTURNAL(TraitCategory.ACTIVITY_CYCLE),
     CREPUSCULAR(TraitCategory.ACTIVITY_CYCLE),
-
-    // SOCIAL BEHAVIOR
-    SOLITARY(TraitCategory.SOCIAL_BEHAVIOR),
-    HERDING(TraitCategory.SOCIAL_BEHAVIOR),
-    PACK(TraitCategory.SOCIAL_BEHAVIOR),
 
     // Uncategorized
     CLIMBING(null),
