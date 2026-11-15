@@ -71,7 +71,7 @@ export interface BrainInfo {
 }
 
 /** Names of the brain inputs (Kotlin Brain.sense), in order. */
-export const BRAIN_INPUTS = ['Health', 'Food', 'Water', 'Stamina', 'Age', 'Ready to breed', 'Predator near', 'Food near', 'Water near', 'Mate near', 'Time (sin)', 'Time (cos)', 'Awake time', 'Heard unseen'];
+export const BRAIN_INPUTS = ['Health', 'Food', 'Water', 'Stamina', 'Age', 'Ready to breed', 'Predator near', 'Food near', 'Water near', 'Mate near', 'Time (sin)', 'Time (cos)', 'Awake time'];
 /** Names of the brain outputs (Kotlin Drive), in order. */
 export const BRAIN_OUTPUTS = ['Flee', 'Eat', 'Drink', 'Mate', 'Rest', 'Explore'];
 

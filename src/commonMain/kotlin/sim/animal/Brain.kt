@@ -178,11 +178,8 @@ internal class Brain(private val world: World) {
 
     /**
      * Fills a SOFT_CODED animal's [Mind.inputs] (all roughly 0..1): its own hp, nutrition, hydration, stamina, age and
-     * readiness to breed; how close the nearest predator, food, water and mate are; the time of day; whether
-     * its activity cycle says it should be awake; and how clearly it hears something it cannot see.
-     *
-     * The hearing input means opposite things to prey and to a hunter - danger for one, a meal for the other -
-     * so a network has to work out from the rest of its state which it is (docs/sim/SPECIES.md).
+     * readiness to breed; how close the nearest predator, food, water and mate are; the time of day;
+     * and whether its activity cycle says it should be awake.
      */
     fun sense(a: Animal, m: Mind) {
         val s = a.species
@@ -202,7 +199,6 @@ internal class Brain(private val world: World) {
             kotlin.math.sin(day),
             kotlin.math.cos(day),
             if (s.isActiveAt(world.clock.phase)) 1.0 else 0.0,
-            (heardThreat(a) ?: heardPrey(a))?.audibility ?: 0.0,
         )
     }
 

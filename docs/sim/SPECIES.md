@@ -72,7 +72,7 @@ These traits can be combined with categorized traits and with one another.
 SPRINTING - Can sprint for short amount of time uses 3x stamina for 2x speed
 VENOMOUS - Produces venom that can harm other organisms.
 POISONOUS - Contains toxins that can harm organisms that consume it.
-ARMOR - Has protective external covering or structures.
+HARD SKIN - Has protective external covering or structures.
 SPIKES - Has sharp external structures that discourage predators.
 REGENERATION - Can regrow lost body parts.
 ALARM CALLING - Warns nearby organisms of danger.
