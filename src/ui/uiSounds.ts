@@ -1,8 +1,6 @@
 import buttonClickUrl from '../../assets/button-click.mp3';
 import dropdownClickUrl from '../../assets/dropdown-click.mp3';
 
-/** Loudness of the interface sounds (0..1). They are feedback, not music, so they sit a little under full volume. */
-const UI_SOUND_VOLUME = 0.6;
 
 /** The interface sounds, by what triggers them. */
 type UiSound = 'button' | 'dropdown';
@@ -11,6 +9,8 @@ const SOUND_URLS: Record<UiSound, string> = { button: buttonClickUrl, dropdown: 
 
 /** Whether the sounds play at all; follows the "Sound effects" display setting. */
 let enabled = true;
+/** Loudness of the sounds, 0..1; follows the "Volume" display setting. */
+let volume = 0.6;
 let ctx: AudioContext | null = null;
 let gain: GainNode | null = null;
 const buffers: Partial<Record<UiSound, AudioBuffer>> = {};
@@ -25,7 +25,7 @@ function play(sound: UiSound): void {
     if (!ctx) {
         ctx = new AudioContext();
         gain = ctx.createGain();
-        gain.gain.value = UI_SOUND_VOLUME;
+        gain.gain.value = volume;
         gain.connect(ctx.destination);
         for (const key of Object.keys(SOUND_URLS) as UiSound[]) {
             fetch(SOUND_URLS[key])
@@ -55,6 +55,12 @@ function start(buffer: AudioBuffer): void {
 /** Turns the interface sounds on or off (Settings -> Display -> Sound effects). */
 export function setUiSoundsEnabled(on: boolean): void {
     enabled = on;
+}
+
+/** Sets the loudness of the interface sounds, 0 (silent) to 1 (full) (Settings -> Display -> Volume). */
+export function setUiSoundsVolume(level: number): void {
+    volume = Math.min(1, Math.max(0, level));
+    if (gain) gain.gain.value = volume;
 }
 
 /**

@@ -274,6 +274,9 @@ export class SimActors {
     private looks: number[] = [];
     /** Draw animals as plain species-coloured spheres instead of their detailed models. */
     private sphereAnimals = false;
+    /** Whether floating text (damage, actions, births, deaths) and sound rings are drawn (display settings). */
+    private showPopups = true;
+    private showSoundRings = true;
     /** One instanced draw call per species. */
     private batches: AnimalBatch[] = [];
     /** Scene clock (seconds) shared with the animal shader, which interpolates positions from it. */
@@ -560,6 +563,20 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
         if (this.batches.length === 0) return; // setInfo has not run yet; it builds the right shapes
         this.buildAnimalGeos();
         this.batches.forEach((b, i) => b.setShape(this.animalGeos[i]!));
+    }
+
+    /** Shows or hides the floating text above animals and the sound rings; hiding one also clears those on screen now. */
+    setOverlayEffects(popups: boolean, soundRings: boolean): void {
+        this.showPopups = popups;
+        this.showSoundRings = soundRings;
+        if (!popups) this.clearPopups();
+        if (!soundRings) this.clearSoundRings();
+    }
+
+    /** Removes every floating text popup. */
+    private clearPopups(): void {
+        for (const p of this.popups) { this.animalGroup.remove(p.sprite); p.sprite.material.dispose(); }
+        this.popups.length = 0;
     }
 
     /** Shows or hides the animals (they are only meaningful while the simulation screen is open). */
@@ -854,7 +871,7 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
 
     /** Pops [text] up above [at]; it rises and fades out, then removes itself. */
     private spawnPopup(text: string, color: string, at: THREE.Vector3, scale = 1): void {
-        if (this.popups.length >= MAX_POPUPS) return;
+        if (!this.showPopups || this.popups.length >= MAX_POPUPS) return;
         const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
             map: this.textTexture(text, color), transparent: true, depthTest: false,
         }));
@@ -887,7 +904,7 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
      * no animal in this world can hear (reach 0), since then the sound affects nothing.
      */
     private spawnSoundRing(at: THREE.Vector3, species: number, reach: number): void {
-        if (reach <= 0 || this.soundRings.length >= MAX_SOUND_RINGS) return;
+        if (!this.showSoundRings || reach <= 0 || this.soundRings.length >= MAX_SOUND_RINGS) return;
         const mat = new THREE.ShaderMaterial({
             uniforms: {
                 uColor: { value: (this.speciesColors[species] ?? new THREE.Color(0xffffff)).clone() },
@@ -1045,8 +1062,7 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
 
     /** Releases everything this class created. */
     dispose(): void {
-        for (const p of this.popups) p.sprite.material.dispose();
-        this.popups.length = 0;
+        this.clearPopups();
         this.clearSoundRings();
         this.textures.forEach((t) => t.dispose());
         this.textures.clear();

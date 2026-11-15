@@ -141,6 +141,6 @@ export const SETTINGS_HELP = {
     newLook: 'Roll a new random appearance for this species. Looks never affect behaviour.',
     tabSpecies: 'Design the species: their bodies, their traits and how many start on the island.',
     tabWorld: 'Set the size of the island and how much food and water it has.',
-    tabDisplay: 'Viewing comfort, animal look and sound options. These apply to every preset and take effect right away.',
+    tabDisplay: 'Viewing comfort, how animals and their effects are drawn, and sound. These apply to every preset and take effect right away.',
     done: 'Go back to the menu. Everything here is saved as you change it.',
 } as const;

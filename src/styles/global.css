@@ -205,6 +205,7 @@ h1, h2 { font-family: var(--font-display); margin: 0; }
 /* Tooltip hints: a label with an explanation on hover (ui/Hint.tsx). */
 .hint { cursor: help; text-decoration: underline dotted; text-decoration-thickness: 1px; text-underline-offset: 0.22em; text-decoration-color: color-mix(in srgb, currentColor 55%, transparent); }
 .slider { width: 100%; accent-color: var(--color-accent); min-height: 28px; cursor: pointer; }
+.slider:disabled { opacity: 0.55; cursor: not-allowed; }
 .chips { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .chip { font: inherit; font-weight: 700; padding: 0.4rem 0.9rem; border-radius: 999px; border: 2px solid rgba(31, 42, 68, 0.3); background: #fff; color: var(--color-ink); cursor: pointer; min-height: 40px; }
 .chip--on { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-accent-ink); }

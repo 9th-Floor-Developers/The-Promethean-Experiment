@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
     CARCASS_ROT_HOURS, CATEGORIES, EXTRA_TRAITS, MAP_SIZE, MAX_COUNT, RESOURCE, MAX_SPECIES, MIN_COUNT, MUTATION_RATE, STATS, carnivoreTemplate, herbivoreTemplate,
     newSpeciesName, type SimSettings, type SpeciesSettings, type StatKey,
@@ -155,41 +155,51 @@ export function SettingsScreen({ store, onChange: onStoreChange, display, onDisp
 
             {tab === 'display' && (
                 <article className="species-card" role="tabpanel" id="panel-display" aria-labelledby="tab-display">
-                    <h2 className="species-card__title">Comfort and accessibility</h2>
                     <p className="stat__help">These apply to every preset and take effect immediately.</p>
-                    <label className="toggle">
-                        <input type="checkbox" className="toggle__box" checked={display.alwaysDay}
-                            onChange={(e) => onDisplayChange({ ...display, alwaysDay: e.target.checked })} />
-                        <span>
-                            <span className="toggle__label">Always show daytime</span>
-                            <span className="stat__help">
-                                Turns off the visual day and night cycle so the island stays brightly lit, with no darkening or flashing
-                                between night and day. Helpful for people with photosensitive epilepsy or to reduce eye strain.
-                                The animals still live by the simulated clock, so night-time animals keep their schedule.
-                            </span>
-                        </span>
-                    </label>
-                    <label className="toggle">
-                        <input type="checkbox" className="toggle__box" checked={display.sphereAnimals}
-                            onChange={(e) => onDisplayChange({ ...display, sphereAnimals: e.target.checked })} />
-                        <span>
-                            <span className="toggle__label">Show animals as spheres</span>
-                            <span className="stat__help">
-                                Draws every animal as a simple ball in its species' main colour instead of its detailed model.
-                                Makes species easier to tell apart and to spot from far away. Only the look changes, not how they behave.
-                            </span>
-                        </span>
-                    </label>
+
+                    <h2 className="species-card__title">Comfort and accessibility</h2>
+                    <DisplayToggle label="Always show daytime" checked={display.alwaysDay}
+                        onChange={(on) => onDisplayChange({ ...display, alwaysDay: on })}>
+                        Turns off the visual day and night cycle so the island stays brightly lit, with no darkening or flashing
+                        between night and day. Helpful for people with photosensitive epilepsy or to reduce eye strain.
+                        The animals still live by the simulated clock, so night-time animals keep their schedule.
+                    </DisplayToggle>
+                    <DisplayToggle label="Spin the island on menus" checked={display.spinIsland}
+                        onChange={(on) => onDisplayChange({ ...display, spinIsland: on })}>
+                        Slowly turns the island behind the menu screens. Switch it off if the motion is distracting or makes you
+                        feel unwell. The simulation view never spins either way.
+                    </DisplayToggle>
+
+                    <h2 className="species-card__title">Animals</h2>
+                    <DisplayToggle label="Show animals as spheres" checked={display.sphereAnimals}
+                        onChange={(on) => onDisplayChange({ ...display, sphereAnimals: on })}>
+                        Draws every animal as a simple ball in its species' main colour instead of its detailed model.
+                        Makes species easier to tell apart and to spot from far away. Only the look changes, not how they behave.
+                    </DisplayToggle>
+                    <DisplayToggle label="Show floating text" checked={display.showPopups}
+                        onChange={(on) => onDisplayChange({ ...display, showPopups: on })}>
+                        The damage numbers, action names and "Born!" / "Died" labels that float up above animals.
+                        Turn off for a calmer, less cluttered view.
+                    </DisplayToggle>
+                    <DisplayToggle label="Show sound rings" checked={display.showSoundRings}
+                        onChange={(on) => onDisplayChange({ ...display, showSoundRings: on })}>
+                        The rings that spread out on the ground when an animal makes an alarm call or sprints, showing how far
+                        the sound carries. Only drawn when some species can hear.
+                    </DisplayToggle>
 
                     <h2 className="species-card__title">Sound</h2>
-                    <label className="toggle">
-                        <input type="checkbox" className="toggle__box" checked={display.uiSounds}
-                            onChange={(e) => onDisplayChange({ ...display, uiSounds: e.target.checked })} />
-                        <span>
-                            <span className="toggle__label">Sound effects</span>
-                            <span className="stat__help">Plays a click when you press a button or pick an option from a dropdown.</span>
-                        </span>
-                    </label>
+                    <DisplayToggle label="Sound effects" checked={display.uiSounds}
+                        onChange={(on) => onDisplayChange({ ...display, uiSounds: on })}>
+                        Plays a click when you press a button or pick an option from a dropdown.
+                    </DisplayToggle>
+                    <div className="stat">
+                        <label htmlFor="ui-volume" className="stat__label">Volume <strong>{Math.round(display.uiVolume * 100)}%</strong></label>
+                        <input id="ui-volume" className="slider" type="range" min={0} max={1} step={0.05} value={display.uiVolume}
+                            disabled={!display.uiSounds}
+                            onChange={(e) => onDisplayChange({ ...display, uiVolume: Number(e.target.value) })} />
+                        <div className="stat__ends"><span>Quiet</span><span>Loud</span></div>
+                        <p className="stat__help">How loud the click sounds are. Turning sound effects off keeps this level for when you turn them back on.</p>
+                    </div>
                 </article>
             )}
 
@@ -322,5 +332,18 @@ function SpeciesCard({ sp, index, canRemove, otherLooks, onPatch, onRemove }: Ca
                 ))}
             </div>
         </article>
+    );
+}
+
+/** One on/off option on the Display tab: a checkbox with a bold label and an explanation underneath. */
+function DisplayToggle({ label, checked, onChange, children }: { label: string; checked: boolean; onChange: (on: boolean) => void; children: ReactNode }) {
+    return (
+        <label className="toggle">
+            <input type="checkbox" className="toggle__box" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+            <span>
+                <span className="toggle__label">{label}</span>
+                <span className="stat__help">{children}</span>
+            </span>
+        </label>
     );
 }

@@ -73,6 +73,11 @@ export class WorldScene {
     private alwaysDay = false;
     /** When true animals are drawn as plain species-coloured spheres instead of their detailed models. */
     private sphereAnimals = false;
+    /** Floating text above animals and the alarm/sprint sound rings; each can be hidden in the display settings. */
+    private showPopups = true;
+    private showSoundRings = true;
+    /** When false the island never spins on the menu screens (display setting, for motion sensitivity). */
+    private spinIsland = true;
     private pathProvider: ((id: number) => number[]) | null = null;
     private target: CameraPreset = PRESETS.landing;
     private readonly lookAt = PRESETS.landing.lookAt.clone();
@@ -256,6 +261,18 @@ export class WorldScene {
         this.actors?.setSphereAnimals(on);
     }
 
+    /** Shows or hides the floating text above animals and the sound rings (display only; existing ones are cleared). */
+    setOverlayEffects(popups: boolean, soundRings: boolean): void {
+        this.showPopups = popups;
+        this.showSoundRings = soundRings;
+        this.actors?.setOverlayEffects(popups, soundRings);
+    }
+
+    /** Turns the slow menu-screen rotation of the island on or off; off leaves the island at its current angle. */
+    setSpinIsland(on: boolean): void {
+        this.spinIsland = on;
+    }
+
     /** Applies the lighting the scene should show now: midday on menus or when always-day is on, else the simulation's time. */
     private refreshLighting(): void {
         if (this.screen !== 'simulation' || this.alwaysDay) this.applyTimeOfDay(0.5); // menus are always bright midday
@@ -307,6 +324,7 @@ export class WorldScene {
         const t = this.terrainData;
         this.actors = new SimActors(t.width, t.height, createHeightSampler(t));
         this.actors.setSphereAnimals(this.sphereAnimals);
+        this.actors.setOverlayEffects(this.showPopups, this.showSoundRings);
         this.actors.setInfo(this.simInfo);
         this.actors.setPathProvider(this.pathProvider);
         this.actors.setAnimalsVisible(this.screen === 'simulation');
@@ -529,7 +547,7 @@ export class WorldScene {
         for (const key of ['left', 'top', 'right', 'bottom'] as const) this.inset[key] += (this.insetGoal[key] - this.inset[key]) * ik;
         this.applyViewOffset();
         this.actors?.animate(dt);
-        if (this.spinning && !this.motionQuery.matches) this.world.rotation.y += dt * SPIN_SPEED;
+        if (this.spinning && this.spinIsland && !this.motionQuery.matches) this.world.rotation.y += dt * SPIN_SPEED;
         this.renderer.render(this.scene, this.camera);
     };
 }

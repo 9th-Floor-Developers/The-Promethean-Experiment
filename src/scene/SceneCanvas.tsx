@@ -21,9 +21,15 @@ interface Props {
     alwaysDay?: boolean;
     /** Draw animals as plain species-coloured spheres instead of their detailed models. */
     sphereAnimals?: boolean;
+    /** Show floating damage/action/birth/death text above animals. */
+    showPopups?: boolean;
+    /** Show the rings drawn for alarm calls and sprints. */
+    showSoundRings?: boolean;
+    /** Slowly rotate the island on the menu screens. */
+    spinIsland?: boolean;
 }
 
-export function SceneCanvas({ screen, terrain, simInfo, snapshot, pathOf, selectedId, onSelect, followSelected, onFollowRelease, alwaysDay, sphereAnimals }: Props) {
+export function SceneCanvas({ screen, terrain, simInfo, snapshot, pathOf, selectedId, onSelect, followSelected, onFollowRelease, alwaysDay, sphereAnimals, showPopups, showSoundRings, spinIsland }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const sceneRef = useRef<WorldScene | null>(null);
 
@@ -80,6 +86,14 @@ export function SceneCanvas({ screen, terrain, simInfo, snapshot, pathOf, select
     useEffect(() => {
         sceneRef.current?.setSphereAnimals(sphereAnimals ?? false);
     }, [sphereAnimals]);
+
+    useEffect(() => {
+        sceneRef.current?.setOverlayEffects(showPopups ?? true, showSoundRings ?? true);
+    }, [showPopups, showSoundRings]);
+
+    useEffect(() => {
+        sceneRef.current?.setSpinIsland(spinIsland ?? true);
+    }, [spinIsland]);
 
     return <canvas ref={canvasRef} className="scene-canvas" aria-hidden="true" />;
 }
