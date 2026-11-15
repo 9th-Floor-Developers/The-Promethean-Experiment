@@ -6,6 +6,7 @@ import kotlin.math.max
 import sim.objects.Carcass
 import sim.objects.Plant
 import sim.objects.Tree
+import sim.species.Species
 import sim.world.EXPLORE_ARRIVE
 import sim.world.TimePhase
 import sim.world.World
@@ -110,9 +111,9 @@ internal class Brain(private val world: World) {
     private class Heard(val audibility: Double, val about: Animal, val heardOnly: Boolean = false)
 
     /**
-     * How clearly a sound of [loudness] (see [Animal.noise]; an alarm call is a deliberate 1.0) carries from
-     * [from] to the listener: 1 right next to it, falling to 0 at [Species.hearingRange] scaled by the loudness,
-     * so a sprinting animal is heard much further off than a walking one.
+     * How clearly a sound of [loudness] (see [Animal.noise]; an alarm call is [Species.ALARM_LOUDNESS]) carries
+     * from [from] to the listener: 1 right next to it, falling to 0 at [Species.hearingRange] scaled by the
+     * loudness, so a sprinting animal is heard much further off than a calling or walking one.
      */
     private fun audibility(a: Animal, from: Vector2, loudness: Double): Double {
         if (loudness <= 0.0) return 0.0
@@ -124,7 +125,8 @@ internal class Brain(private val world: World) {
     /**
      * Trait HEARING: the clearest danger a non-hunting animal heard rather than saw - an alarm call naming a
      * predator, or a predator it heard moving. Alarms from any species count, so prey of different species warn
-     * each other. The predator must itself be within earshot, so a call never reports danger from across the map.
+     * each other. A call only carries [Species.ALARM_LOUDNESS] of earshot, and the predator must itself be within
+     * that same range, so a call never reports danger from across the map.
      * Returns null for a species without the trait, and for hunters (they fear nothing).
      */
     private fun heardThreat(a: Animal): Heard? {
@@ -134,10 +136,11 @@ internal class Brain(private val world: World) {
         fun consider(audibility: Double, about: Animal) {
             if (audibility > 0.0 && audibility > (best?.audibility ?: 0.0)) best = Heard(audibility, about)
         }
-        world.alarmGrid.forEachNear(a.position, s.hearingRange) { alarm ->
+        val callRange = s.hearingRange * Species.ALARM_LOUDNESS
+        world.alarmGrid.forEachNear(a.position, callRange) { alarm ->
             if (alarm.caller !== a && alarm.threat.isAlive &&
-                a.position.distanceTo(alarm.threat.position) <= s.hearingRange
-            ) consider(audibility(a, alarm.caller.position, 1.0), alarm.threat)
+                a.position.distanceTo(alarm.threat.position) <= callRange
+            ) consider(audibility(a, alarm.caller.position, Species.ALARM_LOUDNESS), alarm.threat)
         }
         world.hunterGrid.forEachNear(a.position, s.hearingRange) { o ->
             if (o.isAlive && o.species != s) consider(audibility(a, o.position, o.noise), o)
@@ -157,9 +160,9 @@ internal class Brain(private val world: World) {
         fun consider(audibility: Double, about: Animal) {
             if (audibility > 0.0 && audibility > (best?.audibility ?: 0.0)) best = Heard(audibility, about)
         }
-        world.alarmGrid.forEachNear(a.position, s.hearingRange) { alarm ->
+        world.alarmGrid.forEachNear(a.position, s.hearingRange * Species.ALARM_LOUDNESS) { alarm ->
             val c = alarm.caller
-            if (c.isAlive && c.species != s) consider(audibility(a, c.position, 1.0), c)
+            if (c.isAlive && c.species != s) consider(audibility(a, c.position, Species.ALARM_LOUDNESS), c)
         }
         world.animalGrid.forEachNear(a.position, s.hearingRange) { o ->
             if (o.isAlive && o.species != s) consider(audibility(a, o.position, o.noise), o)

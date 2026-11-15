@@ -60,6 +60,14 @@ class Animal(
     /** Trait ALARM_CALLING: whether the animal is raising an alarm right now; set by the sensing step. */
     var isCalling = false
 
+    /** Trait ALARM_CALLING: ticks left in the call the animal is in the middle of, 0 when it is not calling. */
+    var callTicksLeft = 0
+        private set
+
+    /** Trait ALARM_CALLING: ticks the animal must still stay quiet before it may raise another call. */
+    var callSilenceTicks = 0
+        private set
+
     /**
      * Traits VENOMOUS and POISONOUS: ticks of toxin left in the animal's body, the HP it costs per tick, and what
      * to record if it kills (docs/sim/SPECIES.md). An animal holds one toxin at a time: a fresh dose replaces the
@@ -133,6 +141,25 @@ class Animal(
 
     /** Fraction of full speed available at the current stamina (never fully stops). */
     val speedFactor get() = MIN_SPEED_FACTOR + (1 - MIN_SPEED_FACTOR) * stamina / species.maxStamina
+
+    /**
+     * Trait ALARM_CALLING: advances the call timers by one tick and returns whether the animal is calling now.
+     * [wants] is whether it has something to call about this tick. A call runs for [Species.alarmCallTicks] and is
+     * then followed by [Species.alarmCallCooldownTicks] of silence, so an animal calls in bursts however long it
+     * keeps running; a threat that disappears mid-call ends the call and still owes the silence
+     * (docs/sim/SPECIES.md). Sets [isCalling] and returns it.
+     */
+    fun tickAlarmCall(wants: Boolean): Boolean {
+        if (callSilenceTicks > 0) callSilenceTicks--
+        if (wants && callTicksLeft == 0 && callSilenceTicks == 0) callTicksLeft = species.alarmCallTicks
+        isCalling = wants && callTicksLeft > 0
+        if (callTicksLeft > 0) {
+            // A call that is cut short by the threat going away still costs the animal its quiet spell.
+            callTicksLeft = if (isCalling) callTicksLeft - 1 else 0
+            if (callTicksLeft == 0) callSilenceTicks = species.alarmCallCooldownTicks
+        }
+        return isCalling
+    }
 
     /**
      * Traits VENOMOUS and POISONOUS: puts a toxin doing [damage] HP per tick for [ticks] ticks into the animal,

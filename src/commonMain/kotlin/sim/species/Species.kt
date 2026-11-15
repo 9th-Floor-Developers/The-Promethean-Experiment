@@ -58,6 +58,16 @@ class Species(
     /** Trait ALARM_CALLING: stamina spent each tick spent raising an alarm, so calling is never free. */
     val alarmCallStaminaCost: Double = 0.05,
     /**
+     * Trait ALARM_CALLING: how long one call sounds. Long enough for listeners to act on it, but far short of a
+     * whole flee: an animal calls in bursts rather than shouting every tick it runs (docs/sim/SPECIES.md).
+     */
+    val alarmCallTicks: Int = 15,
+    /**
+     * Trait ALARM_CALLING: ticks an animal must stay quiet after a call before it may raise another, even while it
+     * is still running. This is what keeps one long chase from filling the world with calls.
+     */
+    val alarmCallCooldownTicks: Int = 90,
+    /**
      * Trait VENOMOUS: HP per tick, and for how many ticks, the toxin left in whatever this species bites does
      * (docs/sim/SPECIES.md). Set above [sim.world.REGEN_RATE] so Trait.REGENERATION cannot simply out-heal it.
      */
@@ -119,6 +129,7 @@ class Species(
         require(sprintSpeedMultiplier >= 1.0) { "sprintSpeedMultiplier must be at least 1 (a sprint is never slower than a walk)" }
         require(sprintChargeTicks > 0 && sprintRecharge > 0) { "sprint reserve and recharge must be positive" }
         require(hearingRange >= 0 && alarmCallStaminaCost >= 0) { "hearing range and alarm call cost must not be negative" }
+        require(alarmCallTicks > 0 && alarmCallCooldownTicks >= 0) { "an alarm call must last at least a tick and its cooldown must not be negative" }
         require(venomDamage >= 0 && poisonDamage >= 0 && spikeDamage >= 0 && hardSkinReduction >= 0) { "trait damage must not be negative" }
         require(venomTicks >= 0 && poisonTicks >= 0) { "toxin durations must not be negative" }
         require(reproductionNutritionThreshold <= maxNutrition) { "reproduction threshold above max nutrition" }
@@ -176,5 +187,12 @@ class Species(
     companion object {
         /** How much further than [viewRange] a species hears by default; sound carries past line of sight. */
         const val HEARING_VIEW_MULTIPLE = 2.5
+
+        /**
+         * Trait ALARM_CALLING: how loud a call is next to a sprinting animal, which is 1.0 (see [sim.animal.Animal.noise]).
+         * A call therefore reaches [HEARING_VIEW_MULTIPLE] x this = 1.5x the listener's view range: further than the
+         * footsteps of a walking animal, not as far as a full sprint (docs/sim/SPECIES.md).
+         */
+        const val ALARM_LOUDNESS = 0.6
     }
 }

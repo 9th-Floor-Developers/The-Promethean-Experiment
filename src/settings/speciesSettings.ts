@@ -89,9 +89,9 @@ export const EXTRA_TRAITS: TraitOption[] = [
     { id: 'HARD_SKIN', label: 'Hard skin', help: 'Takes a flat amount off every bite, so weak biters barely scratch it. Separate from the Armor slider, which takes off a percentage.' },
     { id: 'SPIKES', label: 'Spikes', help: 'Hurts its attacker for every moment it keeps biting.' },
     { id: 'REGENERATION', label: 'Self-healing', help: 'Slowly heals itself while fed and watered.' },
-    { id: 'ALARM_CALLING', label: 'Alarm calls', help: 'Shouts a warning while fleeing a predator it can see. Only animals with sharp hearing can hear it - predators included.' },
+    { id: 'ALARM_CALLING', label: 'Alarm calls', help: 'Shouts a warning in short bursts while fleeing a predator it can see, then goes quiet for a spell. Carries 1.5x its eyesight. Only animals with sharp hearing can hear it - predators included.' },
     { id: 'NIGHT_VISION', label: 'Night vision', help: 'Sees at full range in the dark. Everything else sees half as far at night.' },
-    { id: 'HEARING', label: 'Sharp hearing', help: 'Notices alarm calls and moving animals it cannot see, out to 2.5x its eyesight.' },
+    { id: 'HEARING', label: 'Sharp hearing', help: 'Notices moving animals it cannot see out to 2.5x its eyesight, and alarm calls out to 1.5x.' },
 ];
 
 /** Every trait id the simulation knows, so ids of traits that have been removed can be dropped from saved presets. */

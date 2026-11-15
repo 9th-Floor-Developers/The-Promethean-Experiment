@@ -268,17 +268,18 @@ class World(
     /**
      * Trait ALARM_CALLING: every animal of a calling species that is running from a predator it can actually see
      * sounds an alarm, paying [Species.alarmCallStaminaCost] for it. An animal fleeing on hearsay stays quiet, so
-     * one call cannot cascade through a whole population. Callers are read from the action and feelings of last
-     * tick, so an alarm always reaches listeners one tick after the danger was spotted (docs/sim/SPECIES.md).
+     * one call cannot cascade through a whole population, and [Animal.tickAlarmCall] rations the calling into short
+     * bursts with a quiet spell between them rather than one call every tick of a flee. Callers are read from the
+     * action and feelings of last tick, so an alarm always reaches listeners one tick after the danger was spotted
+     * (docs/sim/SPECIES.md).
      */
     private fun raiseAlarms() {
         alarms.clear(); alarmGrid.clear()
         for (a in animals) {
             val act = a.action
-            val calling = a.isAlive && a.species.canCallAlarm && act is Action.RunFromPredator && act.predator.isAlive &&
+            val wants = a.isAlive && a.species.canCallAlarm && act is Action.RunFromPredator && act.predator.isAlive &&
                 !a.feelings.threatHeardOnly
-            a.isCalling = calling
-            if (calling) {
+            if (a.tickAlarmCall(wants)) {
                 val alarm = Alarm(a, (act as Action.RunFromPredator).predator)
                 alarms.add(alarm)
                 alarmGrid.add(alarm, a.position)
