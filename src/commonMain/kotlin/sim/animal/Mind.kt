@@ -67,7 +67,7 @@ class Mind(val net: NeuralNet) {
         const val MAX_LAYER_SIZE = 64
         /** Hidden layers a brain can have; a newborn's count is its shape parent's, plus or minus one by mutation. */
         const val MIN_HIDDEN_LAYERS = 1
-        const val MAX_HIDDEN_LAYERS = 10
+        const val MAX_HIDDEN_LAYERS = 5
         /** Size of a hidden layer added by mutation. */
         const val NEW_LAYER_SIZE = 4
         /** Largest random change to each inherited weight. */

@@ -3,24 +3,35 @@ import { BRAIN_INPUT_HELP, BRAIN_OUTPUT_HELP } from '../ui/helpText';
 
 /** Most neurons drawn per layer; bigger layers show the first ones and a "+n" note. */
 const MAX_DRAWN = 14;
-const W = 280;
 /** Space for the input labels (left) and output labels (right). */
 const LEFT = 78, RIGHT = 74;
+/** Width between the input and output columns for a one-hidden-layer brain; deeper brains get wider (see [COL_GAP]). */
+const MIN_INNER = 128;
+/** Narrowest gap between two layer columns, so a deep brain's columns and their "+n" notes stay apart. */
+const COL_GAP = 34;
+/** Height of the row of layer names above the columns. */
+const HEAD = 12;
 const ROW = 13;
 const POSITIVE = '#5eb0ff';
 const NEGATIVE = '#ff9f5a';
 
+/** Short name shown above column [l] of a network with [layers] layers: senses, h1..hn, drives. */
+const layerName = (l: number, layers: number) => (l === 0 ? 'senses' : l === layers - 1 ? 'drives' : `h${l}`);
+
 /**
  * A basic drawing of a neural-network animal's brain: one column of neurons per layer (inputs left, drives right),
- * lines for the connections (blue = positive weight, orange = negative, stronger = more opaque). Input neurons glow
- * with what the animal senses now; the drive it wants most is highlighted.
+ * each named above it (h1, h2... for the hidden layers), with lines for the connections (blue = positive weight,
+ * orange = negative, stronger = more opaque). The drawing widens with every hidden layer past the first, so a deep
+ * brain's columns stay apart. Input neurons glow with what the animal senses now; the drive it wants most is highlighted.
  */
 export function NeuralNetView({ brain }: { brain: BrainInfo }) {
     const { sizes, weights, inputs, outputs } = brain;
     const drawn = sizes.map((n) => Math.min(n, MAX_DRAWN));
-    const H = Math.max(...drawn) * ROW + 16;
-    const colX = (l: number) => LEFT + (l / (sizes.length - 1)) * (W - LEFT - RIGHT);
-    const rowY = (l: number, i: number) => H / 2 + (i - (drawn[l]! - 1) / 2) * ROW;
+    const inner = Math.max(MIN_INNER, (sizes.length - 1) * COL_GAP);
+    const W = LEFT + inner + RIGHT;
+    const H = HEAD + Math.max(...drawn) * ROW + 16;
+    const colX = (l: number) => LEFT + (l / (sizes.length - 1)) * inner;
+    const rowY = (l: number, i: number) => HEAD + (H - HEAD) / 2 + (i - (drawn[l]! - 1) / 2) * ROW;
     const best = outputs.indexOf(Math.max(...outputs));
 
     const edges = [];
@@ -43,6 +54,10 @@ export function NeuralNetView({ brain }: { brain: BrainInfo }) {
                 {edges}
                 {sizes.map((n, l) => (
                     <g key={l}>
+                        <text x={colX(l)} y={HEAD - 3} textAnchor="middle" className="netview__layer">
+                            {layerName(l, sizes.length)}
+                            <title>{l === 0 ? `Senses: ${n} inputs.` : l === sizes.length - 1 ? `Drives: ${n} outputs, one per thing it can want.` : `Hidden layer ${l} of ${sizes.length - 2}: ${n} neurons.`}</title>
+                        </text>
                         {Array.from({ length: drawn[l]! }, (_, i) => {
                             const isIn = l === 0, isOut = l === sizes.length - 1;
                             const glow = isIn ? Math.max(0, Math.min(1, Math.abs(inputs[i] ?? 0))) : isOut && i === best ? 1 : 0.25;
@@ -73,7 +88,7 @@ export function NeuralNetView({ brain }: { brain: BrainInfo }) {
             </svg>
             <figcaption className="netview__caption"
                         title="Neurons per layer, from senses to drives, and how many past decisions it can learn from: its own, plus ones it watched other animals of its species make. It replays them while resting.">
-                Layers {sizes.join(' → ')} · remembers {brain.own} own and {brain.observed} observed decisions
+                Layers {sizes.join(' → ')} ({sizes.length - 2} hidden) · remembers {brain.own} own and {brain.observed} observed decisions
             </figcaption>
         </figure>
     );

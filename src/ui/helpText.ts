@@ -39,7 +39,7 @@ export const CALCULATED_HELP = {
     baseStaminaUsage: 'Stamina spent every tick simply by being alive. It rises with max health and with eyesight, so a big, sharp-eyed animal tires faster even standing still.',
     walkingStaminaUsage: 'Extra stamina spent each tick while moving, on top of the base cost. It rises with speed.',
     elderlyAge: 'The age at which it counts as elderly. From then on its stamina refills more slowly the longer it has been old. Better eyesight brings this age forward.',
-    intelligence: 'Connections in its neural network (trait SOFT_CODED): every weight between neighbouring layers plus one bias per neuron, so a deeper brain (more hidden layers, up to 10) counts for more than the same neurons in one layer. Every hidden neuron costs stamina each tick, so a bigger brain has to earn its keep. Instinct animals have no network.',
+    intelligence: 'Connections in its neural network (trait SOFT_CODED): every weight between neighbouring layers plus one bias per neuron, so it counts how the brain is wired (it can have up to 5 hidden layers), not just how many neurons it has. Every hidden neuron costs stamina each tick, so a bigger brain has to earn its keep. Instinct animals have no network.',
     inherited: 'Inherited stats are mixed from both parents at birth and nudged by the species mutation rate; they never change during a life.',
     network: 'The animal’s brain: senses on the left, drives on the right, one dot per neuron. Blue lines are positive connections, orange negative, and brighter lines are stronger. The glowing drive is what it wants most right now.',
 } as const;
