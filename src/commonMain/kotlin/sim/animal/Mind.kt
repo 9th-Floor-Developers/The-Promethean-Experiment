@@ -55,9 +55,9 @@ class Mind(val net: NeuralNet) {
         /** Remembered decisions replayed per tick while resting. */
         const val REPLAYS_PER_TICK = 16
         /**
-         * Remembered decisions replayed per tick while awake, on top of the bigger rest-time replays. Learners chose
-         * REST in only about 3% of ticks, so a brain that learned only at rest hardly learned at all: with awake
-         * learning a learner population roughly triples, and the Learning lab preset stops dying out on most seeds.
+         * Remembered decisions replayed per tick while awake when the world's awake learning setting is on (it is off
+         * by default). Learners chose REST in only about 3% of ticks, so a brain that learns only at rest hardly
+         * learns at all: with awake learning a learner population roughly triples and stops dying out on most seeds.
          */
         const val AWAKE_REPLAYS_PER_TICK = 4
         /** Chance a decision is a random drive instead of the strongest one, so the animal keeps trying new things. */

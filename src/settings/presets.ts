@@ -1,6 +1,6 @@
 /** Presets: named, saved bundles of simulation settings. One preset is active and is what Start Simulation runs. */
 import {
-    BRAIN_NOISE, CARCASS_ROT_HOURS, MAP_SIZE, RESOURCE, defaultSettings, herbivoreTemplate, loadLegacySettings, sanitizeSettings, withFixedLooks, type SimSettings, type SpeciesSettings,
+    AWAKE_LEARNING_DEFAULT, BRAIN_NOISE, CARCASS_ROT_HOURS, MAP_SIZE, RESOURCE, defaultSettings, herbivoreTemplate, loadLegacySettings, sanitizeSettings, withFixedLooks, type SimSettings, type SpeciesSettings,
 } from './speciesSettings';
 
 /** Which built-in preset a preset started as (so it can be reset to its original); absent for the user's own. */
@@ -61,9 +61,10 @@ function savannaSettings(): SimSettings {
  * Watch the population graph: an early crash of the learners followed by steady growth is the learning curve.
  * Carcasses rot in 8 hours instead of 3 days: many learners starve, and with long-lasting carrion the hunters fed on
  * those bodies, kept breeding and wiped the learners out (seed 42: hunters 3 -> 33, learners extinct by day 70).
- * Tested on the JVM (IntelligenceExperiment, 60 days, seeds 42 and 1-7), since learners also learn while awake: learners
- * end at 77-245 on seven seeds (1 on the eighth), hunters 3 -> 31-58 on all eight. Before awake learning, learners died
- * out or dwindled to 1-2 animals on six of those eight seeds and the hunters on all of them.
+ * Tested on the JVM (IntelligenceExperiment, 60 days, seeds 42 and 1-7). As set (awake learning off, the default),
+ * learners die out or dwindle to 1-2 animals on six of those eight seeds and the hunters on all of them. With Awake
+ * learning turned on (Settings > World > Brains), learners end at 77-245 on seven seeds (1 on the eighth) and hunters
+ * 3 -> 31-58 on all eight.
  */
 function learningSettings(): SimSettings {
     const species: Omit<SpeciesSettings, 'look'>[] = [ // looks are filled in by builtInSettings
@@ -114,7 +115,7 @@ function dayNightSettings(): SimSettings {
  * - Stinging grazer: an instinct-driven, armoured night grazer competing for the same plants.
  * Decision noise 5: a founder-sized brain chooses almost at random, and the noise falls with the square of a brain's
  * connections, so smarter scuttlers find food and water more reliably and outlive the rest (each neuron still costs
- * stamina). Tuned by hill climbing on seeds 1-5; tested on the JVM (IntelligenceExperiment, 30 days) on unseen seeds
+ * stamina). Awake learning is on, so the scuttlers learn while awake too, not only in their rare rests. Tuned by hill climbing on seeds 1-5; tested on the JVM (IntelligenceExperiment, 30 days) on unseen seeds
  * 11-20: intelligence vs lifespan r = 0.47 (every seed at least 0.40; Spearman 0.46), grazers survive on 8 of 10.
  * The correlation builds up over the run: about 0 at day 10 (nearly all the dead are still same-brained founders),
  * about 0.37 at day 20, 0.57 at day 60 (seeds 11-16, every seed at least 0.49). Average lifespan climbs with brain size,
@@ -130,7 +131,7 @@ function intelligenceSettings(): SimSettings {
             mutationRate: 5,
             traits: ['HARD_CODED', 'HERBIVORE', 'EGG_BIRTH', 'EXOSKELETON', 'NOCTURNAL'] },
     ];
-    return sanitizeSettings({ species, mapSize: 90, water: 1.5, trees: 2, grass: 1, carcassRotHours: 48, brainNoise: 5 })!;
+    return sanitizeSettings({ species, mapSize: 90, water: 1.5, trees: 2, grass: 1, carcassRotHours: 48, brainNoise: 5, awakeLearning: true })!;
 }
 // INTELLIGENCE-PRESET-END
 
@@ -148,7 +149,7 @@ function builtInSettingsRaw(key: BuiltInKey): SimSettings {
     if (key === 'dayNight') return dayNightSettings();
     if (key === 'intelligence') return intelligenceSettings();
     if (key === 'paradise') {
-        return { species: [{ ...herbivoreTemplate(), name: 'Herbivore', count: 60 }], mapSize: MAP_SIZE.max, water: RESOURCE.max, trees: RESOURCE.max, grass: RESOURCE.max, carcassRotHours: CARCASS_ROT_HOURS.default, brainNoise: BRAIN_NOISE.default };
+        return { species: [{ ...herbivoreTemplate(), name: 'Herbivore', count: 60 }], mapSize: MAP_SIZE.max, water: RESOURCE.max, trees: RESOURCE.max, grass: RESOURCE.max, carcassRotHours: CARCASS_ROT_HOURS.default, brainNoise: BRAIN_NOISE.default, awakeLearning: AWAKE_LEARNING_DEFAULT };
     }
     return { ...defaultSettings(), mapSize: 200 };
 }

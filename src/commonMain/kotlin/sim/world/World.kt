@@ -40,6 +40,8 @@ internal class Alarm(val caller: Animal, val threat: Animal)
  * [carcassRotTicks] is how long a dead body takes to rot away (a world setting, see [sim.objects.Carcass]).
  * [brainNoise] is the world's decision noise for neural-network animals (a world setting, 0 = off; see
  * [sim.animal.Mind.pickDrive]): how blurred a small brain's judgement is, so how much intelligence pays.
+ * [awakeLearning] (a world setting, off by default) lets neural-network animals also learn a little while awake
+ * ([Mind.AWAKE_REPLAYS_PER_TICK] replays per tick); when off they learn only while resting.
  */
 class World(
     val terrain: Terrain,
@@ -47,6 +49,7 @@ class World(
     seed: Long = 0L,
     val carcassRotTicks: Int = CARCASS_ROT_TICKS,
     val brainNoise: Double = 0.0,
+    val awakeLearning: Boolean = false,
 ) {
     val animals = mutableListOf<Animal>()
 
@@ -577,13 +580,14 @@ class World(
         for (a in animals) {
             val m = a.mind ?: continue
             if (!a.isAlive) continue
-            // Resting is when most learning happens, but an animal keeps learning a little while it is awake too.
+            // Resting is when most learning happens; with awake learning on, an animal also learns a little while awake.
             val rests = a.action == Action.Rest
+            if (!rests && !awakeLearning) continue
             replays += m.train(rng, if (rests) Mind.REPLAYS_PER_TICK else Mind.AWAKE_REPLAYS_PER_TICK)
             trained++
             if (rests) resting++
         }
-        log.info { "$trained SOFT_CODED animals ($resting of them resting) replayed $replays remembered decisions" }
+        log.info { "$trained SOFT_CODED animals ($resting of them resting, awake learning ${if (awakeLearning) "on" else "off"}) replayed $replays remembered decisions" }
 
         log.step("4/4 Deaths")
         val dead = animals.filter { !it.isAlive }

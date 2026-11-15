@@ -42,8 +42,9 @@ const val START_HERBIVORES = 40
 
 /**
  * How plentiful each resource is: multipliers where 1.0 is the default amount (ponds, trees, grass tufts), plus
- * [carcassRotTicks], how long a dead body stays as food before it has rotted away, and [brainNoise], the world's
- * decision noise for neural-network animals (0 = off, see [sim.animal.Mind.pickDrive]).
+ * [carcassRotTicks], how long a dead body stays as food before it has rotted away, [brainNoise], the world's
+ * decision noise for neural-network animals (0 = off, see [sim.animal.Mind.pickDrive]), and [awakeLearning], whether
+ * they also learn while awake (off = only while resting, see [World]).
  */
 class Resources(
     val water: Double = 1.0,
@@ -51,6 +52,7 @@ class Resources(
     val grass: Double = 1.0,
     val carcassRotTicks: Int = CARCASS_ROT_TICKS,
     val brainNoise: Double = 0.0,
+    val awakeLearning: Boolean = false,
 )
 
 /** Ticks plants stay inedible after being eaten; long enough that food, not predators alone, limits the herbivores. */
@@ -74,7 +76,7 @@ fun createMockWorld(seed: Long, size: Int = TERRAIN_SIZE): World =
  */
 fun createWorld(seed: Long, size: Int, setups: List<SpeciesSetup>, resources: Resources = Resources()): World {
     val terrain = TerrainGenerator.generate(seed, size, resources.water)
-    val world = World(terrain, setups.map { it.species }, seed, resources.carcassRotTicks.coerceAtLeast(1), resources.brainNoise.coerceAtLeast(0.0))
+    val world = World(terrain, setups.map { it.species }, seed, resources.carcassRotTicks.coerceAtLeast(1), resources.brainNoise.coerceAtLeast(0.0), resources.awakeLearning)
     val rng = Random(seed)
 
     val spots = (0 until terrain.width * terrain.height)

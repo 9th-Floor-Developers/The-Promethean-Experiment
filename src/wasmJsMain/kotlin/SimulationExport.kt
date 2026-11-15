@@ -46,14 +46,14 @@ private fun q(s: String) = "\"$s\""
 
 /**
  * Creates (or replaces) the simulation and returns its terrain as JSON in the contract documented on
- * [generateTerrainJson]. [speciesConfig] is the Settings text (see [parseSpeciesConfig]); blank = default demo species. [water], [trees], [grass] are resource multipliers (1.0 = default); [carcassRotHours] is how many in-game hours a carcass takes to rot away; [brainNoise] is the decision noise of neural-network brains (0 = off, see sim.animal.Mind.pickDrive). The frontend renders exactly this terrain, so visuals and simulation agree.
+ * [generateTerrainJson]. [speciesConfig] is the Settings text (see [parseSpeciesConfig]); blank = default demo species. [water], [trees], [grass] are resource multipliers (1.0 = default); [carcassRotHours] is how many in-game hours a carcass takes to rot away; [brainNoise] is the decision noise of neural-network brains (0 = off, see sim.animal.Mind.pickDrive); [awakeLearning] lets them also learn while awake (see sim.world.World). The frontend renders exactly this terrain, so visuals and simulation agree.
  */
 @OptIn(ExperimentalJsExport::class)
 @JsExport
-fun createSimulation(seed: Int, size: Int, speciesConfig: String, water: Double, trees: Double, grass: Double, carcassRotHours: Double, brainNoise: Double): String {
+fun createSimulation(seed: Int, size: Int, speciesConfig: String, water: Double, trees: Double, grass: Double, carcassRotHours: Double, brainNoise: Double, awakeLearning: Boolean): String {
     println("\n########## PROCESS: Create Simulation (seed=$seed, size=$size) ##########")
     val w = if (speciesConfig.isBlank()) createMockWorld(seed.toLong(), size)
-    else createWorld(seed.toLong(), size, parseSpeciesConfig(speciesConfig), Resources(water, trees, grass, (carcassRotHours * TICKS_PER_DAY / 24).roundToInt(), brainNoise))
+    else createWorld(seed.toLong(), size, parseSpeciesConfig(speciesConfig), Resources(water, trees, grass, (carcassRotHours * TICKS_PER_DAY / 24).roundToInt(), brainNoise, awakeLearning))
     world = w
     return terrainToJson(w.terrain)
 }

@@ -58,8 +58,9 @@ learning from others: when an animal finishes a decision, every same-species SOF
 remembers that decision too, in a separate memory of observed decisions (up to 100); every animal still has its own unique data,
 since what it saw depends on where it was
 every tick an animal is in REST it replays 16 remembered decisions through Q-learning (learning rate 0.05, discount 0.9), 30% of them from observed decisions;
-while awake it keeps learning a little too, 4 replays per tick (learners chose REST in only ~3% of ticks, so learning only at rest meant hardly learning at all;
-with awake learning a learner population roughly triples and the Learning lab preset stops dying out on most seeds)
+awake learning (Settings > World > Brains, off by default): when on, an awake animal keeps learning a little too, 4 replays per tick
+(learners chose REST in only ~3% of ticks, so learning only at rest means hardly learning at all; with awake learning a learner population
+roughly triples and the Learning lab preset stops dying out on most seeds). The Intelligence pays preset turns it on
 
 children inherit the hidden layer shape (from a random parent, sizes averaged where both parents have the layer)
 and weights that are only 25% the parents' average and 75% fresh random (so behaviour is mainly learned, not passed on), both with mutation: +/- 2 neurons per layer (30% chance), add or remove a layer (15% each, equal so mutation alone does not favour deeper brains, 1 to 5 hidden layers, 2 to 64 neurons each); the layer count starts from the shape parent's, so depth builds up over generations

@@ -158,6 +158,9 @@ export function SettingsScreen({ store, onChange: onStoreChange, display, onDisp
                         <div className="stat__ends"><span>Off</span><span>Small brains guess</span></div>
                         <p className="stat__help">Only affects neural-network animals. Every choice they make is blurred by noise, and the noise falls with the square of the brain's connections: twice the connections, a quarter of the noise. Off, brain size makes no difference to how well an animal decides; turned up, small brains act almost at random while big ones choose well, so intelligence pays (each neuron still costs stamina).</p>
                     </div>
+                    <DisplayToggle label="Awake learning" checked={settings.awakeLearning} onChange={(on) => onChange({ ...settings, awakeLearning: on })}>
+                        Only affects neural-network animals. Off, they learn from their memories only while resting, which they do rarely, so they learn slowly. On, they also learn a little while awake, so learner species adapt faster and survive far more often.
+                    </DisplayToggle>
                 </article>
             )}
 
@@ -343,7 +346,7 @@ function SpeciesCard({ sp, index, canRemove, otherLooks, onPatch, onRemove }: Ca
     );
 }
 
-/** One on/off option on the Display tab: a checkbox with a bold label and an explanation underneath. */
+/** One on/off option (Display tab, and Awake learning on the World tab): a checkbox with a bold label and an explanation underneath. */
 function DisplayToggle({ label, checked, onChange, children }: { label: string; checked: boolean; onChange: (on: boolean) => void; children: ReactNode }) {
     return (
         <label className="toggle">

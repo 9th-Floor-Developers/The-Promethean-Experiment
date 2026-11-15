@@ -125,7 +125,7 @@ private fun f2(v: Double?) = v?.let { "%.3f".format(it) } ?: "  -  "
  * Usage: `IntelligenceExperimentKt configFile seeds days [mapSize] [water] [trees] [grass] [carcassRotHours] [brainNoise] [threads] [flags]`
  * with seeds comma separated and the world values as on the Settings screen (defaults 200, 1, 1, 1, 72, 0). Flags:
  * `--sizes` per-brain-size table, `--hist` age-at-death histogram, `--causes` death causes, `--diag` what the learners
- * spend their ticks doing, `--all` also record instinct species, `--mutate-founders` gives each neural founder one round of birth mutation, `--shapes=2;8;8,8` gives the neural founders those
+ * spend their ticks doing, `--awake` turns awake learning on, `--all` also record instinct species, `--mutate-founders` gives each neural founder one round of birth mutation, `--shapes=2;8;8,8` gives the neural founders those
  * hidden layers in turn instead of the usual founder brain (a controlled brain-size test). Simulation events are
  * silenced; only the report is printed. Used to tune the "Intelligence pays" preset (src/settings/presets.ts).
  */
@@ -135,7 +135,7 @@ fun main(args: Array<String>) {
     val days = args[2].toInt()
     val size = args.getOrNull(3)?.toIntOrNull() ?: 200
     val num = { i: Int, d: Double -> args.getOrNull(i)?.toDoubleOrNull() ?: d }
-    val resources = Resources(num(4, 1.0), num(5, 1.0), num(6, 1.0), (num(7, 72.0) * TICKS_PER_DAY / 24).toInt(), num(8, 0.0))
+    val resources = Resources(num(4, 1.0), num(5, 1.0), num(6, 1.0), (num(7, 72.0) * TICKS_PER_DAY / 24).toInt(), num(8, 0.0), "--awake" in args)
     val threads = args.getOrNull(9)?.toIntOrNull() ?: seeds.size
     // --shapes=2;4;8,8 gives neural founders these hidden layers in turn (a controlled brain-size test).
     val shapes = args.firstOrNull { it.startsWith("--shapes=") }?.removePrefix("--shapes=")?.split(";")

@@ -17,10 +17,10 @@ private const val SUMMARY_EVERY = TICKS_PER_DAY / 4
 private const val VERBOSE_TICKS = 2
 
 /**
- * Entry point. Usage: `[seed] [days] [mapSize] [carnivores] [herbivores] [configFile] [water] [trees] [grass] [carcassRotHours] [brainNoise]` (defaults 42, 3, TERRAIN_SIZE and the mock
+ * Entry point. Usage: `[seed] [days] [mapSize] [carnivores] [herbivores] [configFile] [water] [trees] [grass] [carcassRotHours] [brainNoise] [awakeLearning]` (defaults 42, 3, TERRAIN_SIZE and the mock
  * starting counts). If [configFile] is given, species come from that Settings text (see [parseSpeciesConfig]), exactly as
- * the browser builds them, and the two counts are ignored. The last five are the Settings screen's resource multipliers, carcass rot time
- * and brain decision noise (defaults 1, 1, 1, 72, 0). Builds the world, then ticks it for the given number of in-game days.
+ * the browser builds them, and the two counts are ignored. The last six are the Settings screen's resource multipliers, carcass rot time,
+ * brain decision noise and awake learning (defaults 1, 1, 1, 72, 0, false). Builds the world, then ticks it for the given number of in-game days.
  * The extra arguments exist for scale experiments (map size and starting populations versus long-run stability).
  */
 fun main(args: Array<String>) {
@@ -32,7 +32,7 @@ fun main(args: Array<String>) {
     val setups = args.getOrNull(5)?.let { parseSpeciesConfig(File(it).readText()) }
         ?: listOf(SpeciesSetup(MOCK_CARNIVORE, carnivores), SpeciesSetup(MOCK_HERBIVORE, herbivores))
     val num = { i: Int, d: Double -> args.getOrNull(i)?.toDoubleOrNull() ?: d }
-    val resources = Resources(num(6, 1.0), num(7, 1.0), num(8, 1.0), (num(9, 72.0) * TICKS_PER_DAY / 24).toInt(), num(10, 0.0))
+    val resources = Resources(num(6, 1.0), num(7, 1.0), num(8, 1.0), (num(9, 72.0) * TICKS_PER_DAY / 24).toInt(), num(10, 0.0), args.getOrNull(11)?.toBooleanStrictOrNull() ?: false)
     val world = createWorld(seed, size, setups, resources)
 
     println("\n########## PROCESS: Simulation Run ($days days, ${days * TICKS_PER_DAY} ticks, map ${size}x$size, ${setups.joinToString { "${it.count} ${it.species.name}" }}) ##########")
