@@ -57,12 +57,19 @@ each decision is remembered with the reward collected until the next decision (u
 learning from others: when an animal finishes a decision, every same-species SOFT CODED animal that can see it (within its own view range)
 remembers that decision too, in a separate memory of observed decisions (up to 100); every animal still has its own unique data,
 since what it saw depends on where it was
-every tick an animal is in REST it replays 16 remembered decisions through Q-learning (learning rate 0.05, discount 0.9), 30% of them from observed decisions
+every tick an animal is in REST it replays 16 remembered decisions through Q-learning (learning rate 0.05, discount 0.9), 30% of them from observed decisions;
+while awake it keeps learning a little too, 4 replays per tick (learners chose REST in only ~3% of ticks, so learning only at rest meant hardly learning at all;
+with awake learning a learner population roughly triples and the Learning lab preset stops dying out on most seeds)
 
 children inherit the hidden layer shape (from a random parent, sizes averaged where both parents have the layer)
 and weights that are only 25% the parents' average and 75% fresh random (so behaviour is mainly learned, not passed on), both with mutation: +/- 2 neurons per layer (30% chance), add or remove a layer (15% each, equal so mutation alone does not favour deeper brains, 1 to 5 hidden layers, 2 to 64 neurons each); the layer count starts from the shape parent's, so depth builds up over generations
 founders start with one hidden layer of 2 neurons and random weights
 every hidden neuron costs stamina each tick, so a bigger brain has to earn its keep
+decision noise (Settings > World > Brains, 0 = off, the default): before the strongest drive is picked, each drive value gets random noise of
+(decision noise) x (spread of the drive values) x (founder intelligence / intelligence)^2, so a founder-sized brain (50 connections) at noise 5 chooses
+almost at random while one with twice the connections has a quarter of the noise. It is how intelligence can pay off in decision quality;
+without it, brain size makes no measurable difference to how well an animal decides (tested on the JVM by giving founders brains of 2, 8 and 32 neurons:
+equal lifespans once the stamina cost is removed, shorter for big brains with it). The Intelligence pays preset turns it on
 'intelligence' (shown in the inspector and the statistics charts) = the number of connections in the network: every weight between neighbouring layers plus one bias per hidden and output neuron,
 so how the neurons are wired counts, not just how many (15-2-6 = 50, 15-2-4-6 = 74, 15-4-6 = 94: neurons right after the 15 inputs are the most connected); the stamina cost stays per hidden neuron, not per connection; the inspector also draws the network
 the statistics page shows thirst & hunger deaths per 100 animal-days per species, which measures how well each animal copes regardless of population size
