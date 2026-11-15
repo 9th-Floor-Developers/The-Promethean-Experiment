@@ -70,3 +70,15 @@ tested (JVM, 10-15 in-game days): with learning on, brains become need-dependent
 ~75% pick EAT when hungry vs ~35-40% when not); with learning switched off nothing changes and the species dies out
 with brains mostly learned, learning from others matters a lot: Learning lab preset (seed 42) day 15 has 136 learners with it, 22 without
 known weakness: fleeing is not learned yet (animals caught by predators rarely survive to rest and learn from it)
+
+
+Animals may also have effects including
+poisoned - venom or poison is still working in its body (traits VENOMOUS and POISONOUS, see SPECIES.md), it loses HP every tick until the toxin runs out
+           VENOMOUS: the bitten animal gets 0.25 HP/tick for 240 ticks; POISONOUS: the animal that bites it gets 0.25 HP/tick for 360 ticks
+           an animal holds one toxin at a time, a fresh dose replaces the old one and restarts the timer (never stacks); toxin damage ignores armor and HARD SKIN
+starving - nutrition is 0, it loses HP every tick until it eats
+dehydrated - hydration is 0, it loses HP every tick until it drinks
+tired - stamina is below 15% of max, it walks at nearly its slowest and cannot sprint
+
+effects are worked out from the animal's current state, not stored, and an animal can have any number at once
+every effect is shown in the inspector under 'Effects' (poisoned also shows the ticks of toxin left)

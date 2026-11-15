@@ -46,15 +46,27 @@ export const NO_HEADING = 999;
  * baseStaminaUsage, walkingStaminaUsage, elderlyAge), then intelligence: the size of its neural network in hidden neurons, or -1 when it has none (instinct brain),
  * then sprintCharge: the sprint reserve left in ticks, and sprinting: 1 while the animal is sprinting (both 0 without the SPRINTING trait),
  * then calling: 1 while the animal is raising an alarm (ALARM_CALLING),
- * then toxinTicks: ticks of venom or poison still working in the animal (VENOMOUS, POISONOUS), 0 when not poisoned.
+ * then toxinTicks: ticks of venom or poison still working in the animal (VENOMOUS, POISONOUS), 0 when not poisoned,
+ * then effects: a bitmask of the animal's current effects (see EFFECT_BITS).
  */
 export const A = {
     id: 0, species: 1, x: 2, y: 3, hp: 4, nutrition: 5, hydration: 6, stamina: 7, age: 8,
     action: 9, fear: 10, hunger: 11, thirst: 12, libido: 13, targetX: 14, targetY: 15, heading: 16,
     maxHp: 17, speed: 18, damage: 19, armor: 20, viewRange: 21,
     baseStaminaUsage: 22, walkingStaminaUsage: 23, elderlyAge: 24, intelligence: 25,
-    sprintCharge: 26, sprinting: 27, calling: 28, toxinTicks: 29,
+    sprintCharge: 26, sprinting: 27, calling: 28, toxinTicks: 29, effects: 30,
 } as const;
+
+/** Bits of the A.effects column, matching Kotlin's AnimalEffect (docs/sim/ANIMALS.MD). */
+export const EFFECT_BITS = { POISONED: 1, STARVING: 2, DEHYDRATED: 4, TIRED: 8 } as const;
+
+/** An animal effect id, as in EFFECT_BITS. */
+export type AnimalEffectId = keyof typeof EFFECT_BITS;
+
+/** The effects packed in an A.effects bitmask, in EFFECT_BITS order. */
+export function decodeEffects(mask: number): AnimalEffectId[] {
+    return (Object.keys(EFFECT_BITS) as AnimalEffectId[]).filter((id) => (mask & EFFECT_BITS[id]) !== 0);
+}
 
 /** A neural-network (SOFT_CODED) animal's brain from Kotlin's getAnimalBrain(). */
 export interface BrainInfo {

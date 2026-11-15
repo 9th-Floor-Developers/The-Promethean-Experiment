@@ -1,6 +1,7 @@
 import base.Vector2
 import sim.animal.Action
 import sim.animal.Animal
+import sim.animal.AnimalEffect
 import sim.animal.AnimalStats
 import sim.animal.Mind
 import sim.objects.Carcass
@@ -94,7 +95,7 @@ fun tickSimulation(ticks: Int) {
 /**
  * Current state as JSON:
  * `{"tick","day","timeOfDay","phase",
- * "animals":[[id,speciesIndex,x,y,hp,nutrition,hydration,stamina,age,actionCode,fear,hunger,thirst,libido,targetX,targetY,heading,maxHp,speed,damage,armor,viewRange,baseStaminaUsage,walkingStaminaUsage,elderlyAge,intelligence,sprintCharge,sprinting,calling,toxinTicks]...],
+ * "animals":[[id,speciesIndex,x,y,hp,nutrition,hydration,stamina,age,actionCode,fear,hunger,thirst,libido,targetX,targetY,heading,maxHp,speed,damage,armor,viewRange,baseStaminaUsage,walkingStaminaUsage,elderlyAge,intelligence,sprintCharge,sprinting,calling,toxinTicks,effects]...],
  * "carcasses":[[id,x,y,fractionLeft]...],"eggs":[[id,x,y,hatchProgress]...],"deaths":[predatoryTotal,naturalTotal],
  * "perSpecies":[[naturalDeaths,animalTicks]...],"trees":"<one digit per tree, 1 = edible>","grass":"<one digit per grass tuft, 1 = edible>"}`.
  * `intelligence` is the size of the animal's neural network in hidden neurons (SOFT_CODED), or -1 when it has none.
@@ -104,7 +105,8 @@ fun tickSimulation(ticks: Int) {
  * `sprintCharge` is the sprint reserve left in ticks (see [sim.animal.Animal.sprintCharge]) and `sprinting` is 1 while
  * the animal is sprinting this tick; both are 0 for a species without Trait.SPRINTING. `calling` is 1 while the
  * animal is raising an alarm (Trait.ALARM_CALLING). `toxinTicks` is how many ticks of venom or poison are still
- * working in the animal (traits VENOMOUS and POISONOUS), 0 when it is not poisoned.
+ * working in the animal (traits VENOMOUS and POISONOUS), 0 when it is not poisoned. `effects` is a bitmask of the
+ * animal's current [sim.animal.AnimalEffect]s: 1 poisoned, 2 starving, 4 dehydrated, 8 tired.
  * `heading` is the direction (radians, tile axes) a wandering or fleeing animal is moving in, or 999 when it has none.
  * `timeOfDay` runs 0.0 (midnight) to 1.0; `speciesIndex` indexes `species` from [getSimulationInfo].
  */
@@ -120,7 +122,7 @@ fun getSimulationSnapshot(): String {
             "${r2(a.stats.maxHp)},${a.stats.speed},${r2(a.stats.damage)},${r2(a.stats.armor)},${r2(a.stats.viewRange)}," +
             "${a.stats.baseStaminaUsage},${a.stats.walkingStaminaUsage},${r2(a.stats.elderlyAge)},${a.mind?.net?.hiddenNeurons ?: -1}," +
             "${r2(if (a.species.canSprint) a.sprintCharge else 0.0)},${if (a.isSprinting) 1 else 0},${if (a.isCalling) 1 else 0}," +
-            "${a.toxinTicks}]"
+            "${a.toxinTicks},${AnimalEffect.mask(a.effects)}]"
     }
     val carcasses = w.objects.filterIsInstance<Carcass>().joinToString(",") {
         "[${it.id},${r2(it.position.x)},${r2(it.position.y)},${r2(it.nutrition / it.initialNutrition)}]"

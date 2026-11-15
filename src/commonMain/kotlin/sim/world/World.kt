@@ -526,8 +526,8 @@ class World(
             a.changeNutrition(-s.nutritionDrain)
             a.changeHydration(-s.hydrationDrain)
             if (a.reproductionCooldown > 0) a.reproductionCooldown--
-            if (a.nutrition <= 0) a.hurt(s.starvationDamage, "starved")
-            if (a.hydration <= 0) a.hurt(s.starvationDamage, "died of thirst")
+            if (a.isStarving) a.hurt(s.starvationDamage, "starved")
+            if (a.isDehydrated) a.hurt(s.starvationDamage, "died of thirst")
             // Regeneration must not run on an animal that just died, or it would be revived.
             if (!a.isAlive) continue
             if (a.canRegenerateHp) a.changeHp(s.hpRegen)

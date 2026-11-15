@@ -120,14 +120,32 @@ class Animal(
     /** Stamina regained per tick; once [isElderly] it decays with the days spent elderly (docs/sim/ANIMALS.MD). */
     val staminaRegen get() = species.staminaRegen / (1 + species.staminaAgeDecay * (age - stats.elderlyAge).coerceAtLeast(0.0))
 
+    /** Effect STARVING: nutrition is empty, so the animal loses HP every tick. */
+    val isStarving get() = nutrition <= 0
+
+    /** Effect DEHYDRATED: hydration is empty, so the animal loses HP every tick. */
+    val isDehydrated get() = hydration <= 0
+
+    /** Effect TIRED: stamina is below [AnimalEffect.TIRED_STAMINA_SHARE] of max. */
+    val isTired get() = stamina < species.maxStamina * AnimalEffect.TIRED_STAMINA_SHARE
+
+    /** Every [AnimalEffect] the animal is under right now (docs/sim/ANIMALS.MD). */
+    val effects: Set<AnimalEffect>
+        get() = buildSet {
+            if (toxinTicks > 0) add(AnimalEffect.POISONED)
+            if (isStarving) add(AnimalEffect.STARVING)
+            if (isDehydrated) add(AnimalEffect.DEHYDRATED)
+            if (isTired) add(AnimalEffect.TIRED)
+        }
+
     /** Whether stamina is high enough (90% of max) for HP to regenerate. */
     val canRegenerateHp get() = stamina >= species.maxStamina * 0.9
 
     /**
      * Trait SPRINTING: whether the animal could sprint right now. It needs the trait, some reserve left and
-     * enough stamina ([SPRINT_STAMINA_FLOOR] of max), so an exhausted animal drops back to a walk.
+     * enough stamina to not be [isTired], so an exhausted animal drops back to a walk.
      */
-    val canSprintNow get() = species.canSprint && sprintCharge > 0 && stamina > species.maxStamina * SPRINT_STAMINA_FLOOR
+    val canSprintNow get() = species.canSprint && sprintCharge > 0 && !isTired
 
     /**
      * How much sound the animal is making, 0 (still and silent) up to [SPRINT_NOISE] (sprinting). Only animals of a
@@ -207,9 +225,6 @@ class Animal(
 
 /** Speed multiplier at zero stamina. */
 private const val MIN_SPEED_FACTOR = 0.3
-
-/** Share of max stamina an animal must have left to keep sprinting. */
-private const val SPRINT_STAMINA_FLOOR = 0.15
 
 /**
  * How loud a sprinting animal is, as a share of a listener's [Species.hearingRange]: a sprint is heard out to the

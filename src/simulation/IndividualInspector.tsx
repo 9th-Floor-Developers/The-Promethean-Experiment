@@ -1,10 +1,10 @@
 import { Leaderboard, type LeaderboardSettings } from './Leaderboard';
-import { A, type BrainInfo, type ObjectInfo, type SimInfo, type SimSnapshot } from '../sim/types';
+import { A, decodeEffects, type AnimalEffectId, type BrainInfo, type ObjectInfo, type SimInfo, type SimSnapshot } from '../sim/types';
 import { NeuralNetView } from './NeuralNetView';
 import { TraitChips } from './TraitIcons';
 import { Hint } from '../ui/Hint';
 import { STATS, type StatKey } from '../settings/speciesSettings';
-import { ACTION_HELP, CALCULATED_HELP, OBJECT_HELP, STATUS_HELP } from '../ui/helpText';
+import { ACTION_HELP, CALCULATED_HELP, EFFECT_HELP, OBJECT_HELP, STATUS_HELP } from '../ui/helpText';
 
 const TICKS_PER_DAY = 1200;
 
@@ -48,6 +48,20 @@ function Meter({ label, value, max, tone, help }: { label: string; value: number
             <span className="meter__value">{Math.round(value)}/{Math.round(max)}</span>
         </div>
     );
+}
+
+/** Friendly name for each animal effect shown in the inspector. */
+const EFFECT_LABEL: Record<AnimalEffectId, string> = { POISONED: 'Poisoned', STARVING: 'Starving', DEHYDRATED: 'Dehydrated', TIRED: 'Tired' };
+
+/** The animal's effects as hoverable labels ("none" when it has none); poisoned also shows how long the toxin lasts. */
+function renderEffects(effects: AnimalEffectId[], toxinTicks: number) {
+    if (effects.length === 0) return 'none';
+    return effects.map((id, i) => (
+        <span key={id}>
+            {i > 0 && ', '}
+            <Hint text={EFFECT_HELP[id]}>{EFFECT_LABEL[id]}{id === 'POISONED' ? ` (${formatTicks(toxinTicks)} left)` : ''}</Hint>
+        </span>
+    ));
 }
 
 /** A time in ticks as ticks plus in-game days, e.g. "300 ticks (0.25 days)". */
@@ -166,10 +180,9 @@ export function IndividualInspector({ snapshot, info, selectedId, onSelect, obje
                     {species.traits.includes('HEARING') && (
                         <><dt><Hint text={STATUS_HELP.earshot}>Earshot</Hint></dt><dd>{species.hearingRange.toFixed(0)} tiles</dd></>
                     )}
-                    {/* Traits VENOMOUS and POISONOUS: any animal can be carrying a toxin, whatever its own traits. */}
-                    {(row[A.toxinTicks] ?? 0) > 0 && (
-                        <><dt><Hint text={STATUS_HELP.toxin}>Poisoned</Hint></dt><dd>{formatTicks(row[A.toxinTicks]!)} left</dd></>
-                    )}
+                    {/* Effects (docs/sim/ANIMALS.MD): poisoned, starving, dehydrated, tired; any animal can be under any of them. */}
+                    <dt><Hint text={STATUS_HELP.effects}>Effects</Hint></dt>
+                    <dd>{renderEffects(decodeEffects(row[A.effects] ?? 0), row[A.toxinTicks] ?? 0)}</dd>
                     <dt><Hint text={STATUS_HELP.fear + feelingsNote}>Fear</Hint></dt><dd>{row[A.fear]!.toFixed(2)}</dd>
                     <dt><Hint text={STATUS_HELP.hunger + feelingsNote}>Hunger</Hint></dt><dd>{row[A.hunger]!.toFixed(2)}</dd>
                     <dt><Hint text={STATUS_HELP.thirst + feelingsNote}>Thirst</Hint></dt><dd>{row[A.thirst]!.toFixed(2)}</dd>

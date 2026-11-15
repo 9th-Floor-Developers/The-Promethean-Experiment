@@ -17,13 +17,21 @@ export const STATUS_HELP = {
     action: 'What the animal is doing right now. It picks a new action when the old one ends or becomes impossible, or when a predator comes into view.',
     calling: 'Trait ALARM_CALLING: whether it is shouting a warning right now. An animal fleeing a predator it can see calls for 15 ticks, then stays quiet for 90, so it calls in short bursts.',
     earshot: 'Trait HEARING: how far an alarm call reaches this animal (1.5x its eyesight). A sprinting animal is heard at 1x that eyesight and a walking one at 0.25x.',
-    toxin: 'Venom or poison still working in its body. It keeps taking damage until this runs out.',
+    effects: 'Conditions the animal is in right now. Each one is explained when you hover it.',
     fear: 'How scared it is of the nearest predator it can sense: 0 means none is near, 1 means terrified.',
     hunger: 'How badly it wants food: 0 when its nutrition is full, 1 when it is starving.',
     thirst: 'How badly it wants water: 0 when its hydration is full, 1 when it is parched.',
     libido: 'How much it wants to breed: 0 when it is not ready or still on a cooldown after breeding, 1 when it is fully fed and looking for a mate.',
     /** Added to the four feelings for a neural-network animal, whose feelings come out of the network instead. */
     softCodedFeelings: ' For a neural-network animal this is the share the network gives that drive.',
+} as const;
+
+/** One explanation per animal effect (docs/sim/ANIMALS.MD), keyed like EFFECT_BITS in sim/types. */
+export const EFFECT_HELP = {
+    POISONED: 'Venom or poison is still working in its body. It loses health every moment until the toxin runs out. A fresh bite restarts the timer but never stacks.',
+    STARVING: 'Its nutrition is empty, so it loses health every moment until it eats.',
+    DEHYDRATED: 'Its hydration is empty, so it loses health every moment until it drinks.',
+    TIRED: 'Its stamina is below 15%, so it walks at nearly its slowest and cannot sprint. Resting refills it.',
 } as const;
 
 /** Stats calculated from the inherited ones (docs/sim/SPECIES.md), shown in the inspector. */
