@@ -136,6 +136,12 @@ class Species(
         require(reproductionNutritionThreshold <= maxNutrition) { "reproduction threshold above max nutrition" }
     }
 
+    /**
+     * The mechanical effect of this species' BODY_COVERING trait (docs/sim/SPECIES.md), or [Covering.NONE] when it
+     * has no covering. Stored rather than computed, because every animal reads it on every tick.
+     */
+    val covering: Covering = Covering.of(traits.firstOrNull { it.category == TraitCategory.BODY_COVERING })
+
     /** Trait ALARM_CALLING: whether animals of this species raise an alarm when they flee. */
     val canCallAlarm get() = Trait.ALARM_CALLING in traits
 

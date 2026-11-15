@@ -19,6 +19,7 @@ import sim.objects.SimObject
 import sim.objects.Grass
 import sim.objects.Plant
 import sim.objects.Tree
+import sim.species.Covering
 import sim.species.Species
 import sim.species.Trait
 import terrain.Terrain
@@ -359,7 +360,9 @@ class World(
             a.isSprinting -> s.staminaSprintCost
             else -> a.stats.walkingStaminaUsage
         }
-        a.changeStamina(a.staminaRegen - a.baseStaminaUsage - moveCost)
+        // BODY_COVERING: a light covering is cheaper to carry about than a heavy one, so it scales everything the
+        // animal spends on existing and moving - but never its regeneration (docs/sim/SPECIES.md).
+        a.changeStamina(a.staminaRegen - (a.baseStaminaUsage + moveCost) * s.covering.staminaFactor)
         // Sprint reserve: one tick of it is spent per tick sprinted, and it refills whenever the animal is not sprinting.
         a.sprintCharge = (a.sprintCharge + if (a.isSprinting) -1.0 else s.sprintRecharge).coerceIn(0.0, s.sprintChargeTicks)
     }
@@ -424,15 +427,20 @@ class World(
     }
 
     /**
-     * Damage one bite by [attacker] does to [target]: the attacker's damage less the target's ARMOR percentage,
-     * less a flat [Species.hardSkinReduction] for Trait.HARD_SKIN. A bite always lands at least
-     * [MIN_DAMAGE_SHARE] of its raw damage, so no combination of armor and hard skin makes an animal invulnerable
-     * and leaves a predator chewing forever. The floor cannot bind on armor alone (it caps at
-     * [sim.animal.AnimalStats.MAX_ARMOR_REDUCTION]), so hard skin is the only thing that can reach it.
+     * Damage one bite by [attacker] does to [target]: the attacker's damage less the target's ARMOR percentage and
+     * its BODY_COVERING's [Covering.armorBonus], less a flat [Species.hardSkinReduction] for Trait.HARD_SKIN. A bite
+     * always lands at least [MIN_DAMAGE_SHARE] of its raw damage, so no combination of armor, covering and hard skin
+     * makes an animal invulnerable and leaves a predator chewing forever. The floor cannot bind on the percentages
+     * alone (together they cap at [sim.animal.AnimalStats.MAX_ARMOR_REDUCTION]), so hard skin is the only thing that
+     * can reach it.
      */
     private fun biteDamage(attacker: Animal, target: Animal): Double {
         val raw = attacker.stats.damage
-        var dealt = raw * (1 - target.stats.armorReduction)
+        // The covering's share rides on top of the inherited ARMOR stat, but the pair still cap together, so a
+        // well-armoured shelled animal cannot climb past the cap the slider alone is held to.
+        val reduction = (target.stats.armorReduction + target.species.covering.armorBonus)
+            .coerceAtMost(AnimalStats.MAX_ARMOR_REDUCTION)
+        var dealt = raw * (1 - reduction)
         if (target.species.hasHardSkin) dealt -= target.species.hardSkinReduction
         return max(dealt, raw * MIN_DAMAGE_SHARE)
     }
@@ -524,7 +532,8 @@ class World(
             animalTicksBySpecies[species.indexOf(s)]++
             a.age += 1.0 / TICKS_PER_DAY
             a.changeNutrition(-s.nutritionDrain)
-            a.changeHydration(-s.hydrationDrain)
+            // BODY_COVERING: a coat costs its owner water, a scaly or shelled hide holds it in (docs/sim/SPECIES.md).
+            a.changeHydration(-s.hydrationDrain * s.covering.hydrationFactor)
             if (a.reproductionCooldown > 0) a.reproductionCooldown--
             if (a.isStarving) a.hurt(s.starvationDamage, "starved")
             if (a.isDehydrated) a.hurt(s.starvationDamage, "died of thirst")

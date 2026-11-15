@@ -44,9 +44,10 @@ LIVE BIRTH - Offspring develop inside the parent and are born alive.
 EGG BIRTH - Offspring dev1. Celop inside an egg outside the parent.
 
 BODY COVERING
+Every covering trades defence against upkeep, so none of them is strictly best: whatever takes the sting out of a bite costs its owner water, food, stamina or speed to carry around. A covering's defence is a percentage of each bite, added to the ARMOR stat and capped together with it; flat per-bite subtraction stays HARD SKIN's alone. A species may have no covering at all, which costs and gives nothing.
 
-FUR - Has a coat of hair or fur.
-FEATHERS - Has feathers covering some or all of its body.
+FUR - Has a coat of hair or fur: takes 4% more off every bite, and dries its owner out a quarter faster at every hour of the day, since the coat is carried through the heat as well as the cool.
+FEATHERS - Has feathers covering some or all of its body: takes 2% more off every bite and costs 15% less stamina to carry about, but insulates like fur and so drinks 15% more. The mover's covering - it travels furthest on the least energy and pays for it at the water's edge.
 SCALES - Has scales covering its body.
 EXOSKELETON - Has a hard external skeleton.
 BARE SKIN - Has exposed skin without a substantial external covering.
