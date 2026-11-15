@@ -3,7 +3,8 @@ import { A, type SimInfo, type SimSnapshot } from './types';
 
 /** The universal per-animal stats (docs/sim/SPECIES.md), as radar axes: label and the column of an animal row. */
 /** `invert` axes are drawn flipped (low usage = far out), since a lower value is the better one. */
-export const TRAIT_AXES: readonly { label: string; col: number; invert?: boolean }[] = [
+/** `brain` axes only exist for animals with a neural network (the value is -1 otherwise); the radar leaves them out for instinct species. */
+export const TRAIT_AXES: readonly { label: string; col: number; invert?: boolean; brain?: boolean }[] = [
     { label: 'Max HP', col: A.maxHp },
     { label: 'Speed', col: A.speed },
     { label: 'Damage', col: A.damage },
@@ -12,6 +13,7 @@ export const TRAIT_AXES: readonly { label: string; col: number; invert?: boolean
     { label: 'Base stamina use', col: A.baseStaminaUsage, invert: true },
     { label: 'Walking stamina use', col: A.walkingStaminaUsage, invert: true },
     { label: 'Elderly age', col: A.elderlyAge },
+    { label: 'Intelligence', col: A.intelligence, brain: true },
 ];
 
 /** Min / mean / max of one stat over every animal of a species seen during the run. */

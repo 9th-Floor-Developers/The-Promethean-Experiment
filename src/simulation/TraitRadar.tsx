@@ -25,7 +25,9 @@ export function TraitRadar({ info, stats }: Props) {
     if (!info) return null;
     const sp = Math.min(picked, info.species.length - 1);
     const data = stats[sp] ?? null;
-    const n = TRAIT_AXES.length;
+    /** Indices into TRAIT_AXES shown for this species: brain axes (intelligence) only when its animals have a network. */
+    const shown = TRAIT_AXES.map((_, i) => i).filter((i) => !TRAIT_AXES[i]!.brain || (data?.traits[i]?.max ?? -1) >= 0);
+    const n = shown.length;
     const angle = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
     const pt = (i: number, f: number): [number, number] => [C + Math.cos(angle(i)) * R * f, C + Math.sin(angle(i)) * R * f];
     const base = info.species[sp]!.base as number[] | undefined; // missing only when the wasm build predates the field
@@ -42,7 +44,8 @@ export function TraitRadar({ info, stats }: Props) {
         const f = Math.min(1, Math.max(0, (vals[i]! - lo) / (hi - lo)));
         return TRAIT_AXES[i]!.invert ? 1 - f : f;
     };
-    const poly = (f: (i: number) => number) => TRAIT_AXES.map((_, i) => pt(i, f(i)).join(',')).join(' ');
+    /** Polygon through the shown axes; [f] takes a TRAIT_AXES index, the drawn position is the axis' place on the radar. */
+    const poly = (f: (i: number) => number) => shown.map((ai, k) => pt(k, f(ai)).join(',')).join(' ');
 
     return (
         <section className="radar">
@@ -57,12 +60,13 @@ export function TraitRadar({ info, stats }: Props) {
                     {Array.from({ length: RINGS }, (_, k) => (
                         <polygon key={k} points={poly(() => (k + 1) / RINGS)} fill="none" stroke="rgba(255,255,255,0.14)" />
                     ))}
-                    {TRAIT_AXES.map((_, i) => <line key={i} x1={C} y1={C} x2={pt(i, 1)[0]} y2={pt(i, 1)[1]} stroke="rgba(255,255,255,0.14)" />)}
+                    {shown.map((_, k) => <line key={k} x1={C} y1={C} x2={pt(k, 1)[0]} y2={pt(k, 1)[1]} stroke="rgba(255,255,255,0.14)" />)}
                     {base && <polygon fill="rgba(94,176,255,0.25)" stroke={START_COLOR} strokeWidth={2} strokeDasharray="5 3" points={poly(frac(base))} />}
                     <polygon fill="rgba(255,159,90,0.35)" stroke={NOW_COLOR} strokeWidth={2} points={poly(frac(data.traits.map((t) => t.avg)))} />
-                    {TRAIT_AXES.map((ax, i) => {
+                    {shown.map((i, k) => {
+                        const ax = TRAIT_AXES[i]!;
                         const t = data.traits[i]!;
-                        const [x, y] = pt(i, 1.2);
+                        const [x, y] = pt(k, 1.2);
                         const anchor = Math.abs(x - C) < 8 ? 'middle' : x > C ? 'start' : 'end';
                         return (
                             <text key={ax.label} x={x} y={y} textAnchor={anchor} className="radar__label">
@@ -79,7 +83,7 @@ export function TraitRadar({ info, stats }: Props) {
                     <li><span className="radar__swatch" style={{ background: NOW_COLOR }} />Average of all animals so far</li>
                 </ul>
             )}
-            {data && <p className="radar__note">{data.count} animals seen · axis = lowest to highest value found (including the base value), shape = average; stamina axes inverted (lower use plots further out)</p>}
+            {data && <p className="radar__note">{data.count} animals seen · axis = lowest to highest value found (including the base value), shape = average; stamina axes inverted (lower use plots further out){n > 8 ? ' · intelligence = hidden neurons in the neural network' : ''}</p>}
         </section>
     );
 }

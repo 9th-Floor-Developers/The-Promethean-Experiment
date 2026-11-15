@@ -16,7 +16,7 @@ export interface SpeciesInfo {
     sprintChargeTicks: number;
     /** Trait HEARING: distance in tiles at which this species picks up alarm calls and the noise of moving animals. */
     hearingRange: number;
-    /** The species' base (founder) universal stats from Settings, in the order of TRAIT_AXES (max HP, speed, damage, armor, view range, base stamina use, walking stamina use, elderly age). */
+    /** The species' base (founder) universal stats from Settings, in the order of TRAIT_AXES (max HP, speed, damage, armor, view range, base stamina use, walking stamina use, elderly age, intelligence). Intelligence is -1 for a species without a neural network. */
     base: number[];
     /** Seed of the species' random appearance (scene/animalLook.ts), attached from Settings when the world is built. */
     look: number;

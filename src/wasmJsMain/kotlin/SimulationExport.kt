@@ -2,10 +2,12 @@ import base.Vector2
 import sim.animal.Action
 import sim.animal.Animal
 import sim.animal.AnimalStats
+import sim.animal.Mind
 import sim.objects.Carcass
 import sim.objects.Egg
 import sim.objects.Grass
 import sim.objects.Tree
+import sim.species.Trait
 import sim.world.World
 import sim.world.Resources
 import sim.world.createMockWorld
@@ -56,7 +58,7 @@ fun createSimulation(seed: Int, size: Int, speciesConfig: String, water: Double,
 
 /**
  * Static facts the frontend needs once:
- * `{"actions":[name...],"species":[{"name","canHunt","traits":[..],"maxHp","maxNutrition","maxHydration","maxStamina","viewRange","sprintChargeTicks","hearingRange","base":[8 universal stats]}...],
+ * `{"actions":[name...],"species":[{"name","canHunt","traits":[..],"maxHp","maxNutrition","maxHydration","maxStamina","viewRange","sprintChargeTicks","hearingRange","base":[8 universal stats, then intelligence]}...],
  * "scenery":[[id,type,x,y]...]}`. `actions` is indexed by an animal row's action code.
  * Scenery `type` is 1 = tree, 2 = grass; trees and grass appear in the same order as the `trees` and `grass`
  * strings of [getSimulationSnapshot]. Positions are in tile units (the tile under it is floor(x), floor(y)).
@@ -67,7 +69,9 @@ fun getSimulationInfo(): String {
     val w = current()
     val species = w.species.joinToString(",") { s ->
         val b = AnimalStats.founder(s)
-        val base = listOf(b.maxHp, b.speed, b.damage, b.armor, b.viewRange, b.baseStaminaUsage, b.walkingStaminaUsage, b.elderlyAge).joinToString(",")
+        // Founders' intelligence: hidden neurons of a founder network, or -1 for an instinct (non-learning) species.
+        val intelligence = if (Trait.SOFT_CODED in s.traits) Mind.FOUNDER_HIDDEN.sum() else -1
+        val base = listOf(b.maxHp, b.speed, b.damage, b.armor, b.viewRange, b.baseStaminaUsage, b.walkingStaminaUsage, b.elderlyAge, intelligence).joinToString(",")
         "{" + """"name":${q(s.name)},"canHunt":${s.canHunt},"traits":[${s.traits.joinToString(",") { q(it.name) }}],""" +
             """"maxHp":${s.maxHp},"maxNutrition":${s.maxNutrition},"maxHydration":${s.maxHydration},"maxStamina":${s.maxStamina},"viewRange":${s.viewRange},""" +
             """"sprintChargeTicks":${s.sprintChargeTicks},"hearingRange":${s.hearingRange},"base":[$base]}"""
