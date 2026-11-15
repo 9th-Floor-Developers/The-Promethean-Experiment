@@ -66,7 +66,7 @@ export const CATEGORIES: TraitCategoryDef[] = [
         { id: 'SCALES', label: 'Scales', help: 'Shrugs off 8% more of every bite and holds water in, getting thirsty only 72% as fast, but walks 7% slower.' },
         { id: 'EXOSKELETON', label: 'Hard outer skeleton', help: 'A rigid plate: shrugs off 14% of every bite and a flat amount on top, so weak biters barely scratch it, but uses 18% more energy to carry around.' },
         { id: 'BARE_SKIN', label: 'Bare skin', help: 'Exposed skin: no protection from bites at all, but nothing to carry or insulate either, so it uses 8% less energy and water than any other covering. The default.' },
-        { id: 'SHELL', label: 'Shell', help: 'A hard protective shell.' },
+        { id: 'SHELL', label: 'Shell', help: 'The heaviest armour there is: shrugs off 20% of every bite and twice the flat amount a hard outer skeleton does, so most single bites barely scratch it, but it walks 20% slower and uses 10% more energy to carry around.' },
     ] },
     { key: 'ACTIVITY_CYCLE', label: 'Daily schedule', question: 'When is it awake?', options: [
         { id: 'DIURNAL', label: 'Daytime', help: 'Active during the day and rests otherwise.' },

@@ -51,7 +51,7 @@ FEATHERS - Has feathers covering some or all of its body: takes 2% more off ever
 SCALES - Has scales covering its body: takes 8% more off every bite and seals moisture in, drinking only 72% as fast, but is stiff and heavy enough to travel 7% slower. The drought specialist that cannot outrun its troubles.
 EXOSKELETON - Has a hard external skeleton: takes 14% off every bite and a flat amount on top of that, so a small bite barely tells, but the plate costs 18% more stamina to haul about at every moment.
 BARE SKIN - Has exposed skin without a substantial external covering: no protection from a bite whatsoever, but with nothing to carry and nothing to insulate it runs on 8% less stamina and 8% less water than any other covering. The default covering.
-SHELL - Has a hard protective shell.
+SHELL - Has a hard protective shell: takes 20% more off every bite and twice the flat amount an exoskeleton does, so most single bites barely tell, but the shell is heavy enough to travel 20% slower and to cost 10% more stamina at every moment. The tank that cannot run: little of what it meets hurts it much, and it cannot get away from any of it.
 
 
 ACTIVITY CYCLE

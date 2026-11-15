@@ -82,6 +82,15 @@ class Covering(
         val EXOSKELETON = Covering(armorBonus = 0.14, flatReduction = 0.5, staminaFactor = 1.18)
 
         /**
+         * SHELL: the heaviest armour in the simulation, and the only one bought mainly with speed. It sheds a fifth
+         * of every bite and stops twice the flat amount [EXOSKELETON] does, so little of what a shelled animal meets
+         * hurts it much - but it travels a fifth slower than it otherwise would and still pays to haul the weight
+         * about. The tank that cannot run: safe from almost everything and able to escape none of it, so it only
+         * pays off for an animal that can afford to graze where it stands.
+         */
+        val SHELL = Covering(armorBonus = 0.20, flatReduction = 1.0, staminaFactor = 1.10, speedFactor = 0.80)
+
+        /**
          * The effect of [trait]. BARE SKIN is the default: a species given no BODY_COVERING trait is bare-skinned
          * rather than uncovered, so [sim.world.parseSpeciesConfig] fills it in and this falls back to it too.
          */
@@ -90,6 +99,7 @@ class Covering(
             Trait.FEATHERS -> FEATHERS
             Trait.SCALES -> SCALES
             Trait.EXOSKELETON -> EXOSKELETON
+            Trait.SHELL -> SHELL
             else -> BARE_SKIN
         }
     }
