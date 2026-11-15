@@ -45,7 +45,8 @@ the drive is turned into an action by the same target search as the HARD CODED A
 fear/hunger/thirst/libido shown for a SOFT CODED animal are the softmax shares of FLEE/EAT/DRINK/MATE
 
 inputs (all roughly 0..1): hp, nutrition, hydration, stamina, age (vs elderly age), readiness to breed,
-closeness of the nearest predator, food, water and mate, time of day (sin, cos), whether its activity cycle says it should be awake
+closeness of the nearest predator, food, water and mate, time of day (sin, cos), whether its activity cycle says it should be awake,
+and how much toxin (venom or poison) is in its body (so it can learn to leave VENOMOUS and POISONOUS species alone)
 
 a decision is made when the action cooldown ends, the current action becomes impossible, or a predator comes into view
 wellbeing of a need = 1 - (1 - fraction full)^2, so the same gain counts more when the animal is low (drinking while parched)
