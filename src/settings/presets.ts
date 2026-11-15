@@ -27,28 +27,27 @@ const BUILT_IN_KEYS: BuiltInKey[] = ['default', 'paradise', 'savanna', 'learning
 /**
  * African savanna, a medium (180 tile) world with four species modelled loosely on real animals:
  * - Zebra: plentiful herding grazer, the lions' main prey.
- * - Leopard tortoise: slow, armored, self-healing egg layer; hard to kill, and its eggs feed the meat eaters.
+ * - Leopard tortoise: slow, heavily armored, self-healing egg layer; hard to kill, though its eggs feed the meat eaters.
  * - Lion: a few pack hunters at dawn and dusk; strong bite, sharp eyes.
- * - Spotted hyena: a nocturnal carnivore that hunts with a weak bite and prefers carcasses and eggs (hunting
- *   costs more than scavenging). It is a carnivore, not a pure scavenger, because scavengers breed and starve like
- *   herbivores and did not find enough carcasses to survive.
- * Herbivores outnumber the hunters about 5.6 to 1 (the default preset's ratio is 4 to 1) and water is a little
- * more plentiful, so the slow tortoises can reach it and the hunters cannot eat the prey out.
+ * - Spotted hyena: a tough nocturnal scavenger living off kills, starved animals and eggs. Short eyesight on
+ *   purpose: fear grows with how far an animal sees, and far-sighted hyenas fled lions until they starved.
+ * Tuned with headless runs (40 in-game days, several seeds); it is not stable on every seed, the hyenas and
+ * tortoises can still die out.
  */
 function savannaSettings(): SimSettings {
     const species: Omit<SpeciesSettings, 'look'>[] = [ // looks are filled in by builtInSettings
         { uid: 0, name: 'Zebra', count: 60, stats: { maxHp: 110, speed: 0.08, damage: 1, armor: 2, viewRange: 18 },
             mutationRate: 5,
-            traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'HERDING', 'SPRINTING', 'ALARM_CALLING'] },
-        { uid: 0, name: 'Leopard tortoise', count: 30, stats: { maxHp: 160, speed: 0.045, damage: 0.5, armor: 50, viewRange: 10 },
+            traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'SPRINTING', 'ALARM_CALLING'] },
+        { uid: 0, name: 'Leopard tortoise', count: 45, stats: { maxHp: 200, speed: 0.045, damage: 0.5, armor: 60, viewRange: 10 },
             mutationRate: 5,
-            traits: ['HARD_CODED', 'HERBIVORE', 'EGG_BIRTH', 'SHELL', 'ECTOTHERMIC', 'DIURNAL', 'SOLITARY', 'ARMOR', 'REGENERATION'] },
-        { uid: 0, name: 'Lion', count: 8, stats: { maxHp: 140, speed: 0.09, damage: 4, armor: 3, viewRange: 28 },
+            traits: ['HARD_CODED', 'HERBIVORE', 'EGG_BIRTH', 'SHELL', 'ECTOTHERMIC', 'DIURNAL', 'ARMOR', 'REGENERATION'] },
+        { uid: 0, name: 'Lion', count: 6, stats: { maxHp: 140, speed: 0.09, damage: 4, armor: 3, viewRange: 28 },
             mutationRate: 5,
-            traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR', 'PACK', 'SPRINTING'] },
-        { uid: 0, name: 'Spotted hyena', count: 8, stats: { maxHp: 90, speed: 0.085, damage: 2, armor: 2, viewRange: 26 },
+            traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR', 'SPRINTING'] },
+        { uid: 0, name: 'Spotted hyena', count: 20, stats: { maxHp: 200, speed: 0.1, damage: 2, armor: 5, viewRange: 16 },
             mutationRate: 5,
-            traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'NOCTURNAL', 'PACK', 'NIGHT_VISION', 'HEARING'] },
+            traits: ['HARD_CODED', 'SCAVENGER', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'NOCTURNAL', 'NIGHT_VISION', 'HEARING'] },
     ];
     // sanitizeSettings hands out real uids (and clamps every stat to its allowed range).
     return sanitizeSettings({ species, mapSize: 180, water: 1.25, trees: 1, grass: 1.25 })!;
@@ -66,10 +65,10 @@ function learningSettings(): SimSettings {
     const species: Omit<SpeciesSettings, 'look'>[] = [ // looks are filled in by builtInSettings
         { uid: 0, name: 'Learner', count: 70, stats: { maxHp: 100, speed: 0.07, damage: 3, armor: 1, viewRange: 16 },
             mutationRate: 5,
-            traits: ['SOFT_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'HERDING'] },
+            traits: ['SOFT_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL'] },
         { uid: 0, name: 'Hunter', count: 3, stats: { maxHp: 120, speed: 0.075, damage: 3, armor: 1, viewRange: 20 },
             mutationRate: 5,
-            traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'SOLITARY'] },
+            traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL'] },
     ];
     return sanitizeSettings({ species, mapSize: 160, water: 1.5, trees: 1.5, grass: 1.5 })!;
 }
