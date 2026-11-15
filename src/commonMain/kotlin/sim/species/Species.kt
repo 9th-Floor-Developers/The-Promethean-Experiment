@@ -137,8 +137,9 @@ class Species(
     }
 
     /**
-     * The mechanical effect of this species' BODY_COVERING trait (docs/sim/SPECIES.md), or [Covering.NONE] when it
-     * has no covering. Stored rather than computed, because every animal reads it on every tick.
+     * The mechanical effect of this species' BODY_COVERING trait (docs/sim/SPECIES.md). Every species has a
+     * covering: one given no covering trait falls back to [Covering.BARE_SKIN]. Stored rather than computed,
+     * because every animal reads it on every tick.
      */
     val covering: Covering = Covering.of(traits.firstOrNull { it.category == TraitCategory.BODY_COVERING })
 

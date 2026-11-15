@@ -47,8 +47,12 @@ class Covering(
     }
 
     companion object {
-        /** The covering of a species that has no BODY_COVERING trait: no defence, no cost. */
-        val NONE = Covering()
+        /**
+         * BARE SKIN: nothing to carry and nothing to insulate, so it is simply the cheapest body to run - and the
+         * only covering with no defence whatever. Every species has a covering and this is the default, so there is
+         * no such thing as an animal with no covering at all.
+         */
+        val BARE_SKIN = Covering(hydrationFactor = 0.92, staminaFactor = 0.92)
 
         /**
          * FUR: a coat that takes the edge off a bite but costs its owner water at every hour, since the animal
@@ -77,13 +81,16 @@ class Covering(
          */
         val EXOSKELETON = Covering(armorBonus = 0.14, flatReduction = 0.5, staminaFactor = 1.18)
 
-        /** The effect of [trait], or [NONE] for a species with no covering (or one whose mechanic is not designed yet). */
+        /**
+         * The effect of [trait]. BARE SKIN is the default: a species given no BODY_COVERING trait is bare-skinned
+         * rather than uncovered, so [sim.world.parseSpeciesConfig] fills it in and this falls back to it too.
+         */
         fun of(trait: Trait?): Covering = when (trait) {
             Trait.FUR -> FUR
             Trait.FEATHERS -> FEATHERS
             Trait.SCALES -> SCALES
             Trait.EXOSKELETON -> EXOSKELETON
-            else -> NONE
+            else -> BARE_SKIN
         }
     }
 }

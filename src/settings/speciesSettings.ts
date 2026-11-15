@@ -65,7 +65,7 @@ export const CATEGORIES: TraitCategoryDef[] = [
         { id: 'FEATHERS', label: 'Feathers', help: 'Light insulation: shrugs off 2% more of every bite and uses 15% less energy to move, but gets thirsty 15% faster.' },
         { id: 'SCALES', label: 'Scales', help: 'Shrugs off 8% more of every bite and holds water in, getting thirsty only 72% as fast, but walks 7% slower.' },
         { id: 'EXOSKELETON', label: 'Hard outer skeleton', help: 'A rigid plate: shrugs off 14% of every bite and a flat amount on top, so weak biters barely scratch it, but uses 18% more energy to carry around.' },
-        { id: 'BARE_SKIN', label: 'Bare skin', help: 'Exposed skin.' },
+        { id: 'BARE_SKIN', label: 'Bare skin', help: 'Exposed skin: no protection from bites at all, but nothing to carry or insulate either, so it uses 8% less energy and water than any other covering. The default.' },
         { id: 'SHELL', label: 'Shell', help: 'A hard protective shell.' },
     ] },
     { key: 'ACTIVITY_CYCLE', label: 'Daily schedule', question: 'When is it awake?', options: [
@@ -90,6 +90,17 @@ export const EXTRA_TRAITS: TraitOption[] = [
 
 /** Every trait id the simulation knows, so ids of traits that have been removed can be dropped from saved presets. */
 const KNOWN_TRAITS = new Set([...CATEGORIES.flatMap((c) => c.options.map((o) => o.id)), ...EXTRA_TRAITS.map((t) => t.id)]);
+
+/** The body covering a species has when none is chosen; every species has one (docs/sim/SPECIES.md). */
+export const DEFAULT_COVERING = 'BARE_SKIN';
+
+/** Ids of the body-covering options, used to check a species has one. */
+const COVERING_IDS = CATEGORIES.find((c) => c.key === 'BODY_COVERING')!.options.map((o) => o.id);
+
+/** Adds [DEFAULT_COVERING] to `traits` when it names no body covering, so no species is ever left uncovered. */
+function withDefaultCovering(traits: string[]): string[] {
+    return traits.some((id) => COVERING_IDS.includes(id)) ? traits : [...traits, DEFAULT_COVERING];
+}
 
 /** Settings for one species. `traits` holds every chosen trait id (one per category plus any extras). */
 export interface SpeciesSettings {
@@ -208,7 +219,7 @@ export function sanitizeSettings(raw: unknown): SimSettings | null {
         water: res(parsed.water), trees: res(parsed.trees), grass: res(parsed.grass),
         carcassRotHours: Math.max(CARCASS_ROT_HOURS.min, Math.min(CARCASS_ROT_HOURS.max, Number(parsed.carcassRotHours) || CARCASS_ROT_HOURS.default)),
         mapSize: Math.max(MAP_SIZE.min, Math.min(MAP_SIZE.max, Number(parsed.mapSize) || MAP_SIZE.default)),
-        species: fillMissingLooks(parsed.species).map((s) => ({ ...s, uid: nextUid++, stats: clampStats({ ...DEFAULT_STATS, ...s.stats }), mutationRate: clampMutationRate(s.mutationRate), traits: s.traits.filter((id) => KNOWN_TRAITS.has(id)) })),
+        species: fillMissingLooks(parsed.species).map((s) => ({ ...s, uid: nextUid++, stats: clampStats({ ...DEFAULT_STATS, ...s.stats }), mutationRate: clampMutationRate(s.mutationRate), traits: withDefaultCovering(s.traits.filter((id) => KNOWN_TRAITS.has(id))) })),
     };
 }
 

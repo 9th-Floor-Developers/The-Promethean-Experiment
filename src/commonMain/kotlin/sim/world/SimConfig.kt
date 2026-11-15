@@ -3,6 +3,7 @@ package sim.world
 import sim.animal.AnimalStats
 import sim.species.Species
 import sim.species.Trait
+import sim.species.TraitCategory
 
 /** One species the user configured plus how many animals of it start in the world. */
 class SpeciesSetup(val species: Species, val count: Int)
@@ -22,7 +23,9 @@ const val MAX_START_COUNT = 300
  * Keys are the inherited founder stats: maxHp, speed, damage, armor, viewRange, plus mutationRate (percent, 0 to 50; a species
  * setting, not inherited). (baseStaminaUsage, walkingStaminaUsage and elderlyAge are
  * still accepted as founder values; they are calculated for each animal from its inherited stats.)
- * Unknown keys/traits are ignored. Species that can hunt get carnivore-style attack defaults; meat eaters (hunters
+ * Unknown keys/traits are ignored; a line naming no BODY_COVERING trait gets [Trait.BARE_SKIN], which is the
+ * default covering (docs/sim/SPECIES.md) - there is no such thing as an animal with no covering at all.
+ * Species that can hunt get carnivore-style attack defaults; meat eaters (hunters
  * and scavengers) get carnivore-style metabolism, since they live on big, rare meals; hunters breed like carnivores,
  * scavengers in between (see [SCAVENGER_REPRODUCTION_COOLDOWN]); the rest get herbivore-style ones, so the user only
  * has to pick traits.
@@ -41,8 +44,13 @@ fun parseSpeciesConfig(text: String): List<SpeciesSetup> =
         SpeciesSetup(buildSpecies(name, traits, stats), count)
     }
 
-/** Builds a species from user-chosen [traits] and universal-stat overrides in [stats]. */
-private fun buildSpecies(name: String, traits: Set<Trait>, stats: Map<String, Double>): Species {
+/**
+ * Builds a species from user-chosen [chosen] traits and universal-stat overrides in [stats]. A species with no
+ * BODY_COVERING trait is bare-skinned, so the trait is filled in here rather than left absent; that way the
+ * frontend's inspector shows a covering chip for every species.
+ */
+private fun buildSpecies(name: String, chosen: Set<Trait>, stats: Map<String, Double>): Species {
+    val traits = if (chosen.none { it.category == TraitCategory.BODY_COVERING }) chosen + Trait.BARE_SKIN else chosen
     val hunter = Trait.CARNIVORE in traits || Trait.OMNIVORE in traits
     // Scavengers eat like carnivores (big, rare meals) even though they never attack.
     val scavenger = Trait.SCAVENGER in traits
