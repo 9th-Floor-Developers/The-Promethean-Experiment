@@ -22,6 +22,9 @@ class NeuralNet private constructor(
     /** Total hidden neurons; drives the brain's stamina cost. */
     val hiddenNeurons: Int get() = hiddenSizes.sum()
 
+    /** Trainable connections (weights plus biases); this is the animal's 'intelligence'. See [connectionsOf]. */
+    val connections: Int get() = connectionsOf(sizes)
+
     /** A copy of the weights of layer [l] (row-major, `sizes[l + 1]` rows of `sizes[l]`), e.g. for drawing the network. */
     fun layerWeights(l: Int): DoubleArray = weights[l].copyOf()
 
@@ -77,6 +80,14 @@ class NeuralNet private constructor(
     companion object {
         /** Errors are clipped to this size so one surprising reward cannot wreck the weights. */
         const val MAX_ERROR = 1.0
+
+        /**
+         * Trainable connections of a network with layer [sizes]: every weight between neighbouring layers plus one
+         * bias per non-input neuron (a bias is a connection from an always-on neuron). Unlike a neuron count this
+         * depends on how the neurons are wired, since each layer connects to the whole next one: 15-2-6 = 50,
+         * 15-2-4-6 = 74, 15-4-6 = 94 (neurons right after the 15 inputs are the most connected).
+         */
+        fun connectionsOf(sizes: IntArray): Int = (0 until sizes.size - 1).sumOf { l -> (sizes[l] + 1) * sizes[l + 1] }
 
         /** A network of the given [sizes] with small random weights. */
         fun random(sizes: IntArray, rng: Random): NeuralNet {

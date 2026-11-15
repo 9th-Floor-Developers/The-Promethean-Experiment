@@ -201,7 +201,7 @@ export function IndividualInspector({ snapshot, info, selectedId, onSelect, obje
                     <dt><Hint text={CALCULATED_HELP.baseStaminaUsage}>Base stamina use</Hint></dt><dd>{row[A.baseStaminaUsage]!.toFixed(4)}/tick</dd>
                     <dt><Hint text={CALCULATED_HELP.walkingStaminaUsage}>Walking stamina use</Hint></dt><dd>{row[A.walkingStaminaUsage]!.toFixed(4)}/tick</dd>
                     <dt><Hint text={CALCULATED_HELP.elderlyAge}>Elderly at</Hint></dt><dd>{row[A.elderlyAge]!.toFixed(2)} days{row[A.age]! >= row[A.elderlyAge]! ? ' (elderly)' : ''}</dd>
-                    <dt><Hint text={CALCULATED_HELP.intelligence}>Intelligence</Hint></dt><dd>{(row[A.intelligence] ?? -1) >= 0 ? `${row[A.intelligence]} neurons` : 'instinct (no network)'}</dd>
+                    <dt><Hint text={CALCULATED_HELP.intelligence}>Intelligence</Hint></dt><dd>{(row[A.intelligence] ?? -1) >= 0 ? `${row[A.intelligence]} connections` : 'instinct (no network)'}</dd>
                 </dl>
                 {brain && (
                     <>

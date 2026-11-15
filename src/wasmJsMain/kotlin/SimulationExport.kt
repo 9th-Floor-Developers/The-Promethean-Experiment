@@ -71,8 +71,8 @@ fun getSimulationInfo(): String {
     val w = current()
     val species = w.species.joinToString(",") { s ->
         val b = AnimalStats.founder(s)
-        // Founders' intelligence: hidden neurons of a founder network, or -1 for an instinct (non-learning) species.
-        val intelligence = if (Trait.SOFT_CODED in s.traits) Mind.FOUNDER_HIDDEN.sum() else -1
+        // Founders' intelligence: connections of a founder network, or -1 for an instinct (non-learning) species.
+        val intelligence = if (Trait.SOFT_CODED in s.traits) Mind.FOUNDER_INTELLIGENCE else -1
         val base = listOf(b.maxHp, b.speed, b.damage, b.armor, b.viewRange, b.baseStaminaUsage, b.walkingStaminaUsage, b.elderlyAge, intelligence).joinToString(",")
         "{" + """"name":${q(s.name)},"canHunt":${s.canHunt},"traits":[${s.traits.joinToString(",") { q(it.name) }}],""" +
             """"maxHp":${s.maxHp},"maxNutrition":${s.maxNutrition},"maxHydration":${s.maxHydration},"maxStamina":${s.maxStamina},"viewRange":${s.viewRange},""" +
@@ -98,7 +98,7 @@ fun tickSimulation(ticks: Int) {
  * "animals":[[id,speciesIndex,x,y,hp,nutrition,hydration,stamina,age,actionCode,fear,hunger,thirst,libido,targetX,targetY,heading,maxHp,speed,damage,armor,viewRange,baseStaminaUsage,walkingStaminaUsage,elderlyAge,intelligence,sprintCharge,sprinting,calling,toxinTicks,effects]...],
  * "carcasses":[[id,x,y,fractionLeft]...],"eggs":[[id,x,y,hatchProgress]...],"deaths":[predatoryTotal,naturalTotal],
  * "perSpecies":[[naturalDeaths,animalTicks]...],"trees":"<one digit per tree, 1 = edible>","grass":"<one digit per grass tuft, 1 = edible>"}`.
- * `intelligence` is the size of the animal's neural network in hidden neurons (SOFT_CODED), or -1 when it has none.
+ * `intelligence` is the number of connections (weights + biases) in the animal's neural network (SOFT_CODED), or -1 when it has none.
  * `perSpecies` (indexed like `species`) holds running totals: deaths from starvation or thirst, and animal-ticks lived.
  * `targetX`/`targetY` are the tile-unit position the animal is heading for (see [destination]), or -1,-1 when it has none.
  * Columns 17-24 are the animal's own stats: five inherited and three calculated (see [sim.animal.AnimalStats]).
@@ -120,7 +120,7 @@ fun getSimulationSnapshot(): String {
             "${r2(a.feelings.fear)},${r2(a.feelings.hunger)},${r2(a.feelings.thirst)},${r2(a.feelings.libido)}," +
             (destination(a.action)?.let { "${r2(it.x)},${r2(it.y)}" } ?: "-1,-1") + "," + (heading(a)?.let { r2(it).toString() } ?: "999") + "," +
             "${r2(a.stats.maxHp)},${a.stats.speed},${r2(a.stats.damage)},${r2(a.stats.armor)},${r2(a.stats.viewRange)}," +
-            "${a.stats.baseStaminaUsage},${a.stats.walkingStaminaUsage},${r2(a.stats.elderlyAge)},${a.mind?.net?.hiddenNeurons ?: -1}," +
+            "${a.stats.baseStaminaUsage},${a.stats.walkingStaminaUsage},${r2(a.stats.elderlyAge)},${a.mind?.net?.connections ?: -1}," +
             "${r2(if (a.species.canSprint) a.sprintCharge else 0.0)},${if (a.isSprinting) 1 else 0},${if (a.isCalling) 1 else 0}," +
             "${a.toxinTicks},${AnimalEffect.mask(a.effects)}]"
     }

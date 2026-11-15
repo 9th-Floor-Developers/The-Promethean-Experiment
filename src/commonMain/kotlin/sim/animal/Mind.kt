@@ -36,6 +36,9 @@ class Mind(val net: NeuralNet) {
         /** Hidden layers of the founders of a species. */
         val FOUNDER_HIDDEN = intArrayOf(2)
 
+        /** Intelligence of a founder: the connections of a [FOUNDER_HIDDEN] network (see [NeuralNet.connections]). */
+        val FOUNDER_INTELLIGENCE: Int get() = NeuralNet.connectionsOf(intArrayOf(INPUTS, *FOUNDER_HIDDEN, OUTPUTS))
+
         /** Own decisions remembered per animal; the oldest are forgotten first. */
         const val MEMORY = 200
         /** Decisions of others (same species, in view) remembered per animal; the oldest are forgotten first. */
@@ -62,7 +65,9 @@ class Mind(val net: NeuralNet) {
         const val MAX_NEURON_CHANGE = 2
         const val MIN_LAYER_SIZE = 2
         const val MAX_LAYER_SIZE = 64
-        const val MAX_HIDDEN_LAYERS = 4
+        /** Hidden layers a brain can have; a newborn's count is its shape parent's, plus or minus one by mutation. */
+        const val MIN_HIDDEN_LAYERS = 1
+        const val MAX_HIDDEN_LAYERS = 10
         /** Size of a hidden layer added by mutation. */
         const val NEW_LAYER_SIZE = 4
         /** Largest random change to each inherited weight. */
@@ -94,7 +99,7 @@ class Mind(val net: NeuralNet) {
                 hidden[i] = (hidden[i] + rng.nextInt(-MAX_NEURON_CHANGE, MAX_NEURON_CHANGE + 1)).coerceIn(MIN_LAYER_SIZE, MAX_LAYER_SIZE)
             }
             if (hidden.size < MAX_HIDDEN_LAYERS && rng.nextDouble() < LAYER_MUTATION_CHANCE * scale) hidden.add(NEW_LAYER_SIZE)
-            if (hidden.size > 1 && rng.nextDouble() < LAYER_MUTATION_CHANCE * scale) hidden.removeAt(rng.nextInt(hidden.size))
+            if (hidden.size > MIN_HIDDEN_LAYERS && rng.nextDouble() < LAYER_MUTATION_CHANCE * scale) hidden.removeAt(rng.nextInt(hidden.size))
             val sizes = intArrayOf(INPUTS, *hidden.toIntArray(), OUTPUTS)
             return Mind(NeuralNet.inherit(sizes, a.net, b.net, PARENT_WEIGHT_SHARE, WEIGHT_MUTATION * scale, rng))
         }
@@ -127,7 +132,7 @@ class Mind(val net: NeuralNet) {
     var lastNutrition = -1.0
     var lastHydration = -1.0
 
-    /** Stamina spent every tick to run this brain. */
+    /** Stamina spent every tick to run this brain: per hidden neuron, not per connection (intelligence). */
     val staminaCost: Double get() = net.hiddenNeurons * NEURON_STAMINA_COST
 
     /** Picks the strongest drive in [values], or a random one with chance [EXPLORATION]. */

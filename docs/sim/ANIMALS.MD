@@ -60,10 +60,11 @@ since what it saw depends on where it was
 every tick an animal is in REST it replays 16 remembered decisions through Q-learning (learning rate 0.05, discount 0.9), 30% of them from observed decisions
 
 children inherit the hidden layer shape (from a random parent, sizes averaged where both parents have the layer)
-and weights that are only 25% the parents' average and 75% fresh random (so behaviour is mainly learned, not passed on), both with mutation: +/- 2 neurons per layer (30% chance), add or remove a layer (5% each, 1 to 4 layers, 2 to 64 neurons)
+and weights that are only 25% the parents' average and 75% fresh random (so behaviour is mainly learned, not passed on), both with mutation: +/- 2 neurons per layer (30% chance), add or remove a layer (5% each, 1 to 10 hidden layers, 2 to 64 neurons each); the layer count starts from the shape parent's, so depth builds up over generations
 founders start with one hidden layer of 2 neurons and random weights
 every hidden neuron costs stamina each tick, so a bigger brain has to earn its keep
-'intelligence' (shown in the inspector) = the number of hidden neurons; the inspector also draws the network
+'intelligence' (shown in the inspector and the statistics charts) = the number of connections in the network: every weight between neighbouring layers plus one bias per hidden and output neuron,
+so how the neurons are wired counts, not just how many (15-2-6 = 50, 15-2-4-6 = 74, 15-4-6 = 94: neurons right after the 15 inputs are the most connected); the stamina cost stays per hidden neuron, not per connection; the inspector also draws the network
 the statistics page shows thirst & hunger deaths per 100 animal-days per species, which measures how well each animal copes regardless of population size
 
 tested (JVM, 10-15 in-game days): with learning on, brains become need-dependent (given the same situation, about 65-70% pick DRINK when thirsty vs ~35-40% when not,

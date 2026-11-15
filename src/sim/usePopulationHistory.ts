@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { A, type SimInfo, type SimSnapshot } from './types';
 
-/** Brain size (hidden neurons) of the living animals of one species: [smallest, average, largest]. */
+/** Intelligence (network connections) of the living animals of one species: [smallest, average, largest]. */
 export type IntelRange = [min: number, avg: number, max: number];
 
 /** One population sample: the tick it was taken at, the living animal count per species (indexed like SimInfo.species) and their brain sizes. */

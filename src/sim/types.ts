@@ -43,7 +43,7 @@ export const NO_HEADING = 999;
  * Column indices of a SimSnapshot.animals row:
  * [id, species, x, y, hp, nutrition, hydration, stamina, age, action, fear, hunger, thirst, libido, targetX, targetY, heading] (target is -1,-1 when the animal has no destination; heading is
  * the direction in radians a wandering or fleeing animal moves in, NO_HEADING when it has none; the last eight are the animal's own stats: inherited maxHp, speed, damage, armor, viewRange, then calculated
- * baseStaminaUsage, walkingStaminaUsage, elderlyAge), then intelligence: the size of its neural network in hidden neurons, or -1 when it has none (instinct brain),
+ * baseStaminaUsage, walkingStaminaUsage, elderlyAge), then intelligence: the connections (weights + biases) in its neural network, or -1 when it has none (instinct brain),
  * then sprintCharge: the sprint reserve left in ticks, and sprinting: 1 while the animal is sprinting (both 0 without the SPRINTING trait),
  * then calling: 1 while the animal is raising an alarm (ALARM_CALLING),
  * then toxinTicks: ticks of venom or poison still working in the animal (VENOMOUS, POISONOUS), 0 when not poisoned,

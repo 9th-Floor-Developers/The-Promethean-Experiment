@@ -59,7 +59,7 @@ const TREND_W = 600, TREND_H = 230;
 const TREND_PAD = { l: 34, r: 8, t: 10, b: 26 };
 
 /**
- * Brain size over the whole run, one line per neural-network species: the average number of hidden neurons among the
+ * Brain size over the whole run, one line per neural-network species: the average intelligence (connections) among the
  * living animals, with a shaded band from the smallest to the largest brain alive. A dashed line marks the size the
  * founders started with, so a line above it means evolution has grown the brain and a line below it means the
  * stamina each neuron costs is not paying off. A species dies out as a gap at the end of its line.
@@ -80,7 +80,7 @@ function IntelligenceTrend({ info, history, snapshot, shown }: { info: SimInfo; 
 
     const t0 = pts[0]!.tick, t1 = pts[pts.length - 1]!.tick, span = Math.max(1, t1 - t0);
     const bases = [...new Set(shown.map((k) => info.species[k]!.base?.[BASE_INTEL]).filter((v): v is number => v !== undefined && v >= 0))];
-    // Brain sizes drift by a few neurons around the founder value, so the axis is zoomed to the data (not to 0)
+    // Brain sizes drift by a few connections around the founder value, so the axis is zoomed to the data (not to 0)
     // and always includes the founder line; otherwise the whole run would read as one flat line.
     const seen = pts.flatMap((s) => shown.flatMap((k) => (s.intel[k] ? [s.intel[k]![0], s.intel[k]![2]] : [])));
     const yLo = Math.max(0, Math.floor(Math.min(...seen, ...bases) - 1));
@@ -146,7 +146,7 @@ function IntelligenceTrend({ info, history, snapshot, shown }: { info: SimInfo; 
                 })}
                 <text x={PAD.l} y={H - 5} className="popgraph__tick">day {day(t0)}</text>
                 <text x={W - PAD.r} y={H - 5} textAnchor="end" className="popgraph__tick">day {day(t1)}</text>
-                <text x={6} y={PAD.t + 2} className="popgraph__tick">hidden neurons</text>
+                <text x={6} y={PAD.t + 2} className="popgraph__tick">connections</text>
                 {bases.map((b) => (
                     <g key={b}>
                         <line x1={PAD.l} x2={W - PAD.r} y1={y(b)} y2={y(b)} stroke={AXIS_TEXT} strokeOpacity={0.55} strokeDasharray="4 3" />
@@ -175,7 +175,7 @@ function IntelligenceTrend({ info, history, snapshot, shown }: { info: SimInfo; 
             </ul>
             <p className="radar__note">
                 {hs ? `Day ${day(hs.tick)}. ` : 'Latest values. '}
-                Average hidden neurons of the living animals (band = smallest to largest brain alive). The axis is zoomed to the sizes actually seen: above the dashed founder line evolution has grown the brain, below it the stamina each neuron costs is not paying off.
+                Average network connections of the living animals (band = smallest to largest brain alive). The axis is zoomed to the sizes actually seen: above the dashed founder line evolution has grown the brain, below it the stamina each neuron costs is not paying off.
             </p>
         </section>
     );
@@ -183,7 +183,11 @@ function IntelligenceTrend({ info, history, snapshot, shown }: { info: SimInfo; 
 
 const SC_W = 600, SC_H = 260;
 const SC_PAD = { l: 38, r: 10, t: 12, b: 34 };
-/** Horizontal spread of the dots within one brain size, in neurons, so animals of equal intelligence do not sit on one line. */
+/**
+ * Horizontal spread of the dots within one brain size, as a share of the gap to the nearest other brain size seen, so
+ * animals of equal intelligence do not sit on one line. Connection counts jump by several at a time (one neuron adds a
+ * whole row of connections), so a fixed spread in connections would be invisible or would blur sizes together.
+ */
 const JITTER = 0.34;
 
 /** Pearson correlation of brain size and age of death; null when there is nothing to correlate (fewer than 3 deaths, or every brain the same size). */
@@ -235,7 +239,11 @@ function IntelligenceLifespan({ info, deaths, shown }: { info: SimInfo; deaths: 
     if (rows.length < 2) return <section className="radar radar--wide">{head}<div className="panel__empty">Not enough animals of this species have died yet…</div></section>;
 
     const xs = rows.map((d) => d.intelligence);
-    const x0 = Math.min(...xs) - 1, x1 = Math.max(...xs) + 1;
+    const sizes = [...new Set(xs)].sort((a, b) => a - b);
+    /** Smallest gap between two brain sizes that occur (1 when only one size has been seen yet). */
+    const gap = sizes.length > 1 ? Math.min(...sizes.slice(1).map((v, i) => v - sizes[i]!)) : 1;
+    const jitter = JITTER * gap;
+    const x0 = sizes[0]! - gap, x1 = sizes[sizes.length - 1]! + gap;
     const yMax = niceMax(Math.max(...rows.map((d) => d.age)));
     const W = SC_W, H = SC_H, PAD = SC_PAD;
     const px = (v: number) => PAD.l + ((v - x0) / (x1 - x0)) * (W - PAD.l - PAD.r);
@@ -272,15 +280,15 @@ function IntelligenceLifespan({ info, deaths, shown }: { info: SimInfo; deaths: 
                 {ticks.map((v) => (
                     <text key={v} x={px(v)} y={H - PAD.b + 13} textAnchor="middle" className="popgraph__tick">{v}</text>
                 ))}
-                <text x={PAD.l + (W - PAD.l - PAD.r) / 2} y={H - 4} textAnchor="middle" className="popgraph__tick">brain size at birth (hidden neurons)</text>
+                <text x={PAD.l + (W - PAD.l - PAD.r) / 2} y={H - 4} textAnchor="middle" className="popgraph__tick">intelligence at birth (connections)</text>
                 <text x={6} y={PAD.t + 2} className="popgraph__tick">age at death (days)</text>
                 {dots.map((d, i) => (
-                    <circle key={i} cx={px(d.intelligence + jitterOf(i) * JITTER)} cy={py(d.age)} r={2} fill={color} fillOpacity={0.4} />
+                    <circle key={i} cx={px(d.intelligence + jitterOf(i) * jitter)} cy={py(d.age)} r={2} fill={color} fillOpacity={0.4} />
                 ))}
                 <path d={trend} fill="none" stroke={AXIS_TEXT} strokeWidth={1.6} strokeLinejoin="round" />
                 {perSize.map(([iq, e]) => (
                     <circle key={iq} cx={px(iq)} cy={py(e.sum / e.n)} r={3} fill={AXIS_TEXT}>
-                        <title>{`${iq} hidden neurons: ${e.n} animal${e.n === 1 ? '' : 's'}, average lifespan ${(e.sum / e.n).toFixed(2)} days`}</title>
+                        <title>{`${iq} connections: ${e.n} animal${e.n === 1 ? '' : 's'}, average lifespan ${(e.sum / e.n).toFixed(2)} days`}</title>
                     </circle>
                 ))}
             </svg>

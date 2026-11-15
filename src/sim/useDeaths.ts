@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { A, type SimInfo, type SimSnapshot } from './types';
 
-/** One animal's end: the age in days it reached, and the brain size (hidden neurons) it lived with, -1 for an instinct brain. */
+/** One animal's end: the age in days it reached, and its intelligence (network connections) at birth, -1 for an instinct brain. */
 export interface DeathRecord {
     age: number;
     intelligence: number;

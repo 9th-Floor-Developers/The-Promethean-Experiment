@@ -636,6 +636,6 @@ class World(
      */
     private fun wellbeing(fraction: Double): Double = 1 - (1 - fraction) * (1 - fraction)
 
-    /** " (brain hidden layers [12, 4])" for a SOFT_CODED newborn's [mind], empty otherwise. */
-    private fun brainInfo(mind: Mind?) = mind?.let { " (brain hidden layers ${it.net.hiddenSizes})" } ?: ""
+    /** " (brain hidden layers [12, 4], 302 connections)" for a SOFT_CODED newborn's [mind], empty otherwise. */
+    private fun brainInfo(mind: Mind?) = mind?.let { " (brain hidden layers ${it.net.hiddenSizes}, ${it.net.connections} connections)" } ?: ""
 }

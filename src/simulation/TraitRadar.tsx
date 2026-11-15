@@ -85,7 +85,7 @@ export function TraitRadar({ info, stats }: Props) {
                     <li><span className="radar__swatch" style={{ background: NOW_COLOR }} />Average of all animals so far</li>
                 </ul>
             )}
-            {data && <p className="radar__note">{data.count} animals seen · axis = lowest to highest value found (including the base value), shape = average; stamina axes inverted (lower use plots further out){n > 8 ? ' · intelligence = hidden neurons in the neural network' : ''}</p>}
+            {data && <p className="radar__note">{data.count} animals seen · axis = lowest to highest value found (including the base value), shape = average; stamina axes inverted (lower use plots further out){n > 8 ? ' · intelligence = connections in the neural network' : ''}</p>}
         </section>
     );
 }
