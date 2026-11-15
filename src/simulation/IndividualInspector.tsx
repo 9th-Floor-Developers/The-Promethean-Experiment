@@ -1,6 +1,7 @@
 import { Leaderboard, type LeaderboardSettings } from './Leaderboard';
 import { A, type BrainInfo, type ObjectInfo, type SimInfo, type SimSnapshot } from '../sim/types';
 import { NeuralNetView } from './NeuralNetView';
+import { TraitChips } from './TraitIcons';
 
 const TICKS_PER_DAY = 1200;
 
@@ -183,7 +184,8 @@ export function IndividualInspector({ snapshot, info, selectedId, onSelect, obje
                         <NeuralNetView brain={brain} />
                     </>
                 )}
-                <p className="inspector__traits">{species.traits.map((t) => t.toLowerCase().replace(/_/g, ' ')).join(' · ')}</p>
+                <h3 className="inspector__subhead">Traits</h3>
+                <TraitChips traits={species.traits} />
             </>
         );
     }
