@@ -428,19 +428,20 @@ class World(
 
     /**
      * Damage one bite by [attacker] does to [target]: the attacker's damage less the target's ARMOR percentage and
-     * its BODY_COVERING's [Covering.armorBonus], less a flat [Species.hardSkinReduction] for Trait.HARD_SKIN. A bite
-     * always lands at least [MIN_DAMAGE_SHARE] of its raw damage, so no combination of armor, covering and hard skin
-     * makes an animal invulnerable and leaves a predator chewing forever. The floor cannot bind on the percentages
-     * alone (together they cap at [sim.animal.AnimalStats.MAX_ARMOR_REDUCTION]), so hard skin is the only thing that
-     * can reach it.
+     * its BODY_COVERING's [Covering.armorBonus], then less the flat subtractions - a rigid covering's
+     * [Covering.flatReduction] and [Species.hardSkinReduction] for Trait.HARD_SKIN. A bite always lands at least
+     * [MIN_DAMAGE_SHARE] of its raw damage, so no combination of armor, covering and hard skin makes an animal
+     * invulnerable and leaves a predator chewing forever. The floor cannot bind on the percentages alone (together
+     * they cap at [sim.animal.AnimalStats.MAX_ARMOR_REDUCTION]), so only the flat subtractions can reach it.
      */
     private fun biteDamage(attacker: Animal, target: Animal): Double {
         val raw = attacker.stats.damage
+        val covering = target.species.covering
         // The covering's share rides on top of the inherited ARMOR stat, but the pair still cap together, so a
         // well-armoured shelled animal cannot climb past the cap the slider alone is held to.
-        val reduction = (target.stats.armorReduction + target.species.covering.armorBonus)
+        val reduction = (target.stats.armorReduction + covering.armorBonus)
             .coerceAtMost(AnimalStats.MAX_ARMOR_REDUCTION)
-        var dealt = raw * (1 - reduction)
+        var dealt = raw * (1 - reduction) - covering.flatReduction
         if (target.species.hasHardSkin) dealt -= target.species.hardSkinReduction
         return max(dealt, raw * MIN_DAMAGE_SHARE)
     }

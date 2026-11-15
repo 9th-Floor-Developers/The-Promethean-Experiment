@@ -12,10 +12,17 @@ package sim.species
 class Covering(
     /**
      * Extra share of every bite the covering absorbs (0.04 = four percentage points), added to the animal's ARMOR
-     * percentage before the shared cap in [sim.animal.AnimalStats.MAX_ARMOR_REDUCTION]. A share rather than a flat
-     * subtraction, so flat damage reduction stays Trait.HARD_SKIN's signature.
+     * percentage before the shared cap in [sim.animal.AnimalStats.MAX_ARMOR_REDUCTION]. Most coverings work only
+     * this way; a rigid plate also takes a flat [flatReduction] off the top.
      */
     val armorBonus: Double = 0.0,
+    /**
+     * Flat damage taken off every bite, on top of [armorBonus] and alongside Trait.HARD_SKIN's own
+     * [Species.hardSkinReduction]. Only a rigid covering has one: a plate stops a small bite outright, where a
+     * percentage would merely shave it. The floor in [sim.world.World.biteDamage] still lets a trickle through, so
+     * stacking this with hard skin cannot make an animal invulnerable.
+     */
+    val flatReduction: Double = 0.0,
     /** Multiplier on [Species.hydrationDrain]: above 1 the covering makes its owner thirstier, below 1 it holds water in. */
     val hydrationFactor: Double = 1.0,
     /**
@@ -33,6 +40,7 @@ class Covering(
 ) {
     init {
         require(armorBonus >= 0) { "a covering's armor bonus must not be negative" }
+        require(flatReduction >= 0) { "a covering's flat damage reduction must not be negative" }
         require(hydrationFactor > 0) { "a covering's hydration factor must be positive" }
         require(staminaFactor > 0) { "a covering's stamina factor must be positive" }
         require(speedFactor > 0) { "a covering's speed factor must be positive" }
@@ -62,11 +70,19 @@ class Covering(
          */
         val SCALES = Covering(armorBonus = 0.08, hydrationFactor = 0.72, speedFactor = 0.93)
 
+        /**
+         * EXOSKELETON: a rigid plate that both sheds a share of every bite and stops a small one outright, bought
+         * with the effort of hauling it around. The only covering that is expensive on the axis the simulation
+         * actually turns on, which is what keeps its armour from being a free lunch.
+         */
+        val EXOSKELETON = Covering(armorBonus = 0.14, flatReduction = 0.5, staminaFactor = 1.18)
+
         /** The effect of [trait], or [NONE] for a species with no covering (or one whose mechanic is not designed yet). */
         fun of(trait: Trait?): Covering = when (trait) {
             Trait.FUR -> FUR
             Trait.FEATHERS -> FEATHERS
             Trait.SCALES -> SCALES
+            Trait.EXOSKELETON -> EXOSKELETON
             else -> NONE
         }
     }
