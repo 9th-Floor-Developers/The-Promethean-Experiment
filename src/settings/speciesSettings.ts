@@ -48,7 +48,7 @@ export interface TraitCategoryDef {
 export const CATEGORIES: TraitCategoryDef[] = [
     { key: 'CONTROLLER', label: 'Brain', question: 'How does it make decisions?', options: [
         { id: 'HARD_CODED', label: 'Instinct', help: 'Follows built-in rules driven by fear, hunger, thirst and the urge to breed.' },
-        { id: 'SOFT_CODED', label: 'Neural network', help: 'Learns its own behaviour (not available yet).', unavailable: true },
+        { id: 'SOFT_CODED', label: 'Neural network', help: 'Starts with a random brain and learns from what goes well or badly; children inherit the learned brain.' },
     ] },
     { key: 'CONSUMPTION', label: 'Diet', question: 'What does it eat?', options: [
         { id: 'HERBIVORE', label: 'Plants only', help: 'Eats trees and grass.' },

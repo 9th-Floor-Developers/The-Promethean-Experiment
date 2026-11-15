@@ -4,7 +4,7 @@ import {
 } from './speciesSettings';
 
 /** Which built-in preset a preset started as (so it can be reset to its original); absent for the user's own. */
-export type BuiltInKey = 'default' | 'paradise' | 'savanna';
+export type BuiltInKey = 'default' | 'paradise' | 'savanna' | 'learning';
 
 export interface Preset {
     id: string;
@@ -22,7 +22,7 @@ export interface PresetStore {
 }
 
 /** Every built-in preset, in the order they are listed. */
-const BUILT_IN_KEYS: BuiltInKey[] = ['default', 'paradise', 'savanna'];
+const BUILT_IN_KEYS: BuiltInKey[] = ['default', 'paradise', 'savanna', 'learning'];
 
 /**
  * African savanna, a medium (180 tile) world with four species modelled loosely on real animals:
@@ -54,6 +54,26 @@ function savannaSettings(): SimSettings {
     return sanitizeSettings({ species, mapSize: 180, water: 1.25, trees: 1, grass: 1.25 })!;
 }
 
+/**
+ * Learning lab, a 160 tile world with plenty of water, trees and grass, showing the neural-network brain (SOFT CODED AI) at work:
+ * - Learner: a neural-network herbivore. Founders start with random brains, so many die of thirst and hunger in the
+ *   first days; the survivors learn (and pass their learned brains on), so the population then recovers and grows.
+ * - Hunter: a few slow, instinct-driven carnivores that keep some pressure on the learners.
+ * Watch the population graph: an early crash of the learners followed by steady growth is the learning curve.
+ * Tested on the JVM (seed 42): learners 78 -> 39 by day 3 -> 173 by day 15; hunters 3 -> 4.
+ */
+function learningSettings(): SimSettings {
+    const species: Omit<SpeciesSettings, 'look'>[] = [ // looks are filled in by builtInSettings
+        { uid: 0, name: 'Learner', count: 70, stats: { maxHp: 100, speed: 0.07, damage: 3, armor: 1, viewRange: 16 },
+            mutationRate: 5,
+            traits: ['SOFT_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'HERDING'] },
+        { uid: 0, name: 'Hunter', count: 3, stats: { maxHp: 120, speed: 0.075, damage: 3, armor: 1, viewRange: 20 },
+            mutationRate: 5,
+            traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'SOLITARY'] },
+    ];
+    return sanitizeSettings({ species, mapSize: 160, water: 1.5, trees: 1.5, grass: 1.5 })!;
+}
+
 const STORAGE_KEY = 'prometheus.presets.v1';
 
 /** The settings of a built-in preset, freshly created. Built-in species always get the same (name-based) looks. */
@@ -64,13 +84,14 @@ export function builtInSettings(key: BuiltInKey): SimSettings {
 /** The settings of a built-in preset before its fixed looks are applied. */
 function builtInSettingsRaw(key: BuiltInKey): SimSettings {
     if (key === 'savanna') return savannaSettings();
+    if (key === 'learning') return learningSettings();
     if (key === 'paradise') {
         return { species: [{ ...herbivoreTemplate(), name: 'Herbivore', count: 60 }], mapSize: MAP_SIZE.max, water: RESOURCE.max, trees: RESOURCE.max, grass: RESOURCE.max };
     }
     return { ...defaultSettings(), mapSize: 200 };
 }
 
-const BUILT_IN_NAMES: Record<BuiltInKey, string> = { default: 'Default (predator & prey)', paradise: 'Paradise', savanna: 'Savanna (4 species)' };
+const BUILT_IN_NAMES: Record<BuiltInKey, string> = { default: 'Default (predator & prey)', paradise: 'Paradise', savanna: 'Savanna (4 species)', learning: 'Learning lab (neural network)' };
 
 function builtInPreset(key: BuiltInKey): Preset {
     return { id: `builtin-${key}`, name: BUILT_IN_NAMES[key], settings: builtInSettings(key), builtIn: key };

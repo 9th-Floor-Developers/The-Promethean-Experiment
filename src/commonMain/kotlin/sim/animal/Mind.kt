@@ -36,9 +36,9 @@ class Mind(val net: NeuralNet) {
         const val MEMORY = 200
         /** Discount on the value of the next decision. */
         const val GAMMA = 0.9
-        const val LEARNING_RATE = 0.02
+        const val LEARNING_RATE = 0.05
         /** Remembered decisions replayed per tick while resting. */
-        const val REPLAYS_PER_TICK = 4
+        const val REPLAYS_PER_TICK = 16
         /** Chance a decision is a random drive instead of the strongest one, so the animal keeps trying new things. */
         const val EXPLORATION = 0.1
 

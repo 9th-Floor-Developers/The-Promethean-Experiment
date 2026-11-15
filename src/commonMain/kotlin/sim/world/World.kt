@@ -131,9 +131,11 @@ class World(
         const val FLEE_TURN_CHANCE = 0.03
         /** HP regained per tick by REGENERATION animals that are not starving. */
         const val REGEN_RATE = 0.1
-        /** SOFT_CODED reward for each parent when an offspring is born or an egg laid. */
+        /** SOFT_CODED reward for each parent when an offspring is born or an egg laid (before [REWARD_SCALE]). */
         const val BIRTH_REWARD = 1.0
-        /** SOFT_CODED reward weight of HP change relative to nutrition and hydration change (all as fractions of max). */
+        /** SOFT_CODED rewards (status changes and births) are multiplied by this so they are large enough, next to the network's random start, to learn from quickly. */
+        const val REWARD_SCALE = 10.0
+        /** SOFT_CODED reward weight of HP change (as a fraction of max HP) relative to the nutrition and hydration [wellbeing] change. */
         const val HP_REWARD_WEIGHT = 2.0
         /** Angles (radians) tried, in order, when the straight path is blocked. */
         val MOVE_OFFSETS = doubleArrayOf(0.0, 0.7, -0.7, 1.4, -1.4)
@@ -431,9 +433,11 @@ class World(
             val m = a.mind ?: continue
             if (!a.isAlive) continue
             if (m.lastHp >= 0) {
-                val r = (a.nutrition - m.lastNutrition) / a.species.maxNutrition +
-                    (a.hydration - m.lastHydration) / a.species.maxHydration +
+                val s = a.species
+                var r = wellbeing(a.nutrition / s.maxNutrition) - wellbeing(m.lastNutrition / s.maxNutrition) +
+                    wellbeing(a.hydration / s.maxHydration) - wellbeing(m.lastHydration / s.maxHydration) +
                     HP_REWARD_WEIGHT * (a.hp - m.lastHp) / a.stats.maxHp
+                r *= REWARD_SCALE
                 m.pendingReward += r
                 rewardSum += r
                 rewarded++
@@ -489,8 +493,8 @@ class World(
         val s = a.species
         val stats = AnimalStats.inherit(s, a.stats, mate.stats, rng)
         val mind = if (a.mind != null && mate.mind != null) Mind.inherit(s, a.mind, mate.mind, rng) else null
-        a.mind?.let { it.pendingReward += BIRTH_REWARD }
-        mate.mind?.let { it.pendingReward += BIRTH_REWARD }
+        a.mind?.let { it.pendingReward += BIRTH_REWARD * REWARD_SCALE }
+        mate.mind?.let { it.pendingReward += BIRTH_REWARD * REWARD_SCALE }
         a.reproductionCooldown = s.reproductionCooldownTicks
         mate.reproductionCooldown = s.reproductionCooldownTicks
         a.changeNutrition(-s.reproductionNutritionCost)
@@ -504,6 +508,12 @@ class World(
         child.reproductionCooldown = s.reproductionCooldownTicks
         simEvent("[${clock.format()}] BIRTH ${child.label} born to ${a.label} and ${mate.label}${brainInfo(mind)}")
     }
+
+    /**
+     * How good a need level [fraction] (0 = empty, 1 = full) feels to a SOFT_CODED animal: 1 - (1 - fraction)^2. It is
+     * concave, so the same gain is worth much more when the animal is low (drinking while parched) than when nearly full.
+     */
+    private fun wellbeing(fraction: Double): Double = 1 - (1 - fraction) * (1 - fraction)
 
     /** " (brain hidden layers [12, 4])" for a SOFT_CODED newborn's [mind], empty otherwise. */
     private fun brainInfo(mind: Mind?) = mind?.let { " (brain hidden layers ${it.net.hiddenSizes})" } ?: ""

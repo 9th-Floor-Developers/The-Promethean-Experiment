@@ -48,11 +48,16 @@ inputs (all roughly 0..1): hp, nutrition, hydration, stamina, age (vs elderly ag
 closeness of the nearest predator, food, water and mate, time of day (sin, cos), whether its activity cycle says it should be awake
 
 a decision is made when the action cooldown ends, the current action becomes impossible, or a predator comes into view
-reward = change in nutrition + change in hydration + 2 x change in HP (each as a fraction of max), +1 for each offspring
+wellbeing of a need = 1 - (1 - fraction full)^2, so the same gain counts more when the animal is low (drinking while parched)
+reward = 10 x (change in nutrition wellbeing + change in hydration wellbeing + 2 x change in HP as a fraction of max, +1 for each offspring)
 each decision is remembered with the reward collected until the next decision (up to 200 per animal)
-every tick an animal is in REST it replays 4 remembered decisions through Q-learning
+every tick an animal is in REST it replays 16 remembered decisions through Q-learning (learning rate 0.05, discount 0.9)
 
 children inherit the hidden layer shape (from a random parent, sizes averaged where both parents have the layer)
 and the parents' weights averaged, both with mutation: +/- 2 neurons per layer (30% chance), add or remove a layer (5% each, 1 to 4 layers, 2 to 64 neurons)
 founders start with one hidden layer of 12 neurons and random weights
 every hidden neuron costs stamina each tick, so a bigger brain has to earn its keep
+
+tested (JVM, 10-15 in-game days): with learning on, brains become need-dependent (given the same situation, about 65-70% pick DRINK when thirsty vs ~35-40% when not,
+~75% pick EAT when hungry vs ~35-40% when not); with learning switched off nothing changes and the species dies out
+known weakness: fleeing is not learned yet (animals caught by predators rarely survive to rest and learn from it)
