@@ -29,7 +29,7 @@ export function CreditsScreen({ onBack }: Props) {
             <h1 id="credits-heading" className="credits__heading">Credits</h1>
             <ul className="credits__list">
                 <li>Landen Ingerslev (Calcium King)</li>
-                <li>Pete (Seal Ball Pete)</li>
+                <li>Aisawan Sucharitkul (Seal Ball Pete)</li>
             </ul>
             <p className="credits__note">Created for the 14th annual UMass Hackathon</p>
             <button ref={backRef} type="button" className="btn credits__back" onClick={onBack}>
