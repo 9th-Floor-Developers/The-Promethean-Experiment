@@ -130,6 +130,30 @@ h1, h2 { font-family: var(--font-display); margin: 0; }
     .btn:hover:not(:disabled) { transform: none; }
 }
 
+/* Opening: compact summary of the active preset's species (bottom-left, clear of the island). */
+.roster {
+    position: absolute;
+    left: var(--space-3);
+    bottom: var(--space-3);
+    max-width: min(22rem, calc(100% - 2 * var(--space-3)));
+    max-height: 45vh;
+    overflow-y: auto;
+    pointer-events: auto; /* the UI layer ignores the mouse; this panel must scroll when there are many species */
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.85);
+    color: var(--color-ink);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+.roster__heading { margin: 0; font-size: 1rem; }
+.roster__preset { margin: 0 0 0.3rem; font-size: 0.85rem; opacity: 0.75; }
+.roster__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; }
+.roster__item { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: var(--space-1); }
+.roster__model { width: 48px; height: 48px; }
+.roster__name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.roster__count { font-size: 0.85rem; opacity: 0.8; white-space: nowrap; }
+@media (max-width: 600px) { .roster { left: 16px; bottom: 16px; max-width: calc(100% - 32px); } }
+
 .opening__notice {
     margin: var(--space-2) 0 0;
     min-height: 1.5em;

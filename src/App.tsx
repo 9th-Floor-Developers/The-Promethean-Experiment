@@ -106,6 +106,8 @@ export default function App() {
                         onOpenCredits={() => setScreen('credits')}
                         onOpenSettings={() => setScreen('settings')}
                         focusCredits={cameFromCredits}
+                        presetName={activePreset(presetStore).name}
+                        species={settings.species}
                     />
                 )}
                 {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} onSelect={setSelectedId} objectInfoOf={sim?.objectInfo ?? null} following={following} onFollowChange={setFollowing} onBack={endSimulation}
