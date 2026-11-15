@@ -124,10 +124,15 @@ export interface SimSettings {
     water: number;
     trees: number;
     grass: number;
+    /** In-game hours a carcass takes to rot away; shorter means less carrion for meat eaters. */
+    carcassRotHours: number;
 }
 
 /** Resource amount slider limits (multiplier of the default amount). */
 export const RESOURCE = { min: 0.25, max: 3, step: 0.25 } as const;
+
+/** Carcass rot time slider limits and default, in in-game hours; the default matches Kotlin's CARCASS_ROT_TICKS (3 days). */
+export const CARCASS_ROT_HOURS = { min: 4, max: 120, step: 4, default: 72 } as const;
 
 /** World map size limits (tiles per side) and default. */
 export const MAP_SIZE = { min: 60, max: 300, step: 10, default: 200 } as const;
@@ -171,7 +176,7 @@ export function carnivoreTemplate(): SpeciesSettings {
 
 /** The settings the simulation starts with: one predator and one prey species. */
 export function defaultSettings(): SimSettings {
-    return { species: [carnivoreTemplate(), herbivoreTemplate()], mapSize: MAP_SIZE.default, water: 1, trees: 1, grass: 1 };
+    return { species: [carnivoreTemplate(), herbivoreTemplate()], mapSize: MAP_SIZE.default, water: 1, trees: 1, grass: 1, carcassRotHours: CARCASS_ROT_HOURS.default };
 }
 
 /** Name for a new species that does not clash with an existing one. */
@@ -207,6 +212,7 @@ export function sanitizeSettings(raw: unknown): SimSettings | null {
     const res = (v: unknown) => Math.max(RESOURCE.min, Math.min(RESOURCE.max, Number(v) || 1));
     return {
         water: res(parsed.water), trees: res(parsed.trees), grass: res(parsed.grass),
+        carcassRotHours: Math.max(CARCASS_ROT_HOURS.min, Math.min(CARCASS_ROT_HOURS.max, Number(parsed.carcassRotHours) || CARCASS_ROT_HOURS.default)),
         mapSize: Math.max(MAP_SIZE.min, Math.min(MAP_SIZE.max, Number(parsed.mapSize) || MAP_SIZE.default)),
         species: fillMissingLooks(parsed.species).map((s) => ({ ...s, uid: nextUid++, stats: clampStats({ ...DEFAULT_STATS, ...s.stats }), mutationRate: clampMutationRate(s.mutationRate), traits: s.traits.filter((id) => KNOWN_TRAITS.has(id)) })),
     };

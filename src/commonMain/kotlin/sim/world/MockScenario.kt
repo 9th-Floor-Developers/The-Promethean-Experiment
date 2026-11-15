@@ -1,6 +1,7 @@
 package sim.world
 
 import base.Vector2
+import sim.objects.CARCASS_ROT_TICKS
 import sim.objects.Grass
 import sim.objects.Tree
 import sim.species.Species
@@ -39,8 +40,11 @@ val MOCK_HERBIVORE = Species(
 const val START_CARNIVORES = 10
 const val START_HERBIVORES = 40
 
-/** How plentiful each resource is: multipliers where 1.0 is the default amount (ponds, trees, grass tufts). */
-class Resources(val water: Double = 1.0, val trees: Double = 1.0, val grass: Double = 1.0)
+/**
+ * How plentiful each resource is: multipliers where 1.0 is the default amount (ponds, trees, grass tufts), plus
+ * [carcassRotTicks], how long a dead body stays as food before it has rotted away.
+ */
+class Resources(val water: Double = 1.0, val trees: Double = 1.0, val grass: Double = 1.0, val carcassRotTicks: Int = CARCASS_ROT_TICKS)
 
 /** Ticks plants stay inedible after being eaten; long enough that food, not predators alone, limits the herbivores. */
 const val TREE_COOLDOWN_TICKS = 2400
@@ -63,7 +67,7 @@ fun createMockWorld(seed: Long, size: Int = TERRAIN_SIZE): World =
  */
 fun createWorld(seed: Long, size: Int, setups: List<SpeciesSetup>, resources: Resources = Resources()): World {
     val terrain = TerrainGenerator.generate(seed, size, resources.water)
-    val world = World(terrain, setups.map { it.species }, seed)
+    val world = World(terrain, setups.map { it.species }, seed, resources.carcassRotTicks.coerceAtLeast(1))
     val rng = Random(seed)
 
     val spots = (0 until terrain.width * terrain.height)

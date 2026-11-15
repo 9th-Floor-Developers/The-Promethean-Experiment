@@ -3,7 +3,7 @@ declare module '*Project-Prometheus-wasm-js.mjs' {
     /** Kotlin: generateTerrainJson(seed, size) in src/wasmJsMain/kotlin/TerrainExport.kt */
     export function generateTerrainJson(seed: number, size: number): string;
     /** Kotlin: src/wasmJsMain/kotlin/SimulationExport.kt. Creates the world and returns its terrain JSON. */
-    export function createSimulation(seed: number, size: number, speciesConfig: string, water: number, trees: number, grass: number): string;
+    export function createSimulation(seed: number, size: number, speciesConfig: string, water: number, trees: number, grass: number, carcassRotHours: number): string;
     /** Static species + scenery JSON (see SimInfo). */
     export function getSimulationInfo(): string;
     /** Advances the simulation by `ticks` ticks. */

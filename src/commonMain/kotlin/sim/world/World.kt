@@ -12,6 +12,7 @@ import sim.animal.Animal
 import sim.animal.AnimalStats
 import sim.animal.Brain
 import sim.animal.Mind
+import sim.objects.CARCASS_ROT_TICKS
 import sim.objects.Carcass
 import sim.objects.Egg
 import sim.objects.SimObject
@@ -33,11 +34,15 @@ internal const val EXPLORE_ARRIVE = 1.5
  */
 internal class Alarm(val caller: Animal, val threat: Animal)
 
-/** Holds the whole simulation state. The species are fixed when the world is created and never change. */
+/**
+ * Holds the whole simulation state. The species are fixed when the world is created and never change.
+ * [carcassRotTicks] is how long a dead body takes to rot away (a world setting, see [sim.objects.Carcass]).
+ */
 class World(
     val terrain: Terrain,
     val species: List<Species>,
     seed: Long = 0L,
+    val carcassRotTicks: Int = CARCASS_ROT_TICKS,
 ) {
     val animals = mutableListOf<Animal>()
 
@@ -568,7 +573,7 @@ class World(
         for (a in dead) {
             if (a.killedByAnimal) predatoryDeaths++ else { naturalDeaths++; naturalDeathsBySpecies[species.indexOf(a.species)]++ }
             simEvent("[${clock.format()}] DEATH ${a.label} at (${fmt1(a.position.x)}, ${fmt1(a.position.y)}): ${a.causeOfDeath ?: "unknown causes"} (was ${a.action})")
-            Carcass(nextId++, a.position, a.species.carcassNutrition).also { objects.add(it); carcasses.add(it) }
+            Carcass(nextId++, a.position, a.species.carcassNutrition, carcassRotTicks).also { objects.add(it); carcasses.add(it) }
         }
         removeDead()
         removeFinishedObjects()

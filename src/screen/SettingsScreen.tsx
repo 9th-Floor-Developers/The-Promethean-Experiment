@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-    CATEGORIES, EXTRA_TRAITS, MAP_SIZE, MAX_COUNT, RESOURCE, MAX_SPECIES, MIN_COUNT, MUTATION_RATE, STATS, carnivoreTemplate, herbivoreTemplate,
+    CARCASS_ROT_HOURS, CATEGORIES, EXTRA_TRAITS, MAP_SIZE, MAX_COUNT, RESOURCE, MAX_SPECIES, MIN_COUNT, MUTATION_RATE, STATS, carnivoreTemplate, herbivoreTemplate,
     newSpeciesName, type SimSettings, type SpeciesSettings, type StatKey,
 } from '../settings/speciesSettings';
 import { activePreset, builtInSettings, createPreset, duplicatePreset, type PresetStore } from '../settings/presets';
@@ -20,6 +20,13 @@ interface Props {
 }
 
 /** The resource sliders on the World tab. 100% is the normal amount. */
+/** A rot time in in-game hours as text: "8 h", or whole and half days such as "3 days". */
+function formatRotTime(hours: number): string {
+    if (hours < 24) return `${hours} h`;
+    const days = hours / 24;
+    return Number.isInteger(days) ? `${days} day${days === 1 ? '' : 's'}` : `${days.toFixed(1)} days`;
+}
+
 const RESOURCES = [
     { key: 'water', label: 'Water', help: 'How many ponds are scattered inland. The coast always has water.' },
     { key: 'trees', label: 'Trees', help: 'How many trees grow, especially in forests. Plant eaters feed on them.' },
@@ -135,6 +142,13 @@ export function SettingsScreen({ store, onChange: onStoreChange, display, onDisp
                                 <p className="stat__help">{r.help}</p>
                             </div>
                         ))}
+                        <div className="stat">
+                            <label htmlFor="carcass-rot" className="stat__label">Carcass rot time <strong>{formatRotTime(settings.carcassRotHours)}</strong></label>
+                            <input id="carcass-rot" className="slider" type="range" min={CARCASS_ROT_HOURS.min} max={CARCASS_ROT_HOURS.max} step={CARCASS_ROT_HOURS.step} value={settings.carcassRotHours}
+                                onChange={(e) => onChange({ ...settings, carcassRotHours: Number(e.target.value) })} />
+                            <div className="stat__ends"><span>Rots fast</span><span>Lasts long</span></div>
+                            <p className="stat__help">How long a dead animal stays as food before it rots away. Meat eaters and scavengers feed on carcasses, so a long rot time feeds more of them.</p>
+                        </div>
                     </div>
                 </article>
             )}

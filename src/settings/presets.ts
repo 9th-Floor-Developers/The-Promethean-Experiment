@@ -1,6 +1,6 @@
 /** Presets: named, saved bundles of simulation settings. One preset is active and is what Start Simulation runs. */
 import {
-    MAP_SIZE, RESOURCE, defaultSettings, herbivoreTemplate, loadLegacySettings, sanitizeSettings, withFixedLooks, type SimSettings, type SpeciesSettings,
+    CARCASS_ROT_HOURS, MAP_SIZE, RESOURCE, defaultSettings, herbivoreTemplate, loadLegacySettings, sanitizeSettings, withFixedLooks, type SimSettings, type SpeciesSettings,
 } from './speciesSettings';
 
 /** Which built-in preset a preset started as (so it can be reset to its original); absent for the user's own. */
@@ -59,7 +59,9 @@ function savannaSettings(): SimSettings {
  *   first days; the survivors learn, also from watching each other, so the population then recovers and grows.
  * - Hunter: a few slow, instinct-driven carnivores that keep some pressure on the learners.
  * Watch the population graph: an early crash of the learners followed by steady growth is the learning curve.
- * Tested on the JVM (seed 42): learners 70 -> 88 on day 1, dipping to 72 by day 3, then 186 by day 15; hunters 3 -> 5.
+ * Carcasses rot in 8 hours instead of 3 days: many learners starve, and with long-lasting carrion the hunters fed on
+ * those bodies, kept breeding and wiped the learners out (seed 42: hunters 3 -> 33, learners extinct by day 70).
+ * Tested on the JVM (seed 42, 80 days): learners stay around 135-185, hunters 3 -> 9.
  */
 function learningSettings(): SimSettings {
     const species: Omit<SpeciesSettings, 'look'>[] = [ // looks are filled in by builtInSettings
@@ -70,7 +72,7 @@ function learningSettings(): SimSettings {
             mutationRate: 5,
             traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL'] },
     ];
-    return sanitizeSettings({ species, mapSize: 160, water: 1.5, trees: 1.5, grass: 1.5 })!;
+    return sanitizeSettings({ species, mapSize: 160, water: 1.5, trees: 1.5, grass: 1.5, carcassRotHours: 8 })!;
 }
 
 const STORAGE_KEY = 'prometheus.presets.v1';
@@ -85,7 +87,7 @@ function builtInSettingsRaw(key: BuiltInKey): SimSettings {
     if (key === 'savanna') return savannaSettings();
     if (key === 'learning') return learningSettings();
     if (key === 'paradise') {
-        return { species: [{ ...herbivoreTemplate(), name: 'Herbivore', count: 60 }], mapSize: MAP_SIZE.max, water: RESOURCE.max, trees: RESOURCE.max, grass: RESOURCE.max };
+        return { species: [{ ...herbivoreTemplate(), name: 'Herbivore', count: 60 }], mapSize: MAP_SIZE.max, water: RESOURCE.max, trees: RESOURCE.max, grass: RESOURCE.max, carcassRotHours: CARCASS_ROT_HOURS.default };
     }
     return { ...defaultSettings(), mapSize: 200 };
 }
