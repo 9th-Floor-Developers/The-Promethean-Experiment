@@ -7,7 +7,7 @@ import { PopulationGraph, StatisticsPage } from './PopulationGraph';
 import type { LeaderboardSettings } from './Leaderboard';
 import type { BrainInfo, ObjectInfo, SimInfo, SimSnapshot } from '../sim/types';
 import type { TraitStats } from '../sim/useTraitStats';
-import type { DeathAges } from '../sim/useDeathAges';
+import type { Deaths } from '../sim/useDeaths';
 import type { DeathCauseSample } from '../sim/useDeathCauses';
 import type { DeathRateSample } from '../sim/useDeathRates';
 import type { PopulationSample } from '../sim/usePopulationHistory';
@@ -34,7 +34,7 @@ interface Props {
     onFollowChange: (following: boolean) => void;
     history: PopulationSample[];
     traitStats: TraitStats;
-    deathAges: DeathAges;
+    deaths: Deaths;
     deathCauses: DeathCauseSample[];
     deathRates: DeathRateSample[];
     /** True once every animal has died; shows the full-run graph. */
@@ -45,7 +45,7 @@ interface Props {
     onSpeedChange: (speed: number) => void;
 }
 
-export function SimulationScreen({ snapshot, info, selectedId, onSelect, objectInfoOf, brainOf, following, onFollowChange, onBack, leaderboardSettings, onLeaderboardSettingsChange, history, traitStats, deathAges, deathCauses, deathRates, ended, onEnd, speed, onSpeedChange }: Props) {
+export function SimulationScreen({ snapshot, info, selectedId, onSelect, objectInfoOf, brainOf, following, onFollowChange, onBack, leaderboardSettings, onLeaderboardSettingsChange, history, traitStats, deaths, deathCauses, deathRates, ended, onEnd, speed, onSpeedChange }: Props) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [overview, setOverview] = useState(false);
     return (
@@ -53,7 +53,7 @@ export function SimulationScreen({ snapshot, info, selectedId, onSelect, objectI
             <SimulationHeader snapshot={snapshot} onBack={onBack} sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((o) => !o)} speed={speed} onSpeedChange={onSpeedChange} ended={ended} onEnd={() => { onEnd(); }} />
             <SimulationViewport />
             <TitleEffects snapshot={snapshot} info={info} />
-            {(overview || ended) && <StatisticsPage traitStats={traitStats} deathAges={deathAges} deathCauses={deathCauses} deathRates={deathRates} ended={ended} history={history} info={info} snapshot={snapshot} onAction={ended ? onBack : () => setOverview(false)} />}
+            {(overview || ended) && <StatisticsPage traitStats={traitStats} deaths={deaths} deathCauses={deathCauses} deathRates={deathRates} ended={ended} history={history} info={info} snapshot={snapshot} onAction={ended ? onBack : () => setOverview(false)} />}
             <aside className="sim__sidebar" aria-label="Simulation panels">
                 <IndividualInspector snapshot={snapshot} info={info} selectedId={selectedId} onSelect={onSelect} objectInfoOf={objectInfoOf} brainOf={brainOf} following={following} onFollowChange={onFollowChange}
                                     leaderboardSettings={leaderboardSettings} onLeaderboardSettingsChange={onLeaderboardSettingsChange} />

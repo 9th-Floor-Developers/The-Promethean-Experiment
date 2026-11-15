@@ -1,14 +1,15 @@
 import { useState, type MouseEvent } from 'react';
-import { A, type SimInfo, type SimSnapshot } from '../sim/types';
+import type { SimInfo, SimSnapshot } from '../sim/types';
 import { TraitRadar } from './TraitRadar';
 import { DeathAgeHistogram } from './DeathAgeHistogram';
 import { DeathCauseCharts } from './DeathCauseCharts';
 import { DeathRateChart } from './DeathRateChart';
+import { IntelligenceCharts } from './IntelligenceCharts';
 import type { DeathRateSample } from '../sim/useDeathRates';
 import type { DeathCauseSample } from '../sim/useDeathCauses';
-import type { DeathAges } from '../sim/useDeathAges';
+import type { Deaths } from '../sim/useDeaths';
 import type { TraitStats } from '../sim/useTraitStats';
-import type { PopulationSample } from '../sim/usePopulationHistory';
+import { populationSample, type PopulationSample } from '../sim/usePopulationHistory';
 import { Hint } from '../ui/Hint';
 import { CHART_HELP, HEADER_HELP } from '../ui/helpText';
 
@@ -42,9 +43,7 @@ function niceMax(v: number): number {
 function withLivePoint(stored: PopulationSample[], info: SimInfo | null, snapshot: SimSnapshot | null): PopulationSample[] {
     const last = stored[stored.length - 1];
     if (!snapshot || !info || !last || snapshot.tick <= last.tick) return stored;
-    const counts = new Array<number>(info.species.length).fill(0);
-    for (const row of snapshot.animals) counts[row[A.species]!]!++;
-    return [...stored, { tick: snapshot.tick, counts }];
+    return [...stored, populationSample(snapshot, info)];
 }
 
 interface ChartProps extends Props {
@@ -159,7 +158,7 @@ export function PopulationGraph({ onExpand, ...props }: Props & { onExpand?: () 
  * The single statistics page, used both as the live overview (simulation still running behind it) and as the
  * end-of-simulation page. Every graph over the whole run goes in `sim-overview__body`.
  */
-export function StatisticsPage({ ended, onAction, traitStats, deathAges, deathCauses, deathRates, ...props }: Props & { ended: boolean; onAction: () => void; traitStats: TraitStats; deathAges: DeathAges; deathCauses: DeathCauseSample[]; deathRates: DeathRateSample[] }) {
+export function StatisticsPage({ ended, onAction, traitStats, deaths, deathCauses, deathRates, ...props }: Props & { ended: boolean; onAction: () => void; traitStats: TraitStats; deaths: Deaths; deathCauses: DeathCauseSample[]; deathRates: DeathRateSample[] }) {
     return (
         <section className="sim-overview" aria-labelledby="overview-h">
             <h2 id="overview-h" className="panel__header panel__header--row">
@@ -171,7 +170,8 @@ export function StatisticsPage({ ended, onAction, traitStats, deathAges, deathCa
                     <PopulationChart {...props} width={720} height={320} />
                 </div>
                 <TraitRadar info={props.info} stats={traitStats} />
-                <DeathAgeHistogram info={props.info} deathAges={deathAges} />
+                <IntelligenceCharts info={props.info} history={props.history} snapshot={props.snapshot} deaths={deaths} />
+                <DeathAgeHistogram info={props.info} deaths={deaths} />
                 <DeathCauseCharts samples={deathCauses} />
                 <DeathRateChart info={props.info} samples={deathRates} />
             </div>

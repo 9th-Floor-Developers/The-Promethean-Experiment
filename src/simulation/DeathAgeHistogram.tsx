@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import type { SimInfo } from '../sim/types';
-import type { DeathAges } from '../sim/useDeathAges';
+import type { Deaths } from '../sim/useDeaths';
 import { Hint } from '../ui/Hint';
 import { CHART_HELP } from '../ui/helpText';
 
 interface Props {
     info: SimInfo | null;
-    deathAges: DeathAges;
+    deaths: Deaths;
 }
 
 const W = 360, H = 200;
@@ -26,11 +26,11 @@ function niceStep(raw: number): number {
  * Histogram of the age (in days) at which animals of one species, picked from a dropdown, have died so far,
  * with the average lifespan. x = age at death, y = number of animals.
  */
-export function DeathAgeHistogram({ info, deathAges }: Props) {
+export function DeathAgeHistogram({ info, deaths }: Props) {
     const [picked, setPicked] = useState(0);
     if (!info) return null;
     const sp = Math.min(picked, info.species.length - 1);
-    const ages = deathAges[sp] ?? [];
+    const ages = (deaths[sp] ?? []).map((d) => d.age);
 
     let bars: { from: number; count: number }[] = [];
     let step = 1;

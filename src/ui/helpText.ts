@@ -106,6 +106,8 @@ export const CHART_HELP = {
     radar: 'The average body stats of one species compared with the stats it started with, so you can see which way evolution has pushed it.',
     deathAges: 'How old animals were when they died, so you can see whether most die young or live out a full life.',
     deathCause: 'Whether animals are dying to predators or to natural causes such as starvation and thirst, for the whole run and over time.',
+    intelligenceTrend: 'The average brain size (hidden neurons) of the living animals of each neural-network species over the whole run, with the band showing the smallest and largest brain alive. Rising above the dashed founder line means evolution is favouring bigger brains; falling below it means their stamina cost is not paying off. Only shown when at least one species thinks with a neural network.',
+    intelligenceLifespan: 'One dot per animal that has died, placed by the brain size it was born with and the age it reached, with the average lifespan at each brain size and the correlation r between the two. A positive r means bigger-brained animals lived longer, a negative one that they died sooner. Only shown when at least one species thinks with a neural network.',
     deathRate: 'Deaths from hunger or thirst per 100 animal-days, which counts per animal rather than per population: a falling line means each animal is coping better.',
 } as const;
 
