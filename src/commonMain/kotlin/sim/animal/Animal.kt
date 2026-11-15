@@ -60,6 +60,18 @@ class Animal(
     /** Trait ALARM_CALLING: whether the animal is raising an alarm right now; set by the sensing step. */
     var isCalling = false
 
+    /**
+     * Traits VENOMOUS and POISONOUS: ticks of toxin left in the animal's body, the HP it costs per tick, and what
+     * to record if it kills (docs/sim/SPECIES.md). An animal holds one toxin at a time: a fresh dose replaces the
+     * old one and restarts the timer, so a long fight keeps the toxin topped up but never compounds it.
+     */
+    var toxinTicks = 0
+        private set
+    var toxinDamage = 0.0
+        private set
+    var toxinCause: String? = null
+        private set
+
     /** Waypoints around obstacles toward [pathGoal]; empty when walking straight. */
     val path = ArrayDeque<Vector2>()
 
@@ -121,6 +133,30 @@ class Animal(
 
     /** Fraction of full speed available at the current stamina (never fully stops). */
     val speedFactor get() = MIN_SPEED_FACTOR + (1 - MIN_SPEED_FACTOR) * stamina / species.maxStamina
+
+    /**
+     * Traits VENOMOUS and POISONOUS: puts a toxin doing [damage] HP per tick for [ticks] ticks into the animal,
+     * replacing any toxin already in it. [cause] is recorded as the cause of death if the toxin is what kills it.
+     * Ignored on a dead animal and for a dose that would do nothing.
+     */
+    fun applyToxin(damage: Double, ticks: Int, cause: String) {
+        if (!isAlive || damage <= 0.0 || ticks <= 0) return
+        toxinDamage = damage
+        toxinTicks = ticks
+        toxinCause = cause
+    }
+
+    /**
+     * Spends one tick of the toxin in the animal's body, damaging it. Returns true while a toxin is still running,
+     * so the caller can count poisoned animals.
+     */
+    fun tickToxin(): Boolean {
+        if (toxinTicks <= 0) return false
+        toxinTicks--
+        hurt(toxinDamage, toxinCause ?: "poisoned", byAnimal = true)
+        if (toxinTicks == 0) { toxinDamage = 0.0; toxinCause = null }
+        return true
+    }
 
     /** Deals [amount] damage; records [cause] (and whether it was an [byAnimal] attack) if this kills the animal. */
     fun hurt(amount: Double, cause: String, byAnimal: Boolean = false) {

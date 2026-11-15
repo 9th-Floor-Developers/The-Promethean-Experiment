@@ -57,6 +57,26 @@ class Species(
     val hearingRange: Double = viewRange * HEARING_VIEW_MULTIPLE,
     /** Trait ALARM_CALLING: stamina spent each tick spent raising an alarm, so calling is never free. */
     val alarmCallStaminaCost: Double = 0.05,
+    /**
+     * Trait VENOMOUS: HP per tick, and for how many ticks, the toxin left in whatever this species bites does
+     * (docs/sim/SPECIES.md). Set above [sim.world.REGEN_RATE] so Trait.REGENERATION cannot simply out-heal it.
+     */
+    val venomDamage: Double = 0.25,
+    val venomTicks: Int = 240,
+    /**
+     * Trait POISONOUS: HP per tick, and for how many ticks, the toxin left in whatever bites this species does.
+     * Lasts longer than venom: the point of poison is that it keeps working after the attacker has let go.
+     */
+    val poisonDamage: Double = 0.25,
+    val poisonTicks: Int = 360,
+    /** Trait SPIKES: HP an attacker loses for each tick it spends biting this species; instant, and only while biting. */
+    val spikeDamage: Double = 0.5,
+    /**
+     * Trait HARD_SKIN: damage removed from every bite before it lands, on top of the [armor] percentage. A flat
+     * subtraction, so weak-biting attackers lose nearly all of their damage while a strong bite still gets through
+     * (see [sim.world.World.biteDamage], which always leaves a minimum trickle so nothing is invulnerable).
+     */
+    val hardSkinReduction: Double = 1.0,
     /** Ticks an animal must stick with an action before it may switch to a different kind of action. */
     val actionCooldownTicks: Int = 20,
     /** Nutrition lost per tick. */
@@ -67,7 +87,7 @@ class Species(
     val starvationDamage: Double = 0.2,
     /** Founder DAMAGE: damage dealt per tick to a target in reach; 0 means the species cannot attack. */
     val attackDamage: Double = 3.0,
-    /** Founder ARMOR: percent of attack damage absorbed (see [sim.animal.AnimalStats.armorReduction]). */
+    /** Founder ARMOR stat (the "Armor" slider; unrelated to Trait.HARD_SKIN): percent of attack damage absorbed (see [sim.animal.AnimalStats.armorReduction]). */
     val armor: Double = 1.0,
     /** Extra reach (tiles) beyond body contact for attacks. */
     val attackRange: Double = 0.3,
@@ -99,6 +119,8 @@ class Species(
         require(sprintSpeedMultiplier >= 1.0) { "sprintSpeedMultiplier must be at least 1 (a sprint is never slower than a walk)" }
         require(sprintChargeTicks > 0 && sprintRecharge > 0) { "sprint reserve and recharge must be positive" }
         require(hearingRange >= 0 && alarmCallStaminaCost >= 0) { "hearing range and alarm call cost must not be negative" }
+        require(venomDamage >= 0 && poisonDamage >= 0 && spikeDamage >= 0 && hardSkinReduction >= 0) { "trait damage must not be negative" }
+        require(venomTicks >= 0 && poisonTicks >= 0) { "toxin durations must not be negative" }
         require(reproductionNutritionThreshold <= maxNutrition) { "reproduction threshold above max nutrition" }
     }
 
@@ -107,6 +129,24 @@ class Species(
 
     /** Trait HEARING: whether animals of this species pick up sound (alarm calls and moving animals). */
     val canHear get() = Trait.HEARING in traits
+
+    /** Trait VENOMOUS: whether a bite by this species leaves a toxin in its target. */
+    val isVenomous get() = Trait.VENOMOUS in traits
+
+    /** Trait POISONOUS: whether biting this species leaves a toxin in the attacker. */
+    val isPoisonous get() = Trait.POISONOUS in traits
+
+    /** Trait SPIKES: whether biting this species costs the attacker HP for every tick it keeps biting. */
+    val hasSpikes get() = Trait.SPIKES in traits
+
+    /** Trait HARD_SKIN: whether a flat [hardSkinReduction] comes off every bite this species takes. */
+    val hasHardSkin get() = Trait.HARD_SKIN in traits
+
+    /** Trait NIGHT_VISION: whether this species sees at full range in the dark, instead of the usual night penalty. */
+    val canSeeInDark get() = Trait.NIGHT_VISION in traits
+
+    /** Trait REGENERATION: whether this species slowly heals itself while fed and watered. */
+    val canRegenerate get() = Trait.REGENERATION in traits
 
     /** Trait SPRINTING: whether animals of this species can sprint at all; others always move at a walk. */
     val canSprint get() = Trait.SPRINTING in traits

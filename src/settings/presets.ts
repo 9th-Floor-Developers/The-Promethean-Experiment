@@ -41,7 +41,7 @@ function savannaSettings(): SimSettings {
             traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL', 'SPRINTING', 'ALARM_CALLING'] },
         { uid: 0, name: 'Leopard tortoise', count: 45, stats: { maxHp: 200, speed: 0.045, damage: 0.5, armor: 60, viewRange: 10 },
             mutationRate: 5,
-            traits: ['HARD_CODED', 'HERBIVORE', 'EGG_BIRTH', 'SHELL', 'ECTOTHERMIC', 'DIURNAL', 'ARMOR', 'REGENERATION'] },
+            traits: ['HARD_CODED', 'HERBIVORE', 'EGG_BIRTH', 'SHELL', 'ECTOTHERMIC', 'DIURNAL', 'HARD_SKIN', 'REGENERATION'] },
         { uid: 0, name: 'Lion', count: 6, stats: { maxHp: 140, speed: 0.09, damage: 4, armor: 3, viewRange: 28 },
             mutationRate: 5,
             traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR', 'SPRINTING'] },
@@ -59,7 +59,7 @@ function savannaSettings(): SimSettings {
  *   first days; the survivors learn, also from watching each other, so the population then recovers and grows.
  * - Hunter: a few slow, instinct-driven carnivores that keep some pressure on the learners.
  * Watch the population graph: an early crash of the learners followed by steady growth is the learning curve.
- * Tested on the JVM (seed 42): learners 90 -> 67 by day 2 -> 136 by day 15; hunters 3 -> 5.
+ * Tested on the JVM (seed 42): learners 70 -> 88 on day 1, dipping to 72 by day 3, then 186 by day 15; hunters 3 -> 5.
  */
 function learningSettings(): SimSettings {
     const species: Omit<SpeciesSettings, 'look'>[] = [ // looks are filled in by builtInSettings

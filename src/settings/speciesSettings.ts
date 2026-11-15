@@ -84,14 +84,14 @@ export const CATEGORIES: TraitCategoryDef[] = [
 export const EXTRA_TRAITS: TraitOption[] = [
     { id: 'CLIMBING', label: 'Climbing', help: 'Can climb trees and steep places.' },
     { id: 'SPRINTING', label: 'Sprinting', help: 'Can sprint for a short time.' },
-    { id: 'VENOMOUS', label: 'Venomous', help: 'Its bite or sting harms others.' },
-    { id: 'POISONOUS', label: 'Poisonous', help: 'Harms anything that eats it.' },
-    { id: 'ARMOR', label: 'Armor', help: 'Protective plating or structures.' },
-    { id: 'SPIKES', label: 'Spikes', help: 'Sharp spines that discourage predators.' },
+    { id: 'VENOMOUS', label: 'Venomous', help: 'Its bite leaves a toxin that keeps hurting its victim afterwards. Only an animal that hunts ever bites.' },
+    { id: 'POISONOUS', label: 'Poisonous', help: 'Anything that bites it is left with a toxin that keeps hurting it long after it lets go.' },
+    { id: 'HARD_SKIN', label: 'Hard skin', help: 'Takes a flat amount off every bite, so weak biters barely scratch it. Separate from the Armor slider, which takes off a percentage.' },
+    { id: 'SPIKES', label: 'Spikes', help: 'Hurts its attacker for every moment it keeps biting.' },
     { id: 'REGENERATION', label: 'Self-healing', help: 'Slowly heals itself while fed and watered.' },
-    { id: 'ALARM_CALLING', label: 'Alarm calls', help: 'Warns nearby animals of danger.' },
-    { id: 'NIGHT_VISION', label: 'Night vision', help: 'Sees well in the dark.' },
-    { id: 'HEARING', label: 'Sharp hearing', help: 'Can detect sounds.' },
+    { id: 'ALARM_CALLING', label: 'Alarm calls', help: 'Shouts a warning while fleeing a predator it can see. Only animals with sharp hearing can hear it - predators included.' },
+    { id: 'NIGHT_VISION', label: 'Night vision', help: 'Sees at full range in the dark. Everything else sees half as far at night.' },
+    { id: 'HEARING', label: 'Sharp hearing', help: 'Notices alarm calls and moving animals it cannot see, out to 2.5x its eyesight.' },
 ];
 
 /** Every trait id the simulation knows, so ids of traits that have been removed can be dropped from saved presets. */

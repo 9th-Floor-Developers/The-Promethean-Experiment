@@ -7,6 +7,7 @@ import sim.objects.Carcass
 import sim.objects.Plant
 import sim.objects.Tree
 import sim.world.EXPLORE_ARRIVE
+import sim.world.TimePhase
 import sim.world.World
 
 /**
@@ -44,6 +45,30 @@ internal class Brain(private val world: World) {
          * overrides a desperate need - prey that panic at every sound starve instead of eating.
          */
         const val HEARD_FEAR_DAMPING = 0.4
+        /** Share of its view range an animal without Trait.NIGHT_VISION can see by at night. */
+        const val NIGHT_SIGHT = 0.5
+        /** The same at dawn and dusk, when there is some light left to see by. */
+        const val TWILIGHT_SIGHT = 0.75
+        /** Ticks of toxin left that the "Poisoned" sense reads as a full 1.0 (see [sense]). */
+        const val TOXIN_SENSE_TICKS = 240.0
+    }
+
+    /**
+     * Trait NIGHT_VISION: how far the animal can actually see right now. Sight is cut to [NIGHT_SIGHT] of its view
+     * range at night and [TWILIGHT_SIGHT] at dawn and dusk; a species with the trait sees at its full range
+     * whatever the hour (docs/sim/SPECIES.md). [Species.hearingRange] is deliberately left alone by the light, so
+     * hearing counts for relatively more in the dark.
+     */
+    private fun sightRange(a: Animal): Double = a.stats.viewRange * lightFactor(a)
+
+    /** The share of its view range the current light leaves an animal; always 1 with Trait.NIGHT_VISION. */
+    private fun lightFactor(a: Animal): Double {
+        if (a.species.canSeeInDark) return 1.0
+        return when (world.clock.phase) {
+            TimePhase.NIGHT -> NIGHT_SIGHT
+            TimePhase.DAWN, TimePhase.DUSK -> TWILIGHT_SIGHT
+            TimePhase.DAY -> 1.0
+        }
     }
 
     /** Decisions seen by onlookers this tick (one count per onlooker), for the tick log; reset by the world. */
@@ -60,8 +85,9 @@ internal class Brain(private val world: World) {
         val s = a.species
         if (s.canHunt) return null
         var threat: Animal? = null
-        var best = a.stats.viewRange * a.stats.viewRange
-        world.hunterGrid.forEachNear(a.position, a.stats.viewRange) { o ->
+        val view = sightRange(a)
+        var best = view * view
+        world.hunterGrid.forEachNear(a.position, view) { o ->
             if (o.isAlive && o.species != s) {
                 val d = a.position.distanceSquaredTo(o.position)
                 if (d <= best) { best = d; threat = o }
@@ -72,7 +98,7 @@ internal class Brain(private val world: World) {
 
     /** 1 when [o] is right next to the animal, falling to 0 at view range; 0 when there is nothing. */
     private fun closeness(a: Animal, o: Vector2?): Double =
-        o?.let { (1 - a.position.distanceTo(it) / a.stats.viewRange).coerceIn(0.0, 1.0) } ?: 0.0
+        o?.let { (1 - a.position.distanceTo(it) / sightRange(a)).coerceIn(0.0, 1.0) } ?: 0.0
 
     // ------------------------------------------------------------ HEARING and ALARM CALLING
 
@@ -178,8 +204,12 @@ internal class Brain(private val world: World) {
 
     /**
      * Fills a SOFT_CODED animal's [Mind.inputs] (all roughly 0..1): its own hp, nutrition, hydration, stamina, age and
-     * readiness to breed; how close the nearest predator, food, water and mate are; the time of day;
-     * and whether its activity cycle says it should be awake.
+     * readiness to breed; how close the nearest predator, food, water and mate are; the time of day; whether its
+     * activity cycle says it should be awake; and how much toxin is in its body right now.
+     *
+     * The toxin input is what lets a learning animal connect biting something to feeling terrible afterwards, and
+     * so learn to leave VENOMOUS and POISONOUS species alone (docs/sim/SPECIES.md). Everything sensed by sight is
+     * already shortened by the dark (see [sightRange]).
      */
     fun sense(a: Animal, m: Mind) {
         val s = a.species
@@ -199,6 +229,7 @@ internal class Brain(private val world: World) {
             kotlin.math.sin(day),
             kotlin.math.cos(day),
             if (s.isActiveAt(world.clock.phase)) 1.0 else 0.0,
+            (a.toxinTicks / TOXIN_SENSE_TICKS).coerceAtMost(1.0),
         )
     }
 
@@ -243,7 +274,7 @@ internal class Brain(private val world: World) {
         world.animalGrid.forEachNear(a.position, reach) { o ->
             val om = o.mind
             if (o !== a && om != null && o.isAlive && o.species == a.species &&
-                o.position.distanceSquaredTo(a.position) <= o.stats.viewRange * o.stats.viewRange
+                o.position.distanceSquaredTo(a.position) <= sightRange(o) * sightRange(o)
             ) { om.observe(e); observations++ }
         }
     }
@@ -273,7 +304,7 @@ internal class Brain(private val world: World) {
     /** Position of the nearest thing in view this species can eat (no route check; used as a sense only). */
     private fun nearestFood(a: Animal): Vector2? {
         val s = a.species
-        val view = a.stats.viewRange
+        val view = sightRange(a)
         var best: Vector2? = null
         var bestD = view * view
         fun consider(p: Vector2) { val d = a.position.distanceSquaredTo(p); if (d <= bestD) { bestD = d; best = p } }
@@ -348,11 +379,11 @@ internal class Brain(private val world: World) {
         val t = world.terrain
         repeat(EXPLORE_TRIES) {
             val angle = world.rng.nextDouble() * 2 * kotlin.math.PI
-            val dist = a.stats.viewRange * (2 + 2 * world.rng.nextDouble())
+            val dist = sightRange(a) * (2 + 2 * world.rng.nextDouble())
             val x = (a.position.x + kotlin.math.cos(angle) * dist).coerceIn(0.5, t.width - 0.5)
             val y = (a.position.y + kotlin.math.sin(angle) * dist).coerceIn(0.5, t.height - 0.5)
             val target = Vector2(x, y)
-            if (t.isWalkable(x.toInt(), y.toInt()) && a.position.distanceTo(target) > a.stats.viewRange && world.isClearWalk(a.position, target)) {
+            if (t.isWalkable(x.toInt(), y.toInt()) && a.position.distanceTo(target) > sightRange(a) && world.isClearWalk(a.position, target)) {
                 return Action.Explore(target)
             }
         }
@@ -378,10 +409,11 @@ internal class Brain(private val world: World) {
 
     /** Nearest living, off-cooldown animal of the same species within view range. */
     private fun findMate(a: Animal): Animal? {
-        val range = a.stats.viewRange * a.stats.viewRange
+        val view = sightRange(a)
+        val range = view * view
         var best: Animal? = null
         var bestD = Double.MAX_VALUE
-        world.animalGrid.forEachNear(a.position, a.stats.viewRange) { o ->
+        world.animalGrid.forEachNear(a.position, view) { o ->
             if (o !== a && o.isAlive && o.species == a.species && o.reproductionCooldown == 0) {
                 val d = a.position.distanceSquaredTo(o.position)
                 if (d <= range && d < bestD) { bestD = d; best = o }
@@ -400,7 +432,8 @@ internal class Brain(private val world: World) {
     /** Best food this species can eat in view range: trees, carcasses or live prey. */
     private fun findFood(a: Animal): Action? {
         val s = a.species
-        val range = a.stats.viewRange * a.stats.viewRange
+        val view = sightRange(a)
+        val range = view * view
         var n = 0
 
         // Gather candidates into reusable arrays (no per-candidate objects), scored by squared distance. Candidates
@@ -413,7 +446,6 @@ internal class Brain(private val world: World) {
             targetBuf[n] = target
             n++
         }
-        val view = a.stats.viewRange
         if (s.eatsPlants) world.treeGrid.forEachNear(a.position, view) { t -> if (t.isEdible) add(t, t.position, 1.0) }
         if (s.eatsPlants) world.grassGrid.forEachNear(a.position, view) { g -> if (g.isEdible) add(g, g.position, 1.0) }
         if (s.eatsCarcasses) world.carcassGrid.forEachNear(a.position, view) { c -> if (!c.isRemoved) add(c, c.position, 1.0) }

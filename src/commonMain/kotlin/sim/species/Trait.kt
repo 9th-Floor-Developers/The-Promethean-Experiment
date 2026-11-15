@@ -44,7 +44,7 @@ enum class Trait(val category: TraitCategory?) {
     SPRINTING(null),
     VENOMOUS(null),
     POISONOUS(null),
-    ARMOR(null),
+    HARD_SKIN(null),
     SPIKES(null),
     REGENERATION(null),
     ALARM_CALLING(null),

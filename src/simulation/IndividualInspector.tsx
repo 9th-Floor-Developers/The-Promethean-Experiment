@@ -153,6 +153,10 @@ export function IndividualInspector({ snapshot, info, selectedId, onSelect, obje
                     {species.traits.includes('HEARING') && (
                         <><dt>Earshot</dt><dd>{species.hearingRange.toFixed(0)} tiles</dd></>
                     )}
+                    {/* Traits VENOMOUS and POISONOUS: any animal can be carrying a toxin, whatever its own traits. */}
+                    {(row[A.toxinTicks] ?? 0) > 0 && (
+                        <><dt>Poisoned</dt><dd>{formatTicks(row[A.toxinTicks]!)} left</dd></>
+                    )}
                     <dt>Fear</dt><dd>{row[A.fear]!.toFixed(2)}</dd>
                     <dt>Hunger</dt><dd>{row[A.hunger]!.toFixed(2)}</dd>
                     <dt>Thirst</dt><dd>{row[A.thirst]!.toFixed(2)}</dd>

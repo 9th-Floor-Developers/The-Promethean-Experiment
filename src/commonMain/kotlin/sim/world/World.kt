@@ -4,6 +4,7 @@ import base.Vector2
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.floor
+import kotlin.math.max
 import kotlin.math.sin
 import kotlin.random.Random
 import sim.animal.Action
@@ -125,6 +126,7 @@ class World(
     private var drank = 0
     private var attacks = 0
     private var births = 0
+    private var poisoned = 0
 
     private companion object {
         /** Distance (tiles) to an edible object within which an animal can eat it. */
@@ -151,6 +153,8 @@ class World(
         const val FLEE_TURN_CHANCE = 0.03
         /** HP regained per tick by REGENERATION animals that are not starving. */
         const val REGEN_RATE = 0.1
+        /** Smallest share of its raw damage a bite always does, however armored the target (see [biteDamage]). */
+        const val MIN_DAMAGE_SHARE = 0.1
         /** SOFT_CODED reward for each parent when an offspring is born or an egg laid (before [REWARD_SCALE]). */
         const val BIRTH_REWARD = 1.0
         /** SOFT_CODED rewards (status changes and births) are multiplied by this so they are large enough, next to the network's random start, to learn from quickly. */
@@ -368,7 +372,7 @@ class World(
     private fun interact(a: Animal) {
         when (val act = a.action) {
             is Action.AttackTarget -> if (act.target.isAlive && inAttackReach(a, act.target) && a.stats.damage > 0) {
-                act.target.hurt(a.stats.damage * (1 - act.target.stats.armorReduction), "killed by ${a.label}", byAnimal = true)
+                resolveBite(a, act.target)
                 attacks++
             }
             is Action.ReproduceWith -> if (a.reproductionCooldown == 0 &&
@@ -395,6 +399,36 @@ class World(
             }
             else -> {}
         }
+    }
+
+    /**
+     * One tick of [attacker] biting [target]: the bite itself, then everything the exchange sets off. Trait
+     * VENOMOUS leaves a toxin in the target; traits POISONOUS and SPIKES hit the attacker back for biting, poison
+     * as a toxin that goes on working and spikes as damage here and now (docs/sim/SPECIES.md). The defences fire
+     * even if the bite was fatal: the animal was alive and defending itself when it was bitten.
+     */
+    private fun resolveBite(attacker: Animal, target: Animal) {
+        val ts = target.species
+        target.hurt(biteDamage(attacker, target), "killed by ${attacker.label}", byAnimal = true)
+        if (attacker.species.isVenomous) {
+            target.applyToxin(attacker.species.venomDamage, attacker.species.venomTicks, "died of ${attacker.label}'s venom")
+        }
+        if (ts.isPoisonous) attacker.applyToxin(ts.poisonDamage, ts.poisonTicks, "poisoned by biting ${target.label}")
+        if (ts.hasSpikes) attacker.hurt(ts.spikeDamage, "killed by ${target.label}'s spikes", byAnimal = true)
+    }
+
+    /**
+     * Damage one bite by [attacker] does to [target]: the attacker's damage less the target's ARMOR percentage,
+     * less a flat [Species.hardSkinReduction] for Trait.HARD_SKIN. A bite always lands at least
+     * [MIN_DAMAGE_SHARE] of its raw damage, so no combination of armor and hard skin makes an animal invulnerable
+     * and leaves a predator chewing forever. The floor cannot bind on armor alone (it caps at
+     * [sim.animal.AnimalStats.MAX_ARMOR_REDUCTION]), so hard skin is the only thing that can reach it.
+     */
+    private fun biteDamage(attacker: Animal, target: Animal): Double {
+        val raw = attacker.stats.damage
+        var dealt = raw * (1 - target.stats.armorReduction)
+        if (target.species.hasHardSkin) dealt -= target.species.hardSkinReduction
+        return max(dealt, raw * MIN_DAMAGE_SHARE)
     }
 
     /** Whether a straight walk from [from] to [to] stays on walkable tiles (no lake or sea in between). */
@@ -477,7 +511,8 @@ class World(
 
     private fun lifePhase(log: TickLog) {
         log.phase("4/4 Life")
-        log.step("1/4 Metabolism, ageing and regeneration")
+        log.step("1/4 Metabolism, ageing, regeneration and toxins")
+        poisoned = 0
         for (a in animals) {
             val s = a.species
             animalTicksBySpecies[species.indexOf(s)]++
@@ -490,9 +525,11 @@ class World(
             // Regeneration must not run on an animal that just died, or it would be revived.
             if (!a.isAlive) continue
             if (a.canRegenerateHp) a.changeHp(s.hpRegen)
-            if (Trait.REGENERATION in s.traits && a.nutrition > 0 && a.hydration > 0) a.changeHp(REGEN_RATE)
+            if (s.canRegenerate && a.nutrition > 0 && a.hydration > 0) a.changeHp(REGEN_RATE)
+            // Traits VENOMOUS and POISONOUS: a toxin keeps damaging its victim after the bite that delivered it.
+            if (a.tickToxin()) poisoned++
         }
-        log.info { "updated ${animals.size} animals" }
+        log.info { "updated ${animals.size} animals; $poisoned are carrying a toxin" }
 
         log.step("2/4 Record rewards")
         var rewarded = 0

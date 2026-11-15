@@ -70,11 +70,11 @@ TRAITS WITHOUT A CATEGORY
 These traits can be combined with categorized traits and with one another.
 
 SPRINTING - Can sprint for short amount of time uses 3x stamina for 2x speed
-VENOMOUS - Produces venom that can harm other organisms.
-POISONOUS - Contains toxins that can harm organisms that consume it.
-HARD SKIN - Has protective external covering or structures.
-SPIKES - Has sharp external structures that discourage predators.
-REGENERATION - Can regrow lost body parts.
-ALARM CALLING - Warns nearby organisms of danger.
-NIGHT VISION - Can see effectively in low-light conditions.
-HEARING - Can detect sounds.
+VENOMOUS - Its bite leaves a toxin in the victim that keeps damaging it after the bite. Only hunters bite.
+POISONOUS - Whatever bites it is left with a toxin, which lasts longer than venom and goes on working after the attacker lets go.
+HARD SKIN - Has protective external covering or structures: a flat amount comes off every bite, on top of the ARMOR percentage. A bite always does at least a tenth of its damage, so nothing is invulnerable.
+SPIKES - Has sharp external structures that discourage predators: the attacker takes damage for every tick it keeps biting, and only while it bites.
+REGENERATION - Can regrow lost body parts: slowly heals itself while it has food and water in it.
+ALARM CALLING - Warns nearby organisms of danger: an animal fleeing a predator it can see calls out, costing stamina. Only HEARING species pick it up, predators included. An animal fleeing on hearsay stays quiet, so one call cannot cascade.
+NIGHT VISION - Can see effectively in low-light conditions: sees at full range at any hour, while everything else sees half as far at night and three quarters as far at dawn and dusk.
+HEARING - Can detect sounds: notices alarm calls and moving animals out to 2.5x its view range, past what it can see. Sound is not dimmed by the dark, so hearing counts for more at night.
