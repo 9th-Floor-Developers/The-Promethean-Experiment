@@ -1,5 +1,6 @@
 import { Leaderboard, type LeaderboardSettings } from './Leaderboard';
-import { A, type ObjectInfo, type SimInfo, type SimSnapshot } from '../sim/types';
+import { A, type BrainInfo, type ObjectInfo, type SimInfo, type SimSnapshot } from '../sim/types';
+import { NeuralNetView } from './NeuralNetView';
 
 const TICKS_PER_DAY = 1200;
 
@@ -11,6 +12,8 @@ interface Props {
     onSelect: (id: number | null) => void;
     /** Looks up the details of a selected tree, grass tuft, carcass or egg. */
     objectInfoOf: ((id: number) => ObjectInfo | null) | null;
+    /** Looks up the neural network of a SOFT_CODED animal (null for instinct animals). */
+    brainOf: ((id: number) => BrainInfo | null) | null;
     /** Whether the camera is locked onto the selected animal. */
     following: boolean;
     leaderboardSettings: LeaderboardSettings;
@@ -95,9 +98,11 @@ function ObjectDetails({ id, object, onBack }: { id: number; object: ObjectInfo;
 }
 
 /** Shows the selected animal's status values (HP, stamina, nutrition, hydration, age), feelings and current action. */
-export function IndividualInspector({ snapshot, info, selectedId, onSelect, objectInfoOf, following, onFollowChange, leaderboardSettings, onLeaderboardSettingsChange }: Props) {
+export function IndividualInspector({ snapshot, info, selectedId, onSelect, objectInfoOf, brainOf, following, onFollowChange, leaderboardSettings, onLeaderboardSettingsChange }: Props) {
     const row = selectedId === null ? undefined : snapshot?.animals.find((r) => r[A.id] === selectedId);
     const species = row && info ? info.species[row[A.species]!] : undefined;
+    // Re-read with every snapshot so the drawing shows what the brain senses and wants right now.
+    const brain = row && brainOf && selectedId !== null && (row[A.intelligence] ?? -1) >= 0 ? brainOf(selectedId) : null;
 
     let body;
     if (selectedId === null) {
@@ -155,7 +160,14 @@ export function IndividualInspector({ snapshot, info, selectedId, onSelect, obje
                     <dt>Base stamina use</dt><dd>{row[A.baseStaminaUsage]!.toFixed(4)}/tick</dd>
                     <dt>Walking stamina use</dt><dd>{row[A.walkingStaminaUsage]!.toFixed(4)}/tick</dd>
                     <dt>Elderly at</dt><dd>{row[A.elderlyAge]!.toFixed(2)} days{row[A.age]! >= row[A.elderlyAge]! ? ' (elderly)' : ''}</dd>
+                    <dt>Intelligence</dt><dd>{(row[A.intelligence] ?? -1) >= 0 ? `${row[A.intelligence]} neurons` : 'instinct (no network)'}</dd>
                 </dl>
+                {brain && (
+                    <>
+                        <h3 className="inspector__subhead">Neural network</h3>
+                        <NeuralNetView brain={brain} />
+                    </>
+                )}
                 <p className="inspector__traits">{species.traits.map((t) => t.toLowerCase().replace(/_/g, ' ')).join(' · ')}</p>
             </>
         );

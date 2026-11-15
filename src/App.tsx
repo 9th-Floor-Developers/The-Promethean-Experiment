@@ -6,6 +6,7 @@ import { usePopulationHistory } from './sim/usePopulationHistory';
 import { useTraitStats } from './sim/useTraitStats';
 import { useDeathAges } from './sim/useDeathAges';
 import { useDeathCauses } from './sim/useDeathCauses';
+import { useDeathRates } from './sim/useDeathRates';
 import { DEFAULT_LEADERBOARD_SETTINGS, type LeaderboardSettings } from './simulation/Leaderboard';
 import { SceneCanvas } from './scene/SceneCanvas';
 import {LandingScreen} from "./screen/LandingScreen.tsx";
@@ -54,6 +55,7 @@ export default function App() {
     const traitStats = useTraitStats(snapshot, sim?.info ?? null);
     const deathAges = useDeathAges(snapshot, sim?.info ?? null);
     const deathCauses = useDeathCauses(snapshot);
+    const deathRates = useDeathRates(snapshot);
 
     // The camera lock only makes sense while an animal is selected.
     useEffect(() => {
@@ -110,8 +112,8 @@ export default function App() {
                         species={settings.species}
                     />
                 )}
-                {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} onSelect={setSelectedId} objectInfoOf={sim?.objectInfo ?? null} following={following} onFollowChange={setFollowing} onBack={endSimulation}
-                    leaderboardSettings={leaderboardSettings} onLeaderboardSettingsChange={setLeaderboardSettings} history={history} traitStats={traitStats} deathAges={deathAges} deathCauses={deathCauses} ended={ended} onEnd={() => setEnded(true)} speed={speed} onSpeedChange={setSpeed} />}
+                {screen === 'simulation' && <SimulationScreen snapshot={snapshot} info={sim?.info ?? null} selectedId={selectedId} onSelect={setSelectedId} objectInfoOf={sim?.objectInfo ?? null} brainOf={sim?.animalBrain ?? null} following={following} onFollowChange={setFollowing} onBack={endSimulation}
+                    leaderboardSettings={leaderboardSettings} onLeaderboardSettingsChange={setLeaderboardSettings} history={history} traitStats={traitStats} deathAges={deathAges} deathCauses={deathCauses} deathRates={deathRates} ended={ended} onEnd={() => setEnded(true)} speed={speed} onSpeedChange={setSpeed} />}
                 {screen === 'settings' && <SettingsScreen store={presetStore} onChange={changePresets} display={display} onDisplayChange={changeDisplay} onDone={closeSettings} />}
                 {screen === 'credits' && <CreditsScreen onBack={closeCredits} />}
             </main>

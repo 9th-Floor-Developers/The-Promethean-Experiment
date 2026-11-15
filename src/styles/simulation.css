@@ -178,3 +178,11 @@
 .deathcause__fig { flex: 1 1 14rem; margin: 0; min-width: 0; }
 .deathcause__fig > svg { width: 100%; height: auto; max-height: 14rem; }
 .radar__swatch--start { background: repeating-linear-gradient(90deg, #5eb0ff 0 5px, transparent 5px 8px); }
+
+/* Neural network drawing in the Individual Inspector. */
+.netview { margin: 0.25rem 0 0; padding: 0.4rem; border-radius: 10px; background: #1a233b; }
+.netview svg { display: block; width: 100%; height: auto; }
+.netview__label { font-size: 7px; fill: #e8eefc; opacity: 0.75; }
+.netview__label--best { fill: #ffd25e; opacity: 1; font-weight: 700; }
+.netview__more { font-size: 7px; fill: #e8eefc; opacity: 0.6; }
+.netview__caption { margin-top: 0.25rem; font-size: 0.75rem; opacity: 0.7; text-align: center; }

@@ -1,5 +1,5 @@
 import type { TerrainData, TileTypeInfo } from '../terrain/types';
-import type { ObjectInfo, SimInfo, SimSnapshot } from './types';
+import type { BrainInfo, ObjectInfo, SimInfo, SimSnapshot } from './types';
 
 /** Shape of the JSON produced by Kotlin's terrainToJson. */
 interface TerrainJson {
@@ -24,6 +24,8 @@ export interface KotlinSimulation {
     animalPath(id: number): number[];
     /** Details of a tree, grass tuft, carcass or egg, or null when no such object exists (any more). */
     objectInfo(id: number): ObjectInfo | null;
+    /** The neural network of a SOFT_CODED animal, or null when it has none or does not exist (any more). */
+    animalBrain(id: number): BrainInfo | null;
 }
 
 /**
@@ -50,5 +52,6 @@ export async function createSimulation(seed = 42, size = 200, speciesConfig = ''
         snapshot: () => JSON.parse(kotlin.getSimulationSnapshot()) as SimSnapshot,
         animalPath: (id) => JSON.parse(kotlin.getAnimalPath(id)) as number[],
         objectInfo: (id) => JSON.parse(kotlin.getObjectInfo(id)) as ObjectInfo | null,
+        animalBrain: (id) => JSON.parse(kotlin.getAnimalBrain(id)) as BrainInfo | null,
     };
 }

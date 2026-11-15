@@ -63,6 +63,12 @@ class World(
     var naturalDeaths = 0
         private set
 
+    /** Per species (indexed like [species]): animals that died of starvation or thirst so far this run. */
+    val naturalDeathsBySpecies = IntArray(species.size)
+
+    /** Per species (indexed like [species]): living animals summed over every tick so far, i.e. animal-ticks lived. */
+    val animalTicksBySpecies = LongArray(species.size)
+
     /** Living animals that hunt, refreshed each tick; fear only needs to look at these. */
     internal var hunters: List<Animal> = emptyList()
         private set
@@ -415,6 +421,7 @@ class World(
         log.step("1/4 Metabolism, ageing and regeneration")
         for (a in animals) {
             val s = a.species
+            animalTicksBySpecies[species.indexOf(s)]++
             a.age += 1.0 / TICKS_PER_DAY
             a.changeNutrition(-s.nutritionDrain)
             a.changeHydration(-s.hydrationDrain)
@@ -462,7 +469,7 @@ class World(
         log.step("4/4 Deaths")
         val dead = animals.filter { !it.isAlive }
         for (a in dead) {
-            if (a.killedByAnimal) predatoryDeaths++ else naturalDeaths++
+            if (a.killedByAnimal) predatoryDeaths++ else { naturalDeaths++; naturalDeathsBySpecies[species.indexOf(a.species)]++ }
             simEvent("[${clock.format()}] DEATH ${a.label} at (${fmt1(a.position.x)}, ${fmt1(a.position.y)}): ${a.causeOfDeath ?: "unknown causes"} (was ${a.action})")
             Carcass(nextId++, a.position, a.species.carcassNutrition).also { objects.add(it); carcasses.add(it) }
         }

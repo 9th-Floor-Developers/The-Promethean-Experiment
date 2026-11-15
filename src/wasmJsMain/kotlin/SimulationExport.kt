@@ -88,10 +88,13 @@ fun tickSimulation(ticks: Int) {
 /**
  * Current state as JSON:
  * `{"tick","day","timeOfDay","phase",
- * "animals":[[id,speciesIndex,x,y,hp,nutrition,hydration,stamina,age,actionCode,fear,hunger,thirst,libido,targetX,targetY,heading,maxHp,speed,damage,armor,viewRange,baseStaminaUsage,walkingStaminaUsage,elderlyAge]...],
- * "carcasses":[[id,x,y,fractionLeft]...],"eggs":[[id,x,y,hatchProgress]...],"deaths":[predatoryTotal,naturalTotal],"trees":"<one digit per tree, 1 = edible>","grass":"<one digit per grass tuft, 1 = edible>"}`.
+ * "animals":[[id,speciesIndex,x,y,hp,nutrition,hydration,stamina,age,actionCode,fear,hunger,thirst,libido,targetX,targetY,heading,maxHp,speed,damage,armor,viewRange,baseStaminaUsage,walkingStaminaUsage,elderlyAge,intelligence]...],
+ * "carcasses":[[id,x,y,fractionLeft]...],"eggs":[[id,x,y,hatchProgress]...],"deaths":[predatoryTotal,naturalTotal],
+ * "perSpecies":[[naturalDeaths,animalTicks]...],"trees":"<one digit per tree, 1 = edible>","grass":"<one digit per grass tuft, 1 = edible>"}`.
+ * `intelligence` is the size of the animal's neural network in hidden neurons (SOFT_CODED), or -1 when it has none.
+ * `perSpecies` (indexed like `species`) holds running totals: deaths from starvation or thirst, and animal-ticks lived.
  * `targetX`/`targetY` are the tile-unit position the animal is heading for (see [destination]), or -1,-1 when it has none.
- * The last eight columns are the animal's own stats: five inherited and three calculated (see [sim.animal.AnimalStats]).
+ * Columns 17-24 are the animal's own stats: five inherited and three calculated (see [sim.animal.AnimalStats]).
  * `heading` is the direction (radians, tile axes) a wandering or fleeing animal is moving in, or 999 when it has none.
  * `timeOfDay` runs 0.0 (midnight) to 1.0; `speciesIndex` indexes `species` from [getSimulationInfo].
  */
@@ -105,7 +108,7 @@ fun getSimulationSnapshot(): String {
             "${r2(a.feelings.fear)},${r2(a.feelings.hunger)},${r2(a.feelings.thirst)},${r2(a.feelings.libido)}," +
             (destination(a.action)?.let { "${r2(it.x)},${r2(it.y)}" } ?: "-1,-1") + "," + (heading(a)?.let { r2(it).toString() } ?: "999") + "," +
             "${r2(a.stats.maxHp)},${a.stats.speed},${r2(a.stats.damage)},${r2(a.stats.armor)},${r2(a.stats.viewRange)}," +
-            "${a.stats.baseStaminaUsage},${a.stats.walkingStaminaUsage},${r2(a.stats.elderlyAge)}]"
+            "${a.stats.baseStaminaUsage},${a.stats.walkingStaminaUsage},${r2(a.stats.elderlyAge)},${a.mind?.net?.hiddenNeurons ?: -1}]"
     }
     val carcasses = w.objects.filterIsInstance<Carcass>().joinToString(",") {
         "[${it.id},${r2(it.position.x)},${r2(it.position.y)},${r2(it.nutrition / it.initialNutrition)}]"
@@ -115,8 +118,9 @@ fun getSimulationSnapshot(): String {
     }
     val trees = buildString { w.objects.filterIsInstance<Tree>().forEach { append(if (it.isEdible) '1' else '0') } }
     val grass = buildString { w.grasses.forEach { append(if (it.isEdible) '1' else '0') } }
+    val perSpecies = w.species.indices.joinToString(",") { "[${w.naturalDeathsBySpecies[it]},${w.animalTicksBySpecies[it]}]" }
     return """{"tick":${w.clock.tick},"day":${w.clock.day},"timeOfDay":${r2(w.clock.timeOfDay)},""" +
-        """"phase":"${w.clock.phase}","animals":[$animals],"carcasses":[$carcasses],"eggs":[$eggs],"deaths":[${w.predatoryDeaths},${w.naturalDeaths}],"trees":"$trees","grass":"$grass"}"""
+        """"phase":"${w.clock.phase}","animals":[$animals],"carcasses":[$carcasses],"eggs":[$eggs],"deaths":[${w.predatoryDeaths},${w.naturalDeaths}],"perSpecies":[$perSpecies],"trees":"$trees","grass":"$grass"}"""
 }
 
 /** Where the animal is walking to for [action] (its food, water, mate or prey); null when it has no destination. */
@@ -138,6 +142,24 @@ private fun destination(action: Action): Vector2? = when (action) {
 fun getAnimalPath(id: Int): String {
     val a = current().animals.firstOrNull { it.id == id } ?: return "[]"
     return a.path.joinToString(",", "[", "]") { "${r2(it.x)},${r2(it.y)}" }
+}
+
+/**
+ * The neural network of the SOFT_CODED animal with [id] as JSON, or `null` when it has none or does not exist:
+ * `{"sizes":[inputs,hidden...,outputs],"weights":[[layer 0 row-major (out x in)],...],"inputs":[...],"outputs":[...],"own":n,"observed":n}`.
+ * `inputs` are what it sensed this tick (see [sim.animal.Brain.sense]), `outputs` its network's value per drive
+ * (FLEE, EAT, DRINK, MATE, REST, EXPLORE), `own`/`observed` how many of its own and others' decisions it remembers.
+ */
+@OptIn(ExperimentalJsExport::class)
+@JsExport
+fun getAnimalBrain(id: Int): String {
+    val a = current().animals.firstOrNull { it.id == id } ?: return "null"
+    val m = a.mind ?: return "null"
+    val net = m.net
+    val weights = (0 until net.sizes.size - 1).joinToString(",") { l -> net.layerWeights(l).joinToString(",", "[", "]") { r2(it).toString() } }
+    return "{\"sizes\":[${net.sizes.joinToString(",")}],\"weights\":[$weights]," +
+        "\"inputs\":[${m.inputs.joinToString(",") { r2(it).toString() }}],\"outputs\":[${m.values.joinToString(",") { r2(it).toString() }}]," +
+        "\"own\":${m.memory.size},\"observed\":${m.observed.size}}"
 }
 
 /** Direction (radians, atan2(dy, dx) in tile units) a wandering or fleeing animal is heading; null for other actions. */

@@ -3,6 +3,8 @@ import { A, type SimInfo, type SimSnapshot } from '../sim/types';
 import { TraitRadar } from './TraitRadar';
 import { DeathAgeHistogram } from './DeathAgeHistogram';
 import { DeathCauseCharts } from './DeathCauseCharts';
+import { DeathRateChart } from './DeathRateChart';
+import type { DeathRateSample } from '../sim/useDeathRates';
 import type { DeathCauseSample } from '../sim/useDeathCauses';
 import type { DeathAges } from '../sim/useDeathAges';
 import type { TraitStats } from '../sim/useTraitStats';
@@ -21,7 +23,7 @@ const TICKS_PER_DAY = 1200;
 export const LIVE_WINDOW_DAYS = 7;
 
 /** Line colours, one per species in order. Chosen to read on the dark panel background. */
-const LINE_COLORS = ['#ff9f5a', '#6fd47f', '#5eb0ff', '#c993ff', '#ffd25e', '#4fd8d0'];
+export const LINE_COLORS = ['#ff9f5a', '#6fd47f', '#5eb0ff', '#c993ff', '#ffd25e', '#4fd8d0'];
 const GRID = 'rgba(255, 255, 255, 0.14)';
 const TOTAL_COLOR = '#e8eefc';
 const PAD = { l: 28, r: 6, t: 6, b: 16 };
@@ -155,7 +157,7 @@ export function PopulationGraph({ onExpand, ...props }: Props & { onExpand?: () 
  * The single statistics page, used both as the live overview (simulation still running behind it) and as the
  * end-of-simulation page. Every graph over the whole run goes in `sim-overview__body`.
  */
-export function StatisticsPage({ ended, onAction, traitStats, deathAges, deathCauses, ...props }: Props & { ended: boolean; onAction: () => void; traitStats: TraitStats; deathAges: DeathAges; deathCauses: DeathCauseSample[] }) {
+export function StatisticsPage({ ended, onAction, traitStats, deathAges, deathCauses, deathRates, ...props }: Props & { ended: boolean; onAction: () => void; traitStats: TraitStats; deathAges: DeathAges; deathCauses: DeathCauseSample[]; deathRates: DeathRateSample[] }) {
     return (
         <section className="sim-overview" aria-labelledby="overview-h">
             <h2 id="overview-h" className="panel__header panel__header--row">
@@ -169,6 +171,7 @@ export function StatisticsPage({ ended, onAction, traitStats, deathAges, deathCa
                 <TraitRadar info={props.info} stats={traitStats} />
                 <DeathAgeHistogram info={props.info} deathAges={deathAges} />
                 <DeathCauseCharts samples={deathCauses} />
+                <DeathRateChart info={props.info} samples={deathRates} />
             </div>
         </section>
     );

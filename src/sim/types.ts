@@ -39,14 +39,34 @@ export const NO_HEADING = 999;
  * Column indices of a SimSnapshot.animals row:
  * [id, species, x, y, hp, nutrition, hydration, stamina, age, action, fear, hunger, thirst, libido, targetX, targetY, heading] (target is -1,-1 when the animal has no destination; heading is
  * the direction in radians a wandering or fleeing animal moves in, NO_HEADING when it has none; the last eight are the animal's own stats: inherited maxHp, speed, damage, armor, viewRange, then calculated
- * baseStaminaUsage, walkingStaminaUsage, elderlyAge).
+ * baseStaminaUsage, walkingStaminaUsage, elderlyAge), then intelligence: the size of its neural network in hidden neurons, or -1 when it has none (instinct brain).
  */
 export const A = {
     id: 0, species: 1, x: 2, y: 3, hp: 4, nutrition: 5, hydration: 6, stamina: 7, age: 8,
     action: 9, fear: 10, hunger: 11, thirst: 12, libido: 13, targetX: 14, targetY: 15, heading: 16,
     maxHp: 17, speed: 18, damage: 19, armor: 20, viewRange: 21,
-    baseStaminaUsage: 22, walkingStaminaUsage: 23, elderlyAge: 24,
+    baseStaminaUsage: 22, walkingStaminaUsage: 23, elderlyAge: 24, intelligence: 25,
 } as const;
+
+/** A neural-network (SOFT_CODED) animal's brain from Kotlin's getAnimalBrain(). */
+export interface BrainInfo {
+    /** Neurons per layer: inputs, hidden layers..., outputs. */
+    sizes: number[];
+    /** Per layer, its weights row-major: `sizes[l + 1]` rows (target neuron) of `sizes[l]` (source neuron). */
+    weights: number[][];
+    /** What the animal sensed this tick, in the order of BRAIN_INPUTS. */
+    inputs: number[];
+    /** The network's value for each drive, in the order of BRAIN_OUTPUTS; the highest is what it wants most. */
+    outputs: number[];
+    /** How many of its own decisions, and of decisions it saw others of its species make, it remembers. */
+    own: number;
+    observed: number;
+}
+
+/** Names of the brain inputs (Kotlin Brain.sense), in order. */
+export const BRAIN_INPUTS = ['Health', 'Food', 'Water', 'Stamina', 'Age', 'Ready to breed', 'Predator near', 'Food near', 'Water near', 'Mate near', 'Time (sin)', 'Time (cos)', 'Awake time'];
+/** Names of the brain outputs (Kotlin Drive), in order. */
+export const BRAIN_OUTPUTS = ['Flee', 'Eat', 'Drink', 'Mate', 'Rest', 'Explore'];
 
 /** Current simulation state from Kotlin's getSimulationSnapshot(). */
 export interface SimSnapshot {
@@ -63,6 +83,8 @@ export interface SimSnapshot {
     eggs: [number, number, number, number][];
     /** Running totals since the run began: [killed by other animals, died of starvation/thirst/other natural causes]. */
     deaths: [number, number];
+    /** Running totals per species (indexed like SimInfo.species): [deaths from starvation or thirst, animal-ticks lived]. */
+    perSpecies?: [number, number][];
     /** One char per tree, '1' = edible, '0' = cooling down. */
     trees: string;
     /** One char per grass tuft, '1' = edible, '0' = cooling down. */

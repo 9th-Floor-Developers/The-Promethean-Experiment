@@ -22,6 +22,9 @@ class NeuralNet private constructor(
     /** Total hidden neurons; drives the brain's stamina cost. */
     val hiddenNeurons: Int get() = hiddenSizes.sum()
 
+    /** A copy of the weights of layer [l] (row-major, `sizes[l + 1]` rows of `sizes[l]`), e.g. for drawing the network. */
+    fun layerWeights(l: Int): DoubleArray = weights[l].copyOf()
+
     /** Activations of every layer from the last [forward] call, reused by [train]. */
     private val acts = Array(sizes.size) { DoubleArray(sizes[it]) }
 
