@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { buildLookGeometry } from './animalLook';
+import { buildLookGeometry, describeLook } from './animalLook';
 import { A, NO_HEADING, type SimInfo, type SimSnapshot } from '../sim/types';
 
 /** Ground height at continuous tile coordinates, see createHeightSampler. */
@@ -86,6 +86,31 @@ interface Popup {
     sprite: THREE.Sprite;
     age: number;
     baseY: number;
+}
+
+/**
+ * Sound rings (docs/visuals/OVERHEAD_EFFECTS.MD): an alarm call or a sprint sends out a ring in the caller's species
+ * colour that grows to the farthest distance any animal in this world can hear it, then fades. Walking noise gets no
+ * ring, since nearly every animal walks all the time.
+ */
+/** Seconds a ring takes to grow to full size and fade out. */
+const SOUND_RING_LIFE = 1.4;
+/** Minimum seconds between rings from one animal while it keeps calling or sprinting. */
+const SOUND_RING_GAP = 0.7;
+/** Ring line width in world units (tiles), the same at any radius. */
+const SOUND_RING_WIDTH = 0.35;
+const SOUND_RING_OPACITY = 0.85;
+const MAX_SOUND_RINGS = 80;
+/** Loudness of an alarm call and of a sprint (Kotlin Animal.noise / Brain.audibility): both carry the full hearing range. */
+const CALL_LOUDNESS = 1.0;
+const SPRINT_LOUDNESS = 1.0;
+
+/** One expanding sound ring: a flat quad whose shader draws a circle at its edge. */
+interface SoundRing {
+    mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
+    age: number;
+    /** Radius in tiles the ring reaches at the end of its life. */
+    reach: number;
 }
 
 /** Seconds after which the scene clock is shifted back, so float32 timestamps in the shader never lose precision. */
@@ -195,6 +220,8 @@ interface Actor {
     pendingDamage: number;
     /** Value of the scene clock when the last damage popup was shown. */
     lastDamagePopup: number;
+    /** Value of the scene clock when this animal last sent out a sound ring. */
+    lastSoundRing: number;
     target: THREE.Vector3;
     targetHeading: number;
     seen: number;
@@ -213,6 +240,11 @@ export class SimActors {
 
     private readonly actors = new Map<number, Actor>();
     private readonly popups: Popup[] = [];
+    private readonly soundRings: SoundRing[] = [];
+    /** Main body colour of each species' look, indexed like the animal rows' species column. */
+    private speciesColors: THREE.Color[] = [];
+    /** Farthest (tiles) a loudness-1 sound carries to any listener: the largest hearing range of a HEARING species, 0 if none hears. */
+    private soundReach = 0;
     private readonly textures = new Map<string, THREE.CanvasTexture>();
     private actionNames: string[] = [];
     private readonly carcasses = new Map<number, THREE.Mesh>();
@@ -244,6 +276,8 @@ export class SimActors {
     /** Trees and grass tufts by id, with their tile position, for clicking and highlighting them. */
     private readonly sceneryById = new Map<number, { type: number; x: number; y: number }>();
     private readonly animalMat = this.own(this.makeAnimalMaterial());
+    /** Unit quad lying flat on the ground (x/z from -1 to 1), scaled to each ring's current radius. */
+    private readonly soundRingGeo = this.own(new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2));
     private readonly ringGeo = this.own(new THREE.RingGeometry(0.42, 0.56, 24));
     private readonly ringMat = this.own(new THREE.MeshBasicMaterial({
         color: 0xffd23f, side: THREE.DoubleSide, depthTest: false, transparent: true,
@@ -515,6 +549,9 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
         for (const b of this.batches) this.animalGroup.add(b.mesh);
 
         this.viewRanges = info.species.map((sp) => sp.viewRange);
+        this.speciesColors = info.species.map((sp) => describeLook(sp.look).primary);
+        this.soundReach = Math.max(0, ...info.species.filter((sp) => sp.traits.includes('HEARING')).map((sp) => sp.hearingRange));
+        this.clearSoundRings();
         if (this.viewOverlay) {
             this.group.remove(this.viewOverlay);
             this.viewOverlay.geometry.dispose();
@@ -616,6 +653,7 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
                     batch, slot: this.batches[batch]!.add(id), from: target.clone(), target: target.clone(), t0: this.clockTime - 10, dur: 1,
                     fromHeading: 0, targetHeading: 0, seen: stamp,
                     hp: row[A.hp]!, action: row[A.action]!, pendingDamage: 0, lastDamagePopup: -DAMAGE_POPUP_GAP,
+                    lastSoundRing: -SOUND_RING_GAP,
                 };
                 this.writeActor(id, actor);
                 this.actors.set(id, actor);
@@ -638,6 +676,12 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
                     this.writeActor(id, actor);
                 }
                 this.showEvents(actor, row[A.hp]!, row[A.action]!);
+            }
+            const loudness = Math.max(row[A.calling] ? CALL_LOUDNESS : 0, row[A.sprinting] ? SPRINT_LOUDNESS : 0);
+            if (loudness > 0 && this.clockTime - actor.lastSoundRing >= SOUND_RING_GAP) {
+                actor.lastSoundRing = this.clockTime;
+                this.pose(actor, this.tmpV);
+                this.spawnSoundRing(this.tmpV, row[A.species]!, this.soundReach * loudness);
             }
             actor.seen = stamp;
             const x = row[A.x]!, y = row[A.y]!, range = row[A.viewRange]!;
@@ -802,6 +846,65 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
         }
     }
 
+    /**
+     * Sends out a sound ring from [at] in species [species]' colour, growing to [reach] tiles. Nothing is drawn when
+     * no animal in this world can hear (reach 0), since then the sound affects nothing.
+     */
+    private spawnSoundRing(at: THREE.Vector3, species: number, reach: number): void {
+        if (reach <= 0 || this.soundRings.length >= MAX_SOUND_RINGS) return;
+        const mat = new THREE.ShaderMaterial({
+            uniforms: {
+                uColor: { value: (this.speciesColors[species] ?? new THREE.Color(0xffffff)).clone() },
+                uOpacity: { value: SOUND_RING_OPACITY },
+                uRadius: { value: 0.01 },
+                uWidth: { value: SOUND_RING_WIDTH },
+            },
+            vertexShader: `varying vec2 vPos;
+                void main() { vPos = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+            // vPos runs -1..1 across the quad, so the circle at its edge has radius uRadius in world units.
+            fragmentShader: `uniform vec3 uColor; uniform float uOpacity; uniform float uRadius; uniform float uWidth; varying vec2 vPos;
+                void main() {
+                    float d = (1.0 - length(vPos)) * uRadius;
+                    float a = smoothstep(0.0, 0.06, d) * (1.0 - smoothstep(uWidth * 0.6, uWidth, d));
+                    if (a <= 0.0) discard;
+                    gl_FragColor = vec4(uColor, a * uOpacity);
+                }`,
+            transparent: true, depthTest: false, depthWrite: false,
+        });
+        const mesh = new THREE.Mesh(this.soundRingGeo, mat);
+        mesh.position.set(at.x, at.y - 0.2, at.z);
+        mesh.renderOrder = 8; // over the ground, under the view overlay and selection markers
+        mesh.frustumCulled = false;
+        mesh.scale.setScalar(0.01);
+        this.animalGroup.add(mesh);
+        this.soundRings.push({ mesh, age: 0, reach });
+    }
+
+    /** Grows every sound ring towards its reach (fast at first, easing out) and fades it, removing finished ones. */
+    private updateSoundRings(dt: number): void {
+        for (let i = this.soundRings.length - 1; i >= 0; i--) {
+            const r = this.soundRings[i]!;
+            r.age += dt;
+            const t = r.age / SOUND_RING_LIFE;
+            if (t >= 1) {
+                this.animalGroup.remove(r.mesh);
+                r.mesh.material.dispose();
+                this.soundRings.splice(i, 1);
+                continue;
+            }
+            const radius = Math.max(0.01, r.reach * (1 - (1 - t) * (1 - t)));
+            r.mesh.scale.setScalar(radius);
+            r.mesh.material.uniforms.uRadius!.value = radius;
+            r.mesh.material.uniforms.uOpacity!.value = SOUND_RING_OPACITY * (t < 0.6 ? 1 : 1 - (t - 0.6) / 0.4);
+        }
+    }
+
+    /** Removes every sound ring (a new simulation, or disposal). */
+    private clearSoundRings(): void {
+        for (const r of this.soundRings) { this.animalGroup.remove(r.mesh); r.mesh.material.dispose(); }
+        this.soundRings.length = 0;
+    }
+
     /** Writes an animal's interpolation state into its batch (called when it appears or its target changes). */
     private writeActor(id: number, a: Actor): void {
         this.batches[a.batch]!.write(a.slot, id, a.from, a.target, a.t0, a.dur, a.fromHeading, a.targetHeading);
@@ -813,6 +916,7 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
         if (this.clockTime > CLOCK_REBASE) this.rebaseClock();
         this.uNow.value = this.clockTime;
         this.updatePopups(dt);
+        this.updateSoundRings(dt);
         const sel = this.selectedId === null ? undefined : this.actors.get(this.selectedId);
         if (sel) {
             this.pose(sel, this.tmpV);
@@ -828,6 +932,7 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
         for (const [id, a] of this.actors) {
             a.t0 -= CLOCK_REBASE;
             a.lastDamagePopup -= CLOCK_REBASE;
+            a.lastSoundRing -= CLOCK_REBASE;
             this.writeActor(id, a);
         }
         for (const b of this.batches) b.flush();
@@ -906,6 +1011,7 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
     dispose(): void {
         for (const p of this.popups) p.sprite.material.dispose();
         this.popups.length = 0;
+        this.clearSoundRings();
         this.textures.forEach((t) => t.dispose());
         this.textures.clear();
         this.clearScenery();
