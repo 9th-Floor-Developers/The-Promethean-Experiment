@@ -276,7 +276,7 @@ internal class Brain(private val world: World) {
         m.sawThreat = a.feelings.threat != null
         if (m.lastDrive >= 0 && a.actionCooldown > 0 && !threatAppeared && stillPossible(current)) return current
 
-        val drive = m.pickDrive(world.rng)
+        val drive = m.pickDrive(world.rng, world.brainNoise)
         m.decide(drive, m.inputs)?.let { share(a, it) }
         a.actionCooldown = a.species.actionCooldownTicks
         return actionFor(a, drive)

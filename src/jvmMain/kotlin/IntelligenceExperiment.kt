@@ -113,9 +113,12 @@ private fun f2(v: Double?) = v?.let { "%.3f".format(it) } ?: "  -  "
  * prints, per neural-network species, the Pearson correlation of intelligence at birth and age at death that the
  * Statistics page shows (plus Spearman, checkpoints and population outcome), then the mean over seeds.
  *
- * Usage: `IntelligenceExperimentKt configFile seeds days [mapSize] [water] [trees] [grass] [carcassRotHours] [threads]`
- * with seeds comma separated; `--sizes` adds a per-brain-size table, `--shapes=2;8;8,8` gives the founders those
- * hidden layers in turn instead of the usual founder brain. Simulation events are silenced; only the report is printed.
+ * Usage: `IntelligenceExperimentKt configFile seeds days [mapSize] [water] [trees] [grass] [carcassRotHours] [brainNoise] [threads] [flags]`
+ * with seeds comma separated and the world values as on the Settings screen (defaults 200, 1, 1, 1, 72, 0). Flags:
+ * `--sizes` per-brain-size table, `--hist` age-at-death histogram, `--causes` death causes, `--diag` what the learners
+ * spend their ticks doing, `--all` also record instinct species, `--shapes=2;8;8,8` gives the neural founders those
+ * hidden layers in turn instead of the usual founder brain (a controlled brain-size test). Simulation events are
+ * silenced; only the report is printed. Used to tune the "Intelligence pays" preset (src/settings/presets.ts).
  */
 fun main(args: Array<String>) {
     val config = File(args[0]).readText()
@@ -123,32 +126,19 @@ fun main(args: Array<String>) {
     val days = args[2].toInt()
     val size = args.getOrNull(3)?.toIntOrNull() ?: 200
     val num = { i: Int, d: Double -> args.getOrNull(i)?.toDoubleOrNull() ?: d }
-    val resources = Resources(num(4, 1.0), num(5, 1.0), num(6, 1.0), (num(7, 72.0) * TICKS_PER_DAY / 24).toInt())
-    val threads = args.getOrNull(8)?.toIntOrNull() ?: seeds.size
+    val resources = Resources(num(4, 1.0), num(5, 1.0), num(6, 1.0), (num(7, 72.0) * TICKS_PER_DAY / 24).toInt(), num(8, 0.0))
+    val threads = args.getOrNull(9)?.toIntOrNull() ?: seeds.size
     // --shapes=2;4;8,8 gives neural founders these hidden layers in turn (a controlled brain-size test).
     val shapes = args.firstOrNull { it.startsWith("--shapes=") }?.removePrefix("--shapes=")?.split(";")
         ?.map { l -> l.split(",").map { it.trim().toInt() }.toIntArray() }
 
-    // EXPERIMENT ONLY: --set=NAME=value overrides a Mind learning constant for this run.
-    for (a in args.filter { it.startsWith("--set=") }) {
-        val (k, v) = a.removePrefix("--set=").split("=")
-        when (k) {
-            "MEMORY" -> Mind.MEMORY = v.toInt(); "OBSERVED_MEMORY" -> Mind.OBSERVED_MEMORY = v.toInt()
-            "OBSERVED_REPLAY_SHARE" -> Mind.OBSERVED_REPLAY_SHARE = v.toDouble(); "GAMMA" -> Mind.GAMMA = v.toDouble()
-            "LEARNING_RATE" -> Mind.LEARNING_RATE = v.toDouble(); "REPLAYS_PER_TICK" -> Mind.REPLAYS_PER_TICK = v.toInt()
-            "EXPLORATION" -> Mind.EXPLORATION = v.toDouble(); "NEURON_STAMINA_COST" -> Mind.NEURON_STAMINA_COST = v.toDouble()
-            "PARENT_WEIGHT_SHARE" -> Mind.PARENT_WEIGHT_SHARE = v.toDouble(); "WEIGHT_MUTATION" -> Mind.WEIGHT_MUTATION = v.toDouble()
-            "LAYER_MUTATION_CHANCE" -> Mind.LAYER_MUTATION_CHANCE = v.toDouble(); "NEURON_MUTATION_CHANCE" -> Mind.NEURON_MUTATION_CHANCE = v.toDouble()
-            else -> error("unknown constant $k")
-        }
-    }
     val out = System.out
     System.setOut(PrintStream(OutputStream.nullOutputStream())) // simEvent prints every birth and death
     // --diag tallies, over every tick, what the neural animals are doing (also when thirsty or hungry).
     val diag: MutableMap<String, Int>? = if ("--diag" in args) java.util.concurrent.ConcurrentHashMap() else null
-    val pool = Executors.newFixedThreadPool(threads)
+    val pool = Executors.newFixedThreadPool(threads) { r -> Thread(r).apply { isDaemon = true } }
     val results = seeds.map { s -> pool.submit<RunResult> { runSeed(s, days, size, config, resources, shapes, "--all" in args, diag) } }.map { it.get() }
-    pool.shutdown()
+    pool.shutdownNow()
 
     out.println("########## PROCESS: Intelligence experiment (${args[0]}, $days days, map $size, seeds $seeds) ##########")
     val checkpoints = listOf(10, 20, 40, 60, 100).filter { it < days }
@@ -159,10 +149,15 @@ fun main(args: Array<String>) {
             val p = pearson(rows)
             p?.let { summary.getOrPut(name) { mutableListOf() }.add(it) }
             val cps = checkpoints.joinToString(" ") { d -> "d$d=${f2(pearson(rows.filter { it.day <= d }))}" }
+            // Correlation within cohorts born in the same 5-day window (removes the trend over the run), averaged by size.
+            val cohorts = rows.groupBy { ((it.day - it.age) / 5).toInt() }.values.filter { it.size >= 20 }
+            val within = cohorts.mapNotNull { c -> pearson(c)?.let { it to c.size } }
+            val rWithin = if (within.isEmpty()) null else within.sumOf { it.first * it.second } / within.sumOf { it.second }
             val iq = rows.map { it.intelligence }
             val bySize = rows.groupBy { it.intelligence }.toSortedMap().entries.joinToString(" ") { (k, v) -> "$k:${v.size}/${"%.1f".format(v.sumOf { it.age } / v.size)}" }
-            out.println("  $name deaths=${rows.size} r=${f2(p)} rho=${f2(spearman(rows))} iq[min=${iq.minOrNull()} mean=${"%.0f".format(iq.average())} max=${iq.maxOrNull()}] meanAge=${"%.2f".format(rows.map { it.age }.average())}  $cps")
+            out.println("  $name deaths=${rows.size} r=${f2(p)} rho=${f2(spearman(rows))} rCohort=${f2(rWithin)} iq[min=${iq.minOrNull()} mean=${"%.0f".format(iq.average())} max=${iq.maxOrNull()}] meanAge=${"%.2f".format(rows.map { it.age }.average())}  $cps")
             if (args.contains("--sizes")) out.println("    size:count/meanAge  $bySize")
+            if (args.contains("--hist")) out.println("    ages(days 0-1,1-2,..,>=15) " + IntArray(16).also { h -> rows.forEach { h[it.age.toInt().coerceAtMost(15)]++ } }.joinToString(" "))
             if (args.contains("--causes")) out.println("    causes " + rows.groupBy { it.cause }.entries.joinToString(" ") { (k, v) -> "$k:${v.size}/${"%.1f".format(v.sumOf { it.age } / v.size)}d" })
         }
     }
@@ -171,11 +166,13 @@ fun main(args: Array<String>) {
         val total = d.filterKeys { ':' !in it }.values.sum().toDouble()
         out.println("DIAG " + d.entries.sortedBy { it.key }.joinToString(" ") { "${it.key}=${"%.1f".format(100 * it.value / total)}%" })
     }
-    // One machine-readable line per neural species, for parameter searches: mean r, min r, mean deaths, seeds where it died out.
+    // One machine-readable line per neural species, for parameter searches: mean r, min r, mean Spearman, mean deaths,
+    // seeds where it died out, seeds where every species survived, mean r over the first 15 days.
     for (name in results.first().deaths.keys) {
         val rs = results.map { pearson(it.deaths[name]!!) ?: 0.0 }
         val rhos = results.map { spearman(it.deaths[name]!!) ?: 0.0 }
         val extinct = results.count { (it.finalPops[name] ?: 0) == 0 }
-        out.println("RESULT $name ${"%.4f".format(rs.average())} ${"%.4f".format(rs.min())} ${"%.4f".format(rhos.average())} ${"%.0f".format(results.map { it.deaths[name]!!.size }.average())} $extinct")
+        val allAlive = results.count { r -> r.finalPops.values.all { it > 0 } }
+        out.println("RESULT $name ${"%.4f".format(rs.average())} ${"%.4f".format(rs.min())} ${"%.4f".format(rhos.average())} ${"%.0f".format(results.map { it.deaths[name]!!.size }.average())} $extinct $allAlive ${"%.4f".format(results.map { r -> pearson(r.deaths[name]!!.filter { it.day <= 15 }) ?: 0.0 }.average())}")
     }
 }

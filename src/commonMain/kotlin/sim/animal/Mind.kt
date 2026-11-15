@@ -1,5 +1,9 @@
 package sim.animal
 
+import kotlin.math.cos
+import kotlin.math.ln
+import kotlin.math.pow
+import kotlin.math.sqrt
 import kotlin.random.Random
 import sim.species.Species
 
@@ -40,21 +44,33 @@ class Mind(val net: NeuralNet) {
         val FOUNDER_INTELLIGENCE: Int get() = NeuralNet.connectionsOf(intArrayOf(INPUTS, *FOUNDER_HIDDEN, OUTPUTS))
 
         /** Own decisions remembered per animal; the oldest are forgotten first. */
-        var MEMORY = 200
+        const val MEMORY = 200
         /** Decisions of others (same species, in view) remembered per animal; the oldest are forgotten first. */
-        var OBSERVED_MEMORY = 100
+        const val OBSERVED_MEMORY = 100
         /** Share of replays drawn from [observed] decisions (when there are any); the rest come from the animal's own. */
-        var OBSERVED_REPLAY_SHARE = 0.3
+        const val OBSERVED_REPLAY_SHARE = 0.3
         /** Discount on the value of the next decision. */
-        var GAMMA = 0.9
-        var LEARNING_RATE = 0.05
+        const val GAMMA = 0.9
+        const val LEARNING_RATE = 0.05
         /** Remembered decisions replayed per tick while resting. */
-        var REPLAYS_PER_TICK = 16
+        const val REPLAYS_PER_TICK = 16
+        /**
+         * Remembered decisions replayed per tick while awake, on top of the bigger rest-time replays. Learners chose
+         * REST in only about 3% of ticks, so a brain that learned only at rest hardly learned at all: with awake
+         * learning a learner population roughly triples, and the Learning lab preset stops dying out on most seeds.
+         */
+        const val AWAKE_REPLAYS_PER_TICK = 4
         /** Chance a decision is a random drive instead of the strongest one, so the animal keeps trying new things. */
-        var EXPLORATION = 0.1
+        const val EXPLORATION = 0.1
+
+        /**
+         * How fast decision noise falls with intelligence (see [pickDrive]): the noise is scaled by
+         * (founder intelligence / intelligence) to this power, so twice the connections leave a quarter of the noise.
+         */
+        const val DECISION_NOISE_EXPONENT = 2.0
 
         /** Stamina spent per tick for every hidden neuron, so bigger brains must earn their keep. */
-        var NEURON_STAMINA_COST = 0.0003
+        const val NEURON_STAMINA_COST = 0.0003
 
         // The mutation constants below apply at the default mutation rate; Species.mutationRate scales them.
 
@@ -63,9 +79,9 @@ class Mind(val net: NeuralNet) {
          * brains turn up within a run (15% of a one-layer pair's young get a second layer); equal both ways so
          * mutation itself does not push brains deeper, only selection can.
          */
-        var LAYER_MUTATION_CHANCE = 0.15
+        const val LAYER_MUTATION_CHANCE = 0.15
         /** Chance at birth that each hidden layer gains or loses up to [MAX_NEURON_CHANGE] neurons. */
-        var NEURON_MUTATION_CHANCE = 0.3
+        const val NEURON_MUTATION_CHANCE = 0.3
         const val MAX_NEURON_CHANGE = 2
         const val MIN_LAYER_SIZE = 2
         const val MAX_LAYER_SIZE = 64
@@ -75,12 +91,12 @@ class Mind(val net: NeuralNet) {
         /** Size of a hidden layer added by mutation. */
         const val NEW_LAYER_SIZE = 4
         /** Largest random change to each inherited weight. */
-        var WEIGHT_MUTATION = 0.05
+        const val WEIGHT_MUTATION = 0.05
         /**
          * Share of a newborn's starting weights that comes from its parents; the rest is fresh random, so behaviour
          * is mainly learned in each life rather than passed on.
          */
-        var PARENT_WEIGHT_SHARE = 0.25
+        const val PARENT_WEIGHT_SHARE = 0.25
 
         /** A founder's mind: [FOUNDER_HIDDEN] layers with random weights. */
         fun founder(rng: Random) = Mind(NeuralNet.random(intArrayOf(INPUTS, *FOUNDER_HIDDEN, OUTPUTS), rng))
@@ -139,12 +155,40 @@ class Mind(val net: NeuralNet) {
     /** Stamina spent every tick to run this brain: per hidden neuron, not per connection (intelligence). */
     val staminaCost: Double get() = net.hiddenNeurons * NEURON_STAMINA_COST
 
-    /** Picks the strongest drive in [values], or a random one with chance [EXPLORATION]. */
-    fun pickDrive(rng: Random): Drive {
+    /**
+     * Picks the strongest drive in [values], or a random one with chance [EXPLORATION].
+     *
+     * [brainNoise] is the world's decision noise (a Settings value, 0 = off): before the strongest drive is picked,
+     * every drive value is blurred by random noise of [brainNoise] standard deviations of the values themselves,
+     * scaled by (founder intelligence / this brain's intelligence)^[DECISION_NOISE_EXPONENT]. A founder-sized brain
+     * at noise 5 therefore chooses almost blindly, while one with twice the connections has a quarter of the noise:
+     * a bigger brain weighs its options more reliably, which is what intelligence buys here. It is still paid for
+     * with [NEURON_STAMINA_COST] per hidden neuron, so past some size the extra precision no longer earns its keep.
+     */
+    fun pickDrive(rng: Random, brainNoise: Double = 0.0): Drive {
         if (rng.nextDouble() < EXPLORATION) return Drive.entries[rng.nextInt(OUTPUTS)]
+        val noise = if (brainNoise > 0) decisionNoise(brainNoise) else 0.0
         var best = 0
-        for (i in 1 until OUTPUTS) if (values[i] > values[best]) best = i
+        var bestValue = Double.NEGATIVE_INFINITY
+        for (i in 0 until OUTPUTS) {
+            val x = values[i] + if (noise > 0) noise * gaussian(rng) else 0.0
+            if (x > bestValue) { bestValue = x; best = i }
+        }
         return Drive.entries[best]
+    }
+
+    /** Standard deviation of the noise [pickDrive] adds to each drive value at world decision noise [brainNoise]. */
+    fun decisionNoise(brainNoise: Double): Double {
+        val mean = values.average()
+        val spread = sqrt(values.sumOf { (it - mean) * (it - mean) } / values.size)
+        val relative = FOUNDER_INTELLIGENCE.toDouble() / net.connections
+        return brainNoise * spread * relative.pow(DECISION_NOISE_EXPONENT)
+    }
+
+    /** A standard normal random number (Box-Muller). */
+    private fun gaussian(rng: Random): Double {
+        val u = rng.nextDouble().coerceAtLeast(1e-12)
+        return sqrt(-2 * ln(u)) * cos(2 * kotlin.math.PI * rng.nextDouble())
     }
 
     /**
@@ -168,16 +212,19 @@ class Mind(val net: NeuralNet) {
         into.addLast(e)
     }
 
-    /** Replays [REPLAYS_PER_TICK] random remembered decisions through Q-learning. Returns how many were trained. */
-    fun train(rng: Random): Int {
+    /**
+     * Replays [replays] random remembered decisions through Q-learning ([REPLAYS_PER_TICK] while resting,
+     * [AWAKE_REPLAYS_PER_TICK] otherwise). Returns how many were trained.
+     */
+    fun train(rng: Random, replays: Int = REPLAYS_PER_TICK): Int {
         if (memory.isEmpty() && observed.isEmpty()) return 0
-        repeat(REPLAYS_PER_TICK) {
+        repeat(replays) {
             val fromObserved = observed.isNotEmpty() && (memory.isEmpty() || rng.nextDouble() < OBSERVED_REPLAY_SHARE)
             val pool = if (fromObserved) observed else memory
             val e = pool[rng.nextInt(pool.size)]
             val target = e.reward + GAMMA * net.forward(e.next).max()
             net.train(e.state, e.drive, target, LEARNING_RATE)
         }
-        return REPLAYS_PER_TICK
+        return replays
     }
 }
