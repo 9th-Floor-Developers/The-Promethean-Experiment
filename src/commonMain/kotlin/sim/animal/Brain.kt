@@ -208,7 +208,13 @@ internal class Brain(private val world: World) {
     /**
      * Fills a SOFT_CODED animal's [Mind.inputs] (all roughly 0..1): its own hp, nutrition, hydration, stamina, age and
      * readiness to breed; how close the nearest predator, food, water and mate are; the time of day; whether its
-     * activity cycle says it should be awake; and how much toxin is in its body right now.
+     * activity cycle says it should be awake; how much toxin is in its body right now; and how clearly it can hear
+     * the animal that matters most to it.
+     *
+     * Trait HEARING: the hearing input means opposite things to prey and to a hunter - an alarm call or a predator's
+     * footsteps for one, a meal giving itself away for the other. A species never changes which it is, so each
+     * lineage of networks only ever learns one of the two meanings (docs/sim/SPECIES.md). It is 0 for a species
+     * without the trait, and carries loudness only: like the sight inputs it says how near, never which way.
      *
      * The toxin input is what lets a learning animal connect biting something to feeling terrible afterwards, and
      * so learn to leave VENOMOUS and POISONOUS species alone (docs/sim/SPECIES.md). Everything sensed by sight is
@@ -233,6 +239,7 @@ internal class Brain(private val world: World) {
             kotlin.math.cos(day),
             if (s.isActiveAt(world.clock.phase)) 1.0 else 0.0,
             (a.toxinTicks / TOXIN_SENSE_TICKS).coerceAtMost(1.0),
+            (heardThreat(a) ?: heardPrey(a))?.audibility ?: 0.0,
         )
     }
 

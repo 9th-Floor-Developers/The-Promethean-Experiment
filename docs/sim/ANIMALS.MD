@@ -46,7 +46,9 @@ fear/hunger/thirst/libido shown for a SOFT CODED animal are the softmax shares o
 
 inputs (all roughly 0..1): hp, nutrition, hydration, stamina, age (vs elderly age), readiness to breed,
 closeness of the nearest predator, food, water and mate, time of day (sin, cos), whether its activity cycle says it should be awake,
-and how much toxin (venom or poison) is in its body (so it can learn to leave VENOMOUS and POISONOUS species alone)
+how much toxin (venom or poison) is in its body (so it can learn to leave VENOMOUS and POISONOUS species alone),
+and how loudly it hears the animal that matters most to it (HEARING only, 0 without the trait): the nearest danger it heard if it is prey,
+the nearest animal it heard if it is a hunter - loudness only, never direction, like the closeness inputs
 
 a decision is made when the action cooldown ends, the current action becomes impossible, or a predator comes into view
 wellbeing of a need = 1 - (1 - fraction full)^2, so the same gain counts more when the animal is low (drinking while parched)
