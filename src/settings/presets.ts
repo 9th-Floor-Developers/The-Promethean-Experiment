@@ -61,7 +61,9 @@ function savannaSettings(): SimSettings {
  * Watch the population graph: an early crash of the learners followed by steady growth is the learning curve.
  * Carcasses rot in 8 hours instead of 3 days: many learners starve, and with long-lasting carrion the hunters fed on
  * those bodies, kept breeding and wiped the learners out (seed 42: hunters 3 -> 33, learners extinct by day 70).
- * Tested on the JVM (seed 42, 80 days): learners stay around 135-185, hunters 3 -> 9.
+ * Tested on the JVM (IntelligenceExperiment, 60 days, seeds 42 and 1-7), since learners also learn while awake: learners
+ * end at 77-245 on seven seeds (1 on the eighth), hunters 3 -> 31-58 on all eight. Before awake learning, learners died
+ * out or dwindled to 1-2 animals on six of those eight seeds and the hunters on all of them.
  */
 function learningSettings(): SimSettings {
     const species: Omit<SpeciesSettings, 'look'>[] = [ // looks are filled in by builtInSettings
