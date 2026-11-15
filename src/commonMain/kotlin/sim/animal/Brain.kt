@@ -40,6 +40,9 @@ internal class Brain(private val world: World) {
         const val EXPLORE_TRIES = 8
     }
 
+    /** Decisions seen by onlookers this tick (one count per onlooker), for the tick log; reset by the world. */
+    var observations = 0
+
     private var scoreBuf = DoubleArray(256)
     private var targetBuf = arrayOfNulls<Any>(256)
 
@@ -134,9 +137,23 @@ internal class Brain(private val world: World) {
         if (m.lastDrive >= 0 && a.actionCooldown > 0 && !threatAppeared && stillPossible(current)) return current
 
         val drive = m.pickDrive(world.rng)
-        m.decide(drive, m.inputs)
+        m.decide(drive, m.inputs)?.let { share(a, it) }
         a.actionCooldown = a.species.actionCooldownTicks
         return actionFor(a, drive)
+    }
+
+    /**
+     * Learning from others: every other SOFT_CODED animal of [a]'s species that can see [a] (within its own view range)
+     * remembers the decision [e] that [a] just finished.
+     */
+    private fun share(a: Animal, e: Experience) {
+        val reach = a.species.viewRange * AnimalStats.MAX_RATIO // largest view range any animal of the species can have
+        world.animalGrid.forEachNear(a.position, reach) { o ->
+            val om = o.mind
+            if (o !== a && om != null && o.isAlive && o.species == a.species &&
+                o.position.distanceSquaredTo(a.position) <= o.stats.viewRange * o.stats.viewRange
+            ) { om.observe(e); observations++ }
+        }
     }
 
     /** Turns [drive] into an action, keeping the current one when it already serves that drive and can go on. */

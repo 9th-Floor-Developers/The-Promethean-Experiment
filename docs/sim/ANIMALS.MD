@@ -50,14 +50,18 @@ closeness of the nearest predator, food, water and mate, time of day (sin, cos),
 a decision is made when the action cooldown ends, the current action becomes impossible, or a predator comes into view
 wellbeing of a need = 1 - (1 - fraction full)^2, so the same gain counts more when the animal is low (drinking while parched)
 reward = 10 x (change in nutrition wellbeing + change in hydration wellbeing + 2 x change in HP as a fraction of max, +1 for each offspring)
-each decision is remembered with the reward collected until the next decision (up to 200 per animal)
-every tick an animal is in REST it replays 16 remembered decisions through Q-learning (learning rate 0.05, discount 0.9)
+each decision is remembered with the reward collected until the next decision (up to 200 own decisions per animal)
+learning from others: when an animal finishes a decision, every same-species SOFT CODED animal that can see it (within its own view range)
+remembers that decision too, in a separate memory of observed decisions (up to 100); every animal still has its own unique data,
+since what it saw depends on where it was
+every tick an animal is in REST it replays 16 remembered decisions through Q-learning (learning rate 0.05, discount 0.9), 30% of them from observed decisions
 
 children inherit the hidden layer shape (from a random parent, sizes averaged where both parents have the layer)
-and the parents' weights averaged, both with mutation: +/- 2 neurons per layer (30% chance), add or remove a layer (5% each, 1 to 4 layers, 2 to 64 neurons)
+and weights that are only 25% the parents' average and 75% fresh random (so behaviour is mainly learned, not passed on), both with mutation: +/- 2 neurons per layer (30% chance), add or remove a layer (5% each, 1 to 4 layers, 2 to 64 neurons)
 founders start with one hidden layer of 12 neurons and random weights
 every hidden neuron costs stamina each tick, so a bigger brain has to earn its keep
 
 tested (JVM, 10-15 in-game days): with learning on, brains become need-dependent (given the same situation, about 65-70% pick DRINK when thirsty vs ~35-40% when not,
 ~75% pick EAT when hungry vs ~35-40% when not); with learning switched off nothing changes and the species dies out
+with brains mostly learned, learning from others matters a lot: Learning lab preset (seed 42) day 15 has 136 learners with it, 22 without
 known weakness: fleeing is not learned yet (animals caught by predators rarely survive to rest and learn from it)

@@ -57,10 +57,10 @@ function savannaSettings(): SimSettings {
 /**
  * Learning lab, a 160 tile world with plenty of water, trees and grass, showing the neural-network brain (SOFT CODED AI) at work:
  * - Learner: a neural-network herbivore. Founders start with random brains, so many die of thirst and hunger in the
- *   first days; the survivors learn (and pass their learned brains on), so the population then recovers and grows.
+ *   first days; the survivors learn, also from watching each other, so the population then recovers and grows.
  * - Hunter: a few slow, instinct-driven carnivores that keep some pressure on the learners.
  * Watch the population graph: an early crash of the learners followed by steady growth is the learning curve.
- * Tested on the JVM (seed 42): learners 78 -> 39 by day 3 -> 173 by day 15; hunters 3 -> 4.
+ * Tested on the JVM (seed 42): learners 90 -> 67 by day 2 -> 136 by day 15; hunters 3 -> 5.
  */
 function learningSettings(): SimSettings {
     const species: Omit<SpeciesSettings, 'look'>[] = [ // looks are filled in by builtInSettings

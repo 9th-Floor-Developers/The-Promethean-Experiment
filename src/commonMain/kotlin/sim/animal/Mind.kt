@@ -22,6 +22,10 @@ class Experience(
  * The learning brain of one SOFT_CODED animal: its [net], the decisions it remembers, and the reward collected
  * since its last decision. Q-learning: each decision is stored with its reward, and while the animal rests it
  * replays remembered decisions to train the network (docs/sim/ANIMALS.MD).
+ *
+ * Besides its own decisions ([memory]) it remembers decisions it saw same-species animals make ([observed]),
+ * which simulates learning from others. Both memories belong to this animal alone: what it observed depends on
+ * where it was, so no two animals hold the same data.
  */
 class Mind(val net: NeuralNet) {
     companion object {
@@ -32,8 +36,12 @@ class Mind(val net: NeuralNet) {
         /** Hidden layers of the founders of a species. */
         val FOUNDER_HIDDEN = intArrayOf(12)
 
-        /** Decisions remembered per animal; the oldest are forgotten first. */
+        /** Own decisions remembered per animal; the oldest are forgotten first. */
         const val MEMORY = 200
+        /** Decisions of others (same species, in view) remembered per animal; the oldest are forgotten first. */
+        const val OBSERVED_MEMORY = 100
+        /** Share of replays drawn from [observed] decisions (when there are any); the rest come from the animal's own. */
+        const val OBSERVED_REPLAY_SHARE = 0.3
         /** Discount on the value of the next decision. */
         const val GAMMA = 0.9
         const val LEARNING_RATE = 0.05
@@ -59,13 +67,19 @@ class Mind(val net: NeuralNet) {
         const val NEW_LAYER_SIZE = 4
         /** Largest random change to each inherited weight. */
         const val WEIGHT_MUTATION = 0.05
+        /**
+         * Share of a newborn's starting weights that comes from its parents; the rest is fresh random, so behaviour
+         * is mainly learned in each life rather than passed on.
+         */
+        const val PARENT_WEIGHT_SHARE = 0.25
 
         /** A founder's mind: [FOUNDER_HIDDEN] layers with random weights. */
         fun founder(rng: Random) = Mind(NeuralNet.random(intArrayOf(INPUTS, *FOUNDER_HIDDEN, OUTPUTS), rng))
 
         /**
          * A newborn's mind: hidden layers taken from a random parent, each sized as the parents' average where both
-         * have that layer, then mutated (layers added/removed, neurons added/removed); weights mixed from both parents.
+         * have that layer, then mutated (layers added/removed, neurons added/removed). Each weight is only
+         * [PARENT_WEIGHT_SHARE] the parents' mix, the rest fresh random: the shape is inherited, the behaviour mostly learned.
          * All mutation chances and sizes are the constants above scaled by the species' mutation rate relative to the
          * default ([Species.mutationRate] / [AnimalStats.DEFAULT_MUTATION]), so a rate of 0 copies the parents exactly.
          */
@@ -82,12 +96,15 @@ class Mind(val net: NeuralNet) {
             if (hidden.size < MAX_HIDDEN_LAYERS && rng.nextDouble() < LAYER_MUTATION_CHANCE * scale) hidden.add(NEW_LAYER_SIZE)
             if (hidden.size > 1 && rng.nextDouble() < LAYER_MUTATION_CHANCE * scale) hidden.removeAt(rng.nextInt(hidden.size))
             val sizes = intArrayOf(INPUTS, *hidden.toIntArray(), OUTPUTS)
-            return Mind(NeuralNet.inherit(sizes, a.net, b.net, WEIGHT_MUTATION * scale, rng))
+            return Mind(NeuralNet.inherit(sizes, a.net, b.net, PARENT_WEIGHT_SHARE, WEIGHT_MUTATION * scale, rng))
         }
     }
 
-    /** Remembered decisions, oldest first. */
+    /** This animal's own remembered decisions, oldest first. */
     val memory = ArrayDeque<Experience>()
+
+    /** Decisions this animal saw others of its species make, oldest first. */
+    val observed = ArrayDeque<Experience>()
 
     /** Inputs sensed this tick. */
     var inputs = DoubleArray(INPUTS)
@@ -121,24 +138,34 @@ class Mind(val net: NeuralNet) {
         return Drive.entries[best]
     }
 
-    /** Closes the decision being carried out (if any) with [next] inputs, stores it, and starts tracking [drive]. */
-    fun decide(drive: Drive, next: DoubleArray) {
-        lastState?.let { remember(Experience(it, lastDrive, pendingReward, next)) }
+    /**
+     * Closes the decision being carried out (if any) with [next] inputs, stores it, and starts tracking [drive].
+     * Returns the closed decision (so onlookers can [observe] it), or null if this was the first decision.
+     */
+    fun decide(drive: Drive, next: DoubleArray): Experience? {
+        val closed = lastState?.let { Experience(it, lastDrive, pendingReward, next) }
+        closed?.let { remember(memory, MEMORY, it) }
         lastState = next
         lastDrive = drive.ordinal
         pendingReward = 0.0
+        return closed
     }
 
-    private fun remember(e: Experience) {
-        if (memory.size == MEMORY) memory.removeFirst()
-        memory.addLast(e)
+    /** Remembers a decision seen being made by another animal of the same species. */
+    fun observe(e: Experience) = remember(observed, OBSERVED_MEMORY, e)
+
+    private fun remember(into: ArrayDeque<Experience>, capacity: Int, e: Experience) {
+        if (into.size == capacity) into.removeFirst()
+        into.addLast(e)
     }
 
     /** Replays [REPLAYS_PER_TICK] random remembered decisions through Q-learning. Returns how many were trained. */
     fun train(rng: Random): Int {
-        if (memory.isEmpty()) return 0
+        if (memory.isEmpty() && observed.isEmpty()) return 0
         repeat(REPLAYS_PER_TICK) {
-            val e = memory[rng.nextInt(memory.size)]
+            val fromObserved = observed.isNotEmpty() && (memory.isEmpty() || rng.nextDouble() < OBSERVED_REPLAY_SHARE)
+            val pool = if (fromObserved) observed else memory
+            val e = pool[rng.nextInt(pool.size)]
             val target = e.reward + GAMMA * net.forward(e.next).max()
             net.train(e.state, e.drive, target, LEARNING_RATE)
         }

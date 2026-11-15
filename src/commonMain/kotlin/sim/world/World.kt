@@ -228,11 +228,13 @@ class World(
         log.info { "updated feelings of ${animals.size} animals (${animals.size - soft} by rules, $soft by network)" }
 
         log.step("3/3 Choose actions")
+        brain.observations = 0
         for (a in animals) {
             a.action = a.mind?.let { brain.decideSoft(a, it) } ?: brain.decide(a)
             val f = a.feelings
             log.info { "${a.label}: ${a.action} (fear=${fmt1(f.fear)} hunger=${fmt1(f.hunger)} thirst=${fmt1(f.thirst)} libido=${fmt1(f.libido)}) age=${fmt1(a.age)} hp=${fmt1(a.hp)} nutrition=${fmt1(a.nutrition)} hydration=${fmt1(a.hydration)} stamina=${fmt1(a.stamina)}" }
         }
+        log.info { "SOFT_CODED decisions were observed ${brain.observations} times by same-species onlookers" }
     }
 
     // ============================================================ 3/4 Act

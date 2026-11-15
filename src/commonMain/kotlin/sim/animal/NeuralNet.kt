@@ -87,11 +87,12 @@ class NeuralNet private constructor(
         private fun initWeight(fanIn: Int, rng: Random) = (rng.nextDouble() * 2 - 1) / kotlin.math.sqrt(fanIn.toDouble())
 
         /**
-         * A child network of shape [sizes] built from parents [a] and [b]: each weight is the average of the parents'
-         * weights at the same layer and position (or the one parent that has it, or a fresh random weight if neither
-         * does), plus a random mutation of up to [mutation] either way.
+         * A child network of shape [sizes] built from parents [a] and [b]. The parents' weight at the same layer and
+         * position is their average (or the one parent that has it, or a fresh random weight if neither does); the
+         * child's weight is [parentShare] of that plus the rest of a fresh random weight, plus a random mutation of up
+         * to [mutation] either way. Biases are mixed the same way, with 0 as the fresh value.
          */
-        fun inherit(sizes: IntArray, a: NeuralNet, b: NeuralNet, mutation: Double, rng: Random): NeuralNet {
+        fun inherit(sizes: IntArray, a: NeuralNet, b: NeuralNet, parentShare: Double, mutation: Double, rng: Random): NeuralNet {
             val child = random(sizes, rng)
             for (l in 0 until sizes.size - 1) {
                 val inN = sizes[l]; val outN = sizes[l + 1]
@@ -99,15 +100,16 @@ class NeuralNet private constructor(
                 for (j in 0 until outN) {
                     for (i in 0 until inN) {
                         val wa = a.weightAt(la, j, i); val wb = b.weightAt(lb, j, i)
-                        val base = when {
+                        val fresh = child.weights[l][j * inN + i]
+                        val parents = when {
                             wa != null && wb != null -> (wa + wb) / 2
-                            else -> wa ?: wb ?: child.weights[l][j * inN + i]
+                            else -> wa ?: wb ?: fresh
                         }
-                        child.weights[l][j * inN + i] = base + (rng.nextDouble() * 2 - 1) * mutation
+                        child.weights[l][j * inN + i] = parentShare * parents + (1 - parentShare) * fresh + (rng.nextDouble() * 2 - 1) * mutation
                     }
                     val ba = a.biasAt(la, j); val bb = b.biasAt(lb, j)
-                    val base = if (ba != null && bb != null) (ba + bb) / 2 else ba ?: bb ?: 0.0
-                    child.biases[l][j] = base + (rng.nextDouble() * 2 - 1) * mutation
+                    val parents = if (ba != null && bb != null) (ba + bb) / 2 else ba ?: bb ?: 0.0
+                    child.biases[l][j] = parentShare * parents + (rng.nextDouble() * 2 - 1) * mutation
                 }
             }
             return child
