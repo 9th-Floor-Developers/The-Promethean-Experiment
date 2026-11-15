@@ -319,7 +319,7 @@ class World(
         // sprint and still has reserve and stamina left; everything else moves at a walk (docs/sim/SPECIES.md).
         val sprinting = wantsToSprint(a) && a.canSprintNow
         a.isSprinting = sprinting
-        val speed = a.stats.speed * a.speedFactor * (if (sprinting) s.sprintSpeedMultiplier else 1.0)
+        val speed = a.walkSpeed * (if (sprinting) s.sprintSpeedMultiplier else 1.0)
         val before = a.position
         when (val act = a.action) {
             Action.Rest -> {}
@@ -503,7 +503,7 @@ class World(
     /** Random-walk: keeps a heading, occasionally turns, and turns when blocked. */
     private fun wander(a: Animal) {
         if (rng.nextDouble() < WANDER_TURN_CHANCE) a.wanderHeading = rng.nextDouble() * 2 * kotlin.math.PI
-        if (!tryMove(a, a.wanderHeading, a.stats.speed * a.speedFactor * WANDER_SPEED)) {
+        if (!tryMove(a, a.wanderHeading, a.walkSpeed * WANDER_SPEED)) {
             a.wanderHeading = rng.nextDouble() * 2 * kotlin.math.PI
         }
     }

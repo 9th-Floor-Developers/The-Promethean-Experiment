@@ -24,11 +24,18 @@ class Covering(
      * an alarm call are left alone: a call is a deliberate shout, not a cost of carrying the covering about.
      */
     val staminaFactor: Double = 1.0,
+    /**
+     * Multiplier on how fast the animal actually travels (see [sim.animal.Animal.walkSpeed]), at a walk, a wander
+     * and a sprint alike. The inherited SPEED stat itself is untouched: a covering is a species constant, so it must
+     * not show up in the stats that mutate or in the leaderboard.
+     */
+    val speedFactor: Double = 1.0,
 ) {
     init {
         require(armorBonus >= 0) { "a covering's armor bonus must not be negative" }
         require(hydrationFactor > 0) { "a covering's hydration factor must be positive" }
         require(staminaFactor > 0) { "a covering's stamina factor must be positive" }
+        require(speedFactor > 0) { "a covering's speed factor must be positive" }
     }
 
     companion object {
@@ -48,10 +55,18 @@ class Covering(
          */
         val FEATHERS = Covering(armorBonus = 0.02, hydrationFactor = 1.15, staminaFactor = 0.85)
 
+        /**
+         * SCALES: an overlapping hide that seals moisture in, so a scaly animal can cross dry ground that would
+         * kill a furred one - but it is stiff and heavy enough to cost real speed. The drought specialist that
+         * cannot outrun its troubles.
+         */
+        val SCALES = Covering(armorBonus = 0.08, hydrationFactor = 0.72, speedFactor = 0.93)
+
         /** The effect of [trait], or [NONE] for a species with no covering (or one whose mechanic is not designed yet). */
         fun of(trait: Trait?): Covering = when (trait) {
             Trait.FUR -> FUR
             Trait.FEATHERS -> FEATHERS
+            Trait.SCALES -> SCALES
             else -> NONE
         }
     }

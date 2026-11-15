@@ -63,7 +63,7 @@ export const CATEGORIES: TraitCategoryDef[] = [
     { key: 'BODY_COVERING', label: 'Body covering', question: 'What covers its body?', options: [
         { id: 'FUR', label: 'Fur', help: 'A coat of hair or fur: shrugs off 4% more of every bite, but gets thirsty 25% faster at every hour.' },
         { id: 'FEATHERS', label: 'Feathers', help: 'Light insulation: shrugs off 2% more of every bite and uses 15% less energy to move, but gets thirsty 15% faster.' },
-        { id: 'SCALES', label: 'Scales', help: 'Scales cover its body.' },
+        { id: 'SCALES', label: 'Scales', help: 'Shrugs off 8% more of every bite and holds water in, getting thirsty only 72% as fast, but walks 7% slower.' },
         { id: 'EXOSKELETON', label: 'Hard outer skeleton', help: 'A hard external skeleton.' },
         { id: 'BARE_SKIN', label: 'Bare skin', help: 'Exposed skin.' },
         { id: 'SHELL', label: 'Shell', help: 'A hard protective shell.' },

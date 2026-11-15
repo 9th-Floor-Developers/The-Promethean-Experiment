@@ -142,6 +142,13 @@ class Animal(
     val canRegenerateHp get() = stamina >= species.maxStamina * 0.9
 
     /**
+     * Tiles the animal covers per tick at a walk: its inherited SPEED, cut by how much stamina it has left
+     * ([speedFactor]) and by what its BODY_COVERING costs it to carry ([sim.species.Covering.speedFactor]).
+     * Sprinting multiplies this again by [Species.sprintSpeedMultiplier], wandering scales it down.
+     */
+    val walkSpeed get() = stats.speed * speedFactor * species.covering.speedFactor
+
+    /**
      * Trait SPRINTING: whether the animal could sprint right now. It needs the trait, some reserve left and
      * enough stamina to not be [isTired], so an exhausted animal drops back to a walk.
      */
