@@ -59,12 +59,6 @@ const DRAWINGS: Record<string, ReactElement> = {
         <path d="M12 3.2c3.7 0 6.2 4.9 6.2 9 0 4.5-2.8 8.6-6.2 8.6S5.8 16.7 5.8 12.2c0-4.1 2.5-9 6.2-9Z" />
         <path d="M6.2 12.4 9 11.2l1.8 2.2 2.8-2 2.2 2 1.8-1.4" />
     </>,
-    /** Pouch: a baby finishing its growth in a pouch. */
-    POUCH_BIRTH: <>
-        <path d="M5.4 6.4v5.8a6.6 6.6 0 0 0 13.2 0V6.4" />
-        <circle cx="12" cy="12.4" r="2.7" />
-        <path d="M5.4 6.4h13.2" />
-    </>,
 
     // BODY COVERING
     /** Fur: strands of hair standing off the skin. */
@@ -136,11 +130,6 @@ const DRAWINGS: Record<string, ReactElement> = {
     </>,
 
     // Uncategorized extras
-    /** Climbing: up a trunk, branch by branch. */
-    CLIMBING: <>
-        <path d="M3.4 20.6h4.4v-4.4h4.4v-4.4h4.4V7" />
-        <path d="M14 9.6 16.6 7l2.6 2.6" />
-    </>,
     /** Sprinting: motion lines behind a chevron. */
     SPRINTING: <>
         <path d="M3.6 8.4h8.8M2.6 12h10M4.6 15.6h7.8" />

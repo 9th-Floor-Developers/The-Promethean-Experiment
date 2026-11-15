@@ -20,7 +20,6 @@ enum class Trait(val category: TraitCategory?) {
     // BIRTHING
     LIVE_BIRTH(TraitCategory.BIRTHING),
     EGG_BIRTH(TraitCategory.BIRTHING),
-    POUCH_BIRTH(TraitCategory.BIRTHING),
 
     // BODY COVERING
     FUR(TraitCategory.BODY_COVERING),
@@ -40,7 +39,6 @@ enum class Trait(val category: TraitCategory?) {
     CREPUSCULAR(TraitCategory.ACTIVITY_CYCLE),
 
     // Uncategorized
-    CLIMBING(null),
     SPRINTING(null),
     VENOMOUS(null),
     POISONOUS(null),

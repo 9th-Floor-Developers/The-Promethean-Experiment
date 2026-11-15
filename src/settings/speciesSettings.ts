@@ -59,7 +59,6 @@ export const CATEGORIES: TraitCategoryDef[] = [
     { key: 'BIRTHING', label: 'Birth', question: 'How are babies born?', options: [
         { id: 'LIVE_BIRTH', label: 'Live birth', help: 'Babies grow inside the parent.' },
         { id: 'EGG_BIRTH', label: 'Eggs', help: 'Babies grow in an egg outside the parent.' },
-        { id: 'POUCH_BIRTH', label: 'Pouch', help: 'Babies finish growing in a pouch.' },
     ] },
     { key: 'BODY_COVERING', label: 'Body covering', question: 'What covers its body?', options: [
         { id: 'FUR', label: 'Fur', help: 'A coat of hair or fur.' },
@@ -82,7 +81,6 @@ export const CATEGORIES: TraitCategoryDef[] = [
 
 /** Optional traits that can be switched on in any combination. */
 export const EXTRA_TRAITS: TraitOption[] = [
-    { id: 'CLIMBING', label: 'Climbing', help: 'Can climb trees and steep places.' },
     { id: 'SPRINTING', label: 'Sprinting', help: 'Can sprint for a short time.' },
     { id: 'VENOMOUS', label: 'Venomous', help: 'Its bite leaves a toxin that keeps hurting its victim afterwards. Only an animal that hunts ever bites.' },
     { id: 'POISONOUS', label: 'Poisonous', help: 'Anything that bites it is left with a toxin that keeps hurting it long after it lets go.' },
