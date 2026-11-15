@@ -44,6 +44,16 @@ class Animal(
     /** Ticks until this animal can reproduce again. */
     var reproductionCooldown = 0
 
+    /**
+     * Trait SPRINTING: the sprint reserve left, in ticks of sprinting. Drains 1 per tick spent sprinting and
+     * refills by [Species.sprintRecharge] otherwise, so a sprint only lasts a short time (docs/sim/SPECIES.md).
+     * Animals of a species without the trait never spend it.
+     */
+    var sprintCharge = species.sprintChargeTicks
+
+    /** Whether the animal actually sprinted this tick; set by the movement step. */
+    var isSprinting = false
+
     /** Waypoints around obstacles toward [pathGoal]; empty when walking straight. */
     val path = ArrayDeque<Vector2>()
 
@@ -87,6 +97,12 @@ class Animal(
     /** Whether stamina is high enough (90% of max) for HP to regenerate. */
     val canRegenerateHp get() = stamina >= species.maxStamina * 0.9
 
+    /**
+     * Trait SPRINTING: whether the animal could sprint right now. It needs the trait, some reserve left and
+     * enough stamina ([SPRINT_STAMINA_FLOOR] of max), so an exhausted animal drops back to a walk.
+     */
+    val canSprintNow get() = species.canSprint && sprintCharge > 0 && stamina > species.maxStamina * SPRINT_STAMINA_FLOOR
+
     /** Fraction of full speed available at the current stamina (never fully stops). */
     val speedFactor get() = MIN_SPEED_FACTOR + (1 - MIN_SPEED_FACTOR) * stamina / species.maxStamina
 
@@ -110,3 +126,6 @@ class Animal(
 
 /** Speed multiplier at zero stamina. */
 private const val MIN_SPEED_FACTOR = 0.3
+
+/** Share of max stamina an animal must have left to keep sprinting. */
+private const val SPRINT_STAMINA_FLOOR = 0.15

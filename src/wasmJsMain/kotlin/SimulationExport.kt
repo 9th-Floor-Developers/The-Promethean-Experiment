@@ -56,7 +56,7 @@ fun createSimulation(seed: Int, size: Int, speciesConfig: String, water: Double,
 
 /**
  * Static facts the frontend needs once:
- * `{"actions":[name...],"species":[{"name","canHunt","traits":[..],"maxHp","maxNutrition","maxHydration","maxStamina","viewRange","base":[8 universal stats]}...],
+ * `{"actions":[name...],"species":[{"name","canHunt","traits":[..],"maxHp","maxNutrition","maxHydration","maxStamina","viewRange","sprintChargeTicks","base":[8 universal stats]}...],
  * "scenery":[[id,type,x,y]...]}`. `actions` is indexed by an animal row's action code.
  * Scenery `type` is 1 = tree, 2 = grass; trees and grass appear in the same order as the `trees` and `grass`
  * strings of [getSimulationSnapshot]. Positions are in tile units (the tile under it is floor(x), floor(y)).
@@ -69,7 +69,8 @@ fun getSimulationInfo(): String {
         val b = AnimalStats.founder(s)
         val base = listOf(b.maxHp, b.speed, b.damage, b.armor, b.viewRange, b.baseStaminaUsage, b.walkingStaminaUsage, b.elderlyAge).joinToString(",")
         "{" + """"name":${q(s.name)},"canHunt":${s.canHunt},"traits":[${s.traits.joinToString(",") { q(it.name) }}],""" +
-            """"maxHp":${s.maxHp},"maxNutrition":${s.maxNutrition},"maxHydration":${s.maxHydration},"maxStamina":${s.maxStamina},"viewRange":${s.viewRange},"base":[$base]}"""
+            """"maxHp":${s.maxHp},"maxNutrition":${s.maxNutrition},"maxHydration":${s.maxHydration},"maxStamina":${s.maxStamina},"viewRange":${s.viewRange},""" +
+            """"sprintChargeTicks":${s.sprintChargeTicks},"base":[$base]}"""
     }
     val scenery = w.objects.filter { it is Grass || it is Tree }.joinToString(",") {
         "[${it.id},${if (it is Tree) 1 else 2},${r2(it.position.x)},${r2(it.position.y)}]"
@@ -88,13 +89,15 @@ fun tickSimulation(ticks: Int) {
 /**
  * Current state as JSON:
  * `{"tick","day","timeOfDay","phase",
- * "animals":[[id,speciesIndex,x,y,hp,nutrition,hydration,stamina,age,actionCode,fear,hunger,thirst,libido,targetX,targetY,heading,maxHp,speed,damage,armor,viewRange,baseStaminaUsage,walkingStaminaUsage,elderlyAge,intelligence]...],
+ * "animals":[[id,speciesIndex,x,y,hp,nutrition,hydration,stamina,age,actionCode,fear,hunger,thirst,libido,targetX,targetY,heading,maxHp,speed,damage,armor,viewRange,baseStaminaUsage,walkingStaminaUsage,elderlyAge,intelligence,sprintCharge,sprinting]...],
  * "carcasses":[[id,x,y,fractionLeft]...],"eggs":[[id,x,y,hatchProgress]...],"deaths":[predatoryTotal,naturalTotal],
  * "perSpecies":[[naturalDeaths,animalTicks]...],"trees":"<one digit per tree, 1 = edible>","grass":"<one digit per grass tuft, 1 = edible>"}`.
  * `intelligence` is the size of the animal's neural network in hidden neurons (SOFT_CODED), or -1 when it has none.
  * `perSpecies` (indexed like `species`) holds running totals: deaths from starvation or thirst, and animal-ticks lived.
  * `targetX`/`targetY` are the tile-unit position the animal is heading for (see [destination]), or -1,-1 when it has none.
  * Columns 17-24 are the animal's own stats: five inherited and three calculated (see [sim.animal.AnimalStats]).
+ * `sprintCharge` is the sprint reserve left in ticks (see [sim.animal.Animal.sprintCharge]) and `sprinting` is 1 while
+ * the animal is sprinting this tick; both are 0 for a species without Trait.SPRINTING.
  * `heading` is the direction (radians, tile axes) a wandering or fleeing animal is moving in, or 999 when it has none.
  * `timeOfDay` runs 0.0 (midnight) to 1.0; `speciesIndex` indexes `species` from [getSimulationInfo].
  */
@@ -108,7 +111,8 @@ fun getSimulationSnapshot(): String {
             "${r2(a.feelings.fear)},${r2(a.feelings.hunger)},${r2(a.feelings.thirst)},${r2(a.feelings.libido)}," +
             (destination(a.action)?.let { "${r2(it.x)},${r2(it.y)}" } ?: "-1,-1") + "," + (heading(a)?.let { r2(it).toString() } ?: "999") + "," +
             "${r2(a.stats.maxHp)},${a.stats.speed},${r2(a.stats.damage)},${r2(a.stats.armor)},${r2(a.stats.viewRange)}," +
-            "${a.stats.baseStaminaUsage},${a.stats.walkingStaminaUsage},${r2(a.stats.elderlyAge)},${a.mind?.net?.hiddenNeurons ?: -1}]"
+            "${a.stats.baseStaminaUsage},${a.stats.walkingStaminaUsage},${r2(a.stats.elderlyAge)},${a.mind?.net?.hiddenNeurons ?: -1}," +
+            "${r2(if (a.species.canSprint) a.sprintCharge else 0.0)},${if (a.isSprinting) 1 else 0}]"
     }
     val carcasses = w.objects.filterIsInstance<Carcass>().joinToString(",") {
         "[${it.id},${r2(it.position.x)},${r2(it.position.y)},${r2(it.nutrition / it.initialNutrition)}]"

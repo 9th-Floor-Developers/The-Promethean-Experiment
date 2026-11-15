@@ -252,7 +252,9 @@ class World(
         val before = animals.map { it.position }
         for (a in animals) if (a.isAlive) move(a)
         moved = animals.indices.count { animals[it].position != before[it] }
-        log.info { "$moved of ${animals.size} animals moved" }
+        val sprinted = animals.count { it.isSprinting }
+        val exhausted = animals.count { it.species.canSprint && it.sprintCharge <= 0 }
+        log.info { "$moved of ${animals.size} animals moved; $sprinted sprinted, $exhausted out of sprint reserve" }
 
         log.step("2/2 Resolve eating, drinking, attacks and reproduction")
         for (a in animals.toList()) if (a.isAlive) interact(a)
@@ -262,7 +264,11 @@ class World(
     /** Moves the animal toward or away from its action's target. */
     private fun move(a: Animal) {
         val s = a.species
-        val speed = a.stats.speed * a.speedFactor
+        // Trait SPRINTING: fleeing and the final dash of a hunt are a sprint, but only for a species that can
+        // sprint and still has reserve and stamina left; everything else moves at a walk (docs/sim/SPECIES.md).
+        val sprinting = wantsToSprint(a) && a.canSprintNow
+        a.isSprinting = sprinting
+        val speed = a.stats.speed * a.speedFactor * (if (sprinting) s.sprintSpeedMultiplier else 1.0)
         val before = a.position
         when (val act = a.action) {
             Action.Rest -> {}
@@ -294,15 +300,27 @@ class World(
         } else {
             a.blockedTicks = 0
         }
+        // An animal that got nowhere this tick (blocked, or already at its goal) did not really sprint, so it pays nothing.
+        if (a.position == before) a.isSprinting = false
         // Stamina: always regenerates slowly and always drains a base amount; walking adds its usage on top, sprinting its own cost.
         val moveCost = when {
             a.position == before || a.action == Action.Wander -> 0.0
-            a.action is Action.RunFromPredator -> s.staminaSprintCost
-            // Predators stalk at a walk and only sprint for the final dash.
-            a.action is Action.AttackTarget && a.position.distanceTo((a.action as Action.AttackTarget).target.position) <= SPRINT_RANGE -> s.staminaSprintCost
+            a.isSprinting -> s.staminaSprintCost
             else -> a.stats.walkingStaminaUsage
         }
         a.changeStamina(a.staminaRegen - a.baseStaminaUsage - moveCost)
+        // Sprint reserve: one tick of it is spent per tick sprinted, and it refills whenever the animal is not sprinting.
+        a.sprintCharge = (a.sprintCharge + if (a.isSprinting) -1.0 else s.sprintRecharge).coerceIn(0.0, s.sprintChargeTicks)
+    }
+
+    /**
+     * Whether the animal's current action is one it would sprint for: running from a predator, or closing the
+     * last [SPRINT_RANGE] tiles on prey (predators stalk at a walk before that).
+     */
+    private fun wantsToSprint(a: Animal): Boolean = when (val act = a.action) {
+        is Action.RunFromPredator -> true
+        is Action.AttackTarget -> a.position.distanceTo(act.target.position) <= SPRINT_RANGE
+        else -> false
     }
 
     /** Eats, drinks or attacks if the animal is already within reach of its target. */

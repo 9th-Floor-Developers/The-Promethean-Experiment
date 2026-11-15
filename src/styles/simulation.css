@@ -87,6 +87,7 @@
 .meter__fill--stamina { background: #f2b134; }
 .meter__fill--nutrition { background: #57b560; }
 .meter__fill--hydration { background: #3f9be8; }
+.meter__fill--sprint { background: #9b6fe0; }
 .meter__value { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* Population graph */

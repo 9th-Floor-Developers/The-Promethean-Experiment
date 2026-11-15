@@ -138,6 +138,10 @@ export function IndividualInspector({ snapshot, info, selectedId, onSelect, obje
                 </div>
                 <Meter label="HP" value={row[A.hp]!} max={row[A.maxHp]!} tone="hp" />
                 <Meter label="Stamina" value={row[A.stamina]!} max={species.maxStamina} tone="stamina" />
+                {/* Trait SPRINTING: only species that can sprint have a reserve to show. */}
+                {species.traits.includes('SPRINTING') && (
+                    <Meter label={row[A.sprinting] ? 'Sprint (running)' : 'Sprint'} value={row[A.sprintCharge]!} max={species.sprintChargeTicks} tone="sprint" />
+                )}
                 <Meter label="Nutrition" value={row[A.nutrition]!} max={species.maxNutrition} tone="nutrition" />
                 <Meter label="Hydration" value={row[A.hydration]!} max={species.maxHydration} tone="hydration" />
                 <dl className="inspector__facts">

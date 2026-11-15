@@ -28,6 +28,12 @@ class Species(
     val hpRegen: Double = 0.05,
     /** Stamina spent per tick while sprinting (fleeing or chasing). */
     val staminaSprintCost: Double = 0.2,
+    /** Trait SPRINTING: how much faster than a walk a sprint is. Only species with [Trait.SPRINTING] ever sprint. */
+    val sprintSpeedMultiplier: Double = 1.6,
+    /** Trait SPRINTING: the sprint reserve, in ticks of sprinting, that a fully rested animal holds. */
+    val sprintChargeTicks: Double = 150.0,
+    /** Trait SPRINTING: sprint reserve regained per tick while not sprinting. */
+    val sprintRecharge: Double = 0.5,
     /** Universal stat WALKING_STAMINA_USAGE: stamina spent per tick while walking, added to [baseStaminaUsage]. */
     val walkingStaminaUsage: Double = 0.05,
     /** Universal stat BASE_STAMINA_USAGE: stamina spent every tick regardless of activity. */
@@ -81,8 +87,13 @@ class Species(
         require(baseStaminaUsage >= 0 && walkingStaminaUsage >= 0) { "stamina usage must not be negative" }
         require(elderlyAge >= 0) { "elderlyAge must not be negative" }
         require(mutationRate in 0.0..AnimalStats.MAX_MUTATION) { "mutationRate must be between 0 and ${AnimalStats.MAX_MUTATION}" }
+        require(sprintSpeedMultiplier >= 1.0) { "sprintSpeedMultiplier must be at least 1 (a sprint is never slower than a walk)" }
+        require(sprintChargeTicks > 0 && sprintRecharge > 0) { "sprint reserve and recharge must be positive" }
         require(reproductionNutritionThreshold <= maxNutrition) { "reproduction threshold above max nutrition" }
     }
+
+    /** Trait SPRINTING: whether animals of this species can sprint at all; others always move at a walk. */
+    val canSprint get() = Trait.SPRINTING in traits
 
     /** Whether animals of this species hunt other animals. */
     val canHunt get() = Trait.CARNIVORE in traits || Trait.OMNIVORE in traits
