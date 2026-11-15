@@ -117,7 +117,9 @@ function dayNightSettings(): SimSettings {
  * stamina). Tuned by hill climbing on seeds 1-5; tested on the JVM (IntelligenceExperiment, 30 days) on unseen seeds
  * 11-20: intelligence vs lifespan r = 0.47 (every seed at least 0.40; Spearman 0.46), grazers survive on 8 of 10.
  * The correlation builds up over the run: about 0 at day 10 (nearly all the dead are still same-brained founders),
- * about 0.37 at day 20. With decision noise off the same world gives r = 0.14.
+ * about 0.37 at day 20, 0.57 at day 60 (seeds 11-16, every seed at least 0.49). Average lifespan climbs with brain size,
+ * e.g. seed 12: 7 days at the founders' 50 connections, 12 at 72, 15 at 94. With decision noise off the same world gives
+ * r = 0.14.
  */
 function intelligenceSettings(): SimSettings {
     const species: Omit<SpeciesSettings, 'look'>[] = [ // looks are filled in by builtInSettings

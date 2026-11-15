@@ -58,7 +58,7 @@ private class RunResult(val seed: Long, val deaths: Map<String, List<Death>>, va
  * Runs one world for [days] in-game days and records every death of a SOFT_CODED animal. Deaths are found the way the
  * frontend finds them: an animal present before a tick and gone after it has died.
  */
-private fun runSeed(seed: Long, days: Int, size: Int, config: String, resources: Resources, founderShapes: List<IntArray>?, all: Boolean, diag: MutableMap<String, Int>? = null): RunResult {
+private fun runSeed(seed: Long, days: Int, size: Int, config: String, resources: Resources, founderShapes: List<IntArray>?, all: Boolean, diag: MutableMap<String, Int>? = null, mutateFounders: Boolean = false): RunResult {
     val setups = parseSpeciesConfig(config)
     val world = createWorld(seed, size, setups, resources)
     val soft = setups.map { it.species }.filter { all || Trait.SOFT_CODED in it.traits }.toSet()
@@ -72,6 +72,15 @@ private fun runSeed(seed: Long, days: Int, size: Int, config: String, resources:
             val hidden = founderShapes[k++ % founderShapes.size]
             val mind = Mind(NeuralNet.random(intArrayOf(Mind.INPUTS, *hidden, Mind.OUTPUTS), rng))
             world.animals[i] = Animal(a.id, a.species, a.position, a.stats, mind = mind)
+        }
+    }
+    // --mutate-founders: each neural founder gets the brain a newborn of two founders would (one round of birth mutation),
+    // to measure what founder diversity would do. Test only; the simulation itself starts every founder alike.
+    if (mutateFounders) {
+        for (i in world.animals.indices) {
+            val a = world.animals[i]
+            val m = a.mind ?: continue
+            world.animals[i] = Animal(a.id, a.species, a.position, a.stats, mind = Mind.inherit(a.species, m, Mind.founder(world.rng), world.rng))
         }
     }
     val deaths = soft.associate { it.name to ArrayList<Death>() }
@@ -116,7 +125,7 @@ private fun f2(v: Double?) = v?.let { "%.3f".format(it) } ?: "  -  "
  * Usage: `IntelligenceExperimentKt configFile seeds days [mapSize] [water] [trees] [grass] [carcassRotHours] [brainNoise] [threads] [flags]`
  * with seeds comma separated and the world values as on the Settings screen (defaults 200, 1, 1, 1, 72, 0). Flags:
  * `--sizes` per-brain-size table, `--hist` age-at-death histogram, `--causes` death causes, `--diag` what the learners
- * spend their ticks doing, `--all` also record instinct species, `--shapes=2;8;8,8` gives the neural founders those
+ * spend their ticks doing, `--all` also record instinct species, `--mutate-founders` gives each neural founder one round of birth mutation, `--shapes=2;8;8,8` gives the neural founders those
  * hidden layers in turn instead of the usual founder brain (a controlled brain-size test). Simulation events are
  * silenced; only the report is printed. Used to tune the "Intelligence pays" preset (src/settings/presets.ts).
  */
@@ -137,7 +146,7 @@ fun main(args: Array<String>) {
     // --diag tallies, over every tick, what the neural animals are doing (also when thirsty or hungry).
     val diag: MutableMap<String, Int>? = if ("--diag" in args) java.util.concurrent.ConcurrentHashMap() else null
     val pool = Executors.newFixedThreadPool(threads) { r -> Thread(r).apply { isDaemon = true } }
-    val results = seeds.map { s -> pool.submit<RunResult> { runSeed(s, days, size, config, resources, shapes, "--all" in args, diag) } }.map { it.get() }
+    val results = seeds.map { s -> pool.submit<RunResult> { runSeed(s, days, size, config, resources, shapes, "--all" in args, diag, "--mutate-founders" in args) } }.map { it.get() }
     pool.shutdownNow()
 
     out.println("########## PROCESS: Intelligence experiment (${args[0]}, $days days, map $size, seeds $seeds) ##########")
