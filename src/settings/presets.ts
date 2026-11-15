@@ -1,10 +1,10 @@
 /** Presets: named, saved bundles of simulation settings. One preset is active and is what Start Simulation runs. */
 import {
-    CARCASS_ROT_HOURS, MAP_SIZE, RESOURCE, defaultSettings, herbivoreTemplate, loadLegacySettings, sanitizeSettings, withFixedLooks, type SimSettings, type SpeciesSettings,
+    BRAIN_NOISE, CARCASS_ROT_HOURS, MAP_SIZE, RESOURCE, defaultSettings, herbivoreTemplate, loadLegacySettings, sanitizeSettings, withFixedLooks, type SimSettings, type SpeciesSettings,
 } from './speciesSettings';
 
 /** Which built-in preset a preset started as (so it can be reset to its original); absent for the user's own. */
-export type BuiltInKey = 'default' | 'paradise' | 'savanna' | 'learning' | 'dayNight';
+export type BuiltInKey = 'default' | 'paradise' | 'savanna' | 'learning' | 'dayNight' | 'intelligence';
 
 export interface Preset {
     id: string;
@@ -22,7 +22,7 @@ export interface PresetStore {
 }
 
 /** Every built-in preset, in the order they are listed. */
-const BUILT_IN_KEYS: BuiltInKey[] = ['default', 'paradise', 'savanna', 'learning', 'dayNight'];
+const BUILT_IN_KEYS: BuiltInKey[] = ['default', 'paradise', 'savanna', 'learning', 'dayNight', 'intelligence'];
 
 /**
  * African savanna, a medium (180 tile) world with four species modelled loosely on real animals:
@@ -104,6 +104,30 @@ function dayNightSettings(): SimSettings {
     return sanitizeSettings({ species, mapSize: 200, water: 1, trees: 1, grass: 1, carcassRotHours: CARCASS_ROT_HOURS.default })!;
 }
 
+// INTELLIGENCE-PRESET-START (tuned with src/jvmMain/kotlin/IntelligenceExperiment.kt)
+/**
+ * Intelligence pays, a small (100 tile) world built to show bigger brains living longer:
+ * - Clever scuttler: a neural-network omnivore that eats plants, eggs and carcasses and hunts the grazers. Its brain
+ *   mutates quickly (15%), so many brain sizes live side by side.
+ * - Stinging grazer: an instinct-driven night grazer competing for the same plants.
+ * Decision noise 5: a founder-sized brain chooses almost at random, and the noise falls with the square of a brain's
+ * connections, so smarter scuttlers find food and water more reliably and outlive the rest (each neuron still costs
+ * stamina). Tested on the JVM (IntelligenceExperiment, 30 days, seeds 1-8): intelligence vs lifespan r = 0.43
+ * (every seed at least 0.38), both species alive on every seed. With decision noise off, r is 0.14.
+ */
+function intelligenceSettings(): SimSettings {
+    const species: Omit<SpeciesSettings, 'look'>[] = [ // looks are filled in by builtInSettings
+        { uid: 0, name: 'Clever scuttler', count: 98, stats: { maxHp: 52, speed: 0.099, damage: 2.8, armor: 15.7, viewRange: 14 },
+            mutationRate: 15,
+            traits: ['SOFT_CODED', 'OMNIVORE', 'EGG_BIRTH', 'EXOSKELETON', 'DIURNAL', 'ALARM_CALLING'] },
+        { uid: 0, name: 'Stinging grazer', count: 71, stats: { maxHp: 142, speed: 0.069, damage: 1, armor: 23.5, viewRange: 9 },
+            mutationRate: 5,
+            traits: ['HARD_CODED', 'HERBIVORE', 'EGG_BIRTH', 'EXOSKELETON', 'NOCTURNAL', 'VENOMOUS'] },
+    ];
+    return sanitizeSettings({ species, mapSize: 100, water: 1.5, trees: 2, grass: 1, carcassRotHours: 48, brainNoise: 5 })!;
+}
+// INTELLIGENCE-PRESET-END
+
 const STORAGE_KEY = 'prometheus.presets.v1';
 
 /** The settings of a built-in preset, freshly created. Built-in species always get the same (name-based) looks. */
@@ -116,13 +140,14 @@ function builtInSettingsRaw(key: BuiltInKey): SimSettings {
     if (key === 'savanna') return savannaSettings();
     if (key === 'learning') return learningSettings();
     if (key === 'dayNight') return dayNightSettings();
+    if (key === 'intelligence') return intelligenceSettings();
     if (key === 'paradise') {
-        return { species: [{ ...herbivoreTemplate(), name: 'Herbivore', count: 60 }], mapSize: MAP_SIZE.max, water: RESOURCE.max, trees: RESOURCE.max, grass: RESOURCE.max, carcassRotHours: CARCASS_ROT_HOURS.default };
+        return { species: [{ ...herbivoreTemplate(), name: 'Herbivore', count: 60 }], mapSize: MAP_SIZE.max, water: RESOURCE.max, trees: RESOURCE.max, grass: RESOURCE.max, carcassRotHours: CARCASS_ROT_HOURS.default, brainNoise: BRAIN_NOISE.default };
     }
     return { ...defaultSettings(), mapSize: 200 };
 }
 
-const BUILT_IN_NAMES: Record<BuiltInKey, string> = { default: 'Default (predator & prey)', paradise: 'Paradise', savanna: 'Savanna (4 species)', learning: 'Learning lab (neural network)', dayNight: 'Day & night (2 hunters, 2 grazers)' };
+const BUILT_IN_NAMES: Record<BuiltInKey, string> = { default: 'Default (predator & prey)', paradise: 'Paradise', savanna: 'Savanna (4 species)', learning: 'Learning lab (neural network)', dayNight: 'Day & night (2 hunters, 2 grazers)', intelligence: 'Intelligence pays (big brains live longer)' };
 
 function builtInPreset(key: BuiltInKey): Preset {
     return { id: `builtin-${key}`, name: BUILT_IN_NAMES[key], settings: builtInSettings(key), builtIn: key };

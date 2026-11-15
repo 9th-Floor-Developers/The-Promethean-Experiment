@@ -9,8 +9,11 @@ interface TerrainJson {
     tiles: string;
 }
 
-/** Resource amount multipliers (1 = default) for ponds, trees and grass, and how many in-game hours a carcass takes to rot away. */
-export interface Resources { water: number; trees: number; grass: number; carcassRotHours: number }
+/**
+ * Resource amount multipliers (1 = default) for ponds, trees and grass, how many in-game hours a carcass takes to rot
+ * away, and the decision noise of neural-network brains (0 = off; see Kotlin's Mind.pickDrive).
+ */
+export interface Resources { water: number; trees: number; grass: number; carcassRotHours: number; brainNoise: number }
 
 /** Handle to the running Kotlin simulation (compiled to WebAssembly). */
 export interface KotlinSimulation {
@@ -34,9 +37,9 @@ export interface KotlinSimulation {
  * `speciesConfig` is the Settings text (see settings/speciesSettings.ts toSpeciesConfig); empty = default species.
  * The terrain returned is the simulation's own terrain, so what is drawn is what the animals walk on.
  */
-export async function createSimulation(seed = 42, size = 200, speciesConfig = '', resources: Resources = { water: 1, trees: 1, grass: 1, carcassRotHours: 72 }, looks: readonly number[] = []): Promise<KotlinSimulation> {
+export async function createSimulation(seed = 42, size = 200, speciesConfig = '', resources: Resources = { water: 1, trees: 1, grass: 1, carcassRotHours: 72, brainNoise: 0 }, looks: readonly number[] = []): Promise<KotlinSimulation> {
     const kotlin = await import('../kotlin-gen/Project-Prometheus-wasm-js.mjs');
-    const json = JSON.parse(kotlin.createSimulation(seed, size, speciesConfig, resources.water, resources.trees, resources.grass, resources.carcassRotHours)) as TerrainJson;
+    const json = JSON.parse(kotlin.createSimulation(seed, size, speciesConfig, resources.water, resources.trees, resources.grass, resources.carcassRotHours, resources.brainNoise)) as TerrainJson;
     // Kotlin knows nothing about appearance; species come back in config order, so attach each one's look by index.
     const info = JSON.parse(kotlin.getSimulationInfo()) as Omit<SimInfo, 'species'> & { species: Omit<SimInfo['species'][number], 'look'>[] };
     const withLooks: SimInfo = { ...info, species: info.species.map((sp, i) => ({ ...sp, look: looks[i] ?? i })) };

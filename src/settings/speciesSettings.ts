@@ -131,6 +131,12 @@ export interface SimSettings {
     grass: number;
     /** In-game hours a carcass takes to rot away; shorter means less carrion for meat eaters. */
     carcassRotHours: number;
+    /**
+     * Decision noise of neural-network brains (0 = off): how blurred a founder-sized brain's choices are, in standard
+     * deviations of its drive values; the noise falls with the square of a brain's connections (Kotlin Mind.pickDrive),
+     * so the higher this is, the more intelligence pays.
+     */
+    brainNoise: number;
 }
 
 /** Resource amount slider limits (multiplier of the default amount). */
@@ -138,6 +144,9 @@ export const RESOURCE = { min: 0.25, max: 3, step: 0.25 } as const;
 
 /** Carcass rot time slider limits and default, in in-game hours; the default matches Kotlin's CARCASS_ROT_TICKS (3 days). */
 export const CARCASS_ROT_HOURS = { min: 4, max: 120, step: 4, default: 72 } as const;
+
+/** Brain decision noise slider limits and default; 0 leaves neural-network brains exactly as they were. */
+export const BRAIN_NOISE = { min: 0, max: 8, step: 0.5, default: 0 } as const;
 
 /** World map size limits (tiles per side) and default. */
 export const MAP_SIZE = { min: 60, max: 300, step: 10, default: 200 } as const;
@@ -181,7 +190,7 @@ export function carnivoreTemplate(): SpeciesSettings {
 
 /** The settings the simulation starts with: one predator and one prey species. */
 export function defaultSettings(): SimSettings {
-    return { species: [carnivoreTemplate(), herbivoreTemplate()], mapSize: MAP_SIZE.default, water: 1, trees: 1, grass: 1, carcassRotHours: CARCASS_ROT_HOURS.default };
+    return { species: [carnivoreTemplate(), herbivoreTemplate()], mapSize: MAP_SIZE.default, water: 1, trees: 1, grass: 1, carcassRotHours: CARCASS_ROT_HOURS.default, brainNoise: BRAIN_NOISE.default };
 }
 
 /** Name for a new species that does not clash with an existing one. */
@@ -219,6 +228,7 @@ export function sanitizeSettings(raw: unknown): SimSettings | null {
         water: res(parsed.water), trees: res(parsed.trees), grass: res(parsed.grass),
         carcassRotHours: Math.max(CARCASS_ROT_HOURS.min, Math.min(CARCASS_ROT_HOURS.max, Number(parsed.carcassRotHours) || CARCASS_ROT_HOURS.default)),
         mapSize: Math.max(MAP_SIZE.min, Math.min(MAP_SIZE.max, Number(parsed.mapSize) || MAP_SIZE.default)),
+        brainNoise: Math.max(BRAIN_NOISE.min, Math.min(BRAIN_NOISE.max, Number(parsed.brainNoise) || BRAIN_NOISE.default)),
         species: fillMissingLooks(parsed.species).map((s) => ({ ...s, uid: nextUid++, stats: clampStats({ ...DEFAULT_STATS, ...s.stats }), mutationRate: clampMutationRate(s.mutationRate), traits: withDefaultCovering(s.traits.filter((id) => KNOWN_TRAITS.has(id))) })),
     };
 }

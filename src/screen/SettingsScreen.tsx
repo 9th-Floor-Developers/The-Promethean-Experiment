@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
-    CARCASS_ROT_HOURS, CATEGORIES, EXTRA_TRAITS, MAP_SIZE, MAX_COUNT, RESOURCE, MAX_SPECIES, MIN_COUNT, MUTATION_RATE, STATS, carnivoreTemplate, herbivoreTemplate,
+    BRAIN_NOISE, CARCASS_ROT_HOURS, CATEGORIES, EXTRA_TRAITS, MAP_SIZE, MAX_COUNT, RESOURCE, MAX_SPECIES, MIN_COUNT, MUTATION_RATE, STATS, carnivoreTemplate, herbivoreTemplate,
     newSpeciesName, type SimSettings, type SpeciesSettings, type StatKey,
 } from '../settings/speciesSettings';
 import { activePreset, builtInSettings, createPreset, duplicatePreset, type PresetStore } from '../settings/presets';
@@ -149,6 +149,14 @@ export function SettingsScreen({ store, onChange: onStoreChange, display, onDisp
                             <div className="stat__ends"><span>Rots fast</span><span>Lasts long</span></div>
                             <p className="stat__help">How long a dead animal stays as food before it rots away. Meat eaters and scavengers feed on carcasses, so a long rot time feeds more of them.</p>
                         </div>
+                    </div>
+                    <h2 className="species-card__title">Brains</h2>
+                    <div className="stat">
+                        <label htmlFor="brain-noise" className="stat__label">Decision noise <strong>{settings.brainNoise === 0 ? 'Off' : settings.brainNoise.toFixed(1)}</strong></label>
+                        <input id="brain-noise" className="slider" type="range" min={BRAIN_NOISE.min} max={BRAIN_NOISE.max} step={BRAIN_NOISE.step} value={settings.brainNoise}
+                            onChange={(e) => onChange({ ...settings, brainNoise: Number(e.target.value) })} />
+                        <div className="stat__ends"><span>Off</span><span>Small brains guess</span></div>
+                        <p className="stat__help">Only affects neural-network animals. Every choice they make is blurred by noise, and the noise falls with the square of the brain's connections: twice the connections, a quarter of the noise. Off, brain size makes no difference to how well an animal decides; turned up, small brains act almost at random while big ones choose well, so intelligence pays (each neuron still costs stamina).</p>
                     </div>
                 </article>
             )}
