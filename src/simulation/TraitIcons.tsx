@@ -97,19 +97,6 @@ const DRAWINGS: Record<string, ReactElement> = {
         <path d="M12 9.8v8.6M7.2 11.4 5.4 18.4M16.8 11.4l1.8 7" />
     </>,
 
-    // BODY TEMPERATURE
-    /** Warm-blooded: a flame of its own body heat. */
-    ENDOTHERMIC: <>
-        <path d="M12 3c3.6 3.5 5.6 6.2 5.6 9.2a5.6 5.6 0 1 1-11.2 0c0-1.8.9-3.1 2.1-4.1.2 1.6 1 2.5 2 2.5 1.3 0 2.1-1.3 2.1-3.1 0-1.4-.3-2.9-.6-4.5Z" />
-    </>,
-    /** Cold-blooded: heat soaked up from the sun outside. */
-    ECTOTHERMIC: <>
-        <circle cx="12" cy="5.8" r="2.8" />
-        <path d="M12 1.2v1.3M6.8 5.8h1.3M15.9 5.8h1.3M8.1 1.9l.9 1M15.9 1.9l-.9 1" />
-        <path d="M4.4 20.6h15.2" />
-        <path d="M8.6 11.4v5.4M8.6 17.2l-1.5-1.8M8.6 17.2l1.5-1.8M15.4 11.4v5.4M15.4 17.2l-1.5-1.8M15.4 17.2l1.5-1.8" />
-    </>,
-
     // ACTIVITY CYCLE
     /** Daytime: a full sun. */
     DIURNAL: <>
@@ -192,7 +179,6 @@ const CATEGORY_COLOR: Record<string, string> = {
     CONSUMPTION: '#57b560',
     BIRTHING: '#f58fb4',
     BODY_COVERING: '#d9a066',
-    BODY_TEMPERATURE: '#ff8a5c',
     ACTIVITY_CYCLE: '#3f9be8',
     EXTRA: '#f2b134',
     UNKNOWN: '#93a1c4',

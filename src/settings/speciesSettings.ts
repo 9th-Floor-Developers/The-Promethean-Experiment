@@ -68,10 +68,6 @@ export const CATEGORIES: TraitCategoryDef[] = [
         { id: 'BARE_SKIN', label: 'Bare skin', help: 'Exposed skin.' },
         { id: 'SHELL', label: 'Shell', help: 'A hard protective shell.' },
     ] },
-    { key: 'BODY_TEMPERATURE', label: 'Body heat', question: 'How does it stay warm?', options: [
-        { id: 'ENDOTHERMIC', label: 'Warm-blooded', help: 'Makes its own body heat.' },
-        { id: 'ECTOTHERMIC', label: 'Cold-blooded', help: 'Relies on the sun and surroundings for heat.' },
-    ] },
     { key: 'ACTIVITY_CYCLE', label: 'Daily schedule', question: 'When is it awake?', options: [
         { id: 'DIURNAL', label: 'Daytime', help: 'Active during the day and rests otherwise.' },
         { id: 'NOCTURNAL', label: 'Nighttime', help: 'Active at night and rests otherwise.' },
@@ -160,7 +156,7 @@ export function withFixedLooks(settings: SimSettings): SimSettings {
 export function herbivoreTemplate(): SpeciesSettings {
     return {
         uid: nextUid++, name: 'Herbivore', count: 40, stats: { ...DEFAULT_STATS, speed: 0.07, viewRange: 16 },
-        traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'DIURNAL'], mutationRate: MUTATION_RATE.default, look: pickDistinctLook([]),
+        traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'DIURNAL'], mutationRate: MUTATION_RATE.default, look: pickDistinctLook([]),
     };
 }
 
@@ -168,7 +164,7 @@ export function herbivoreTemplate(): SpeciesSettings {
 export function carnivoreTemplate(): SpeciesSettings {
     return {
         uid: nextUid++, name: 'Carnivore', count: 10, stats: { ...DEFAULT_STATS, speed: 0.09, viewRange: 30 },
-        traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'ENDOTHERMIC', 'CREPUSCULAR'], mutationRate: MUTATION_RATE.default, look: pickDistinctLook([]),
+        traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'CREPUSCULAR'], mutationRate: MUTATION_RATE.default, look: pickDistinctLook([]),
     };
 }
 

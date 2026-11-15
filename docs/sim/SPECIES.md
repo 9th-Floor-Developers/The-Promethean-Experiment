@@ -53,12 +53,6 @@ BARE SKIN - Has exposed skin without a substantial external covering.
 SHELL - Has a hard protective shell.
 
 
-BODY TEMPERATURE
-
-ENDOTHERMIC - Generates internal heat to help maintain body temperature.
-ECTOTHERMIC - Relies primarily on external heat sources to regulate body temperature.
-
-
 ACTIVITY CYCLE
 
 DIURNAL - Primarily active during the day.

@@ -2,7 +2,7 @@ package sim.species
 
 /** Categories from docs/sim/SPECIES_TRAIT.md. A species holds at most one trait per category. */
 enum class TraitCategory {
-    CONTROLLER, CONSUMPTION, BIRTHING, BODY_COVERING, BODY_TEMPERATURE, ACTIVITY_CYCLE
+    CONTROLLER, CONSUMPTION, BIRTHING, BODY_COVERING, ACTIVITY_CYCLE
 }
 
 /** Every trait from docs/sim/SPECIES_TRAIT.md. A null [category] means the trait is uncategorized and freely combinable. */
@@ -28,10 +28,6 @@ enum class Trait(val category: TraitCategory?) {
     EXOSKELETON(TraitCategory.BODY_COVERING),
     BARE_SKIN(TraitCategory.BODY_COVERING),
     SHELL(TraitCategory.BODY_COVERING),
-
-    // BODY TEMPERATURE
-    ENDOTHERMIC(TraitCategory.BODY_TEMPERATURE),
-    ECTOTHERMIC(TraitCategory.BODY_TEMPERATURE),
 
     // ACTIVITY CYCLE
     DIURNAL(TraitCategory.ACTIVITY_CYCLE),
