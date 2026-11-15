@@ -81,6 +81,13 @@ internal class Brain(private val world: World) {
     /** Animals that heard something this tick (one count per listener), for the tick log; reset by the world. */
     var listeners = 0
 
+    /**
+     * Whether a hunter of species [s] would go after [o]: a living animal of another species that does not hunt
+     * itself. Hunters leave each other alone (though they still eat each other's carcasses and eggs); otherwise
+     * one meat eater always wiped the other out, since hunters never flee.
+     */
+    private fun isPrey(s: Species, o: Animal) = o.isAlive && o.species != s && !o.species.canHunt
+
     /** Nearest predator (a hunter of another species) in view range; hunters themselves fear nothing. */
     private fun nearestThreat(a: Animal): Animal? {
         val s = a.species
@@ -143,7 +150,7 @@ internal class Brain(private val world: World) {
             ) consider(audibility(a, alarm.caller.position, Species.ALARM_LOUDNESS), alarm.threat)
         }
         world.hunterGrid.forEachNear(a.position, s.hearingRange) { o ->
-            if (o.isAlive && o.species != s) consider(audibility(a, o.position, o.noise), o)
+            if (isPrey(s, o)) consider(audibility(a, o.position, o.noise), o)
         }
         return best
     }
@@ -162,10 +169,10 @@ internal class Brain(private val world: World) {
         }
         world.alarmGrid.forEachNear(a.position, s.hearingRange * Species.ALARM_LOUDNESS) { alarm ->
             val c = alarm.caller
-            if (c.isAlive && c.species != s) consider(audibility(a, c.position, Species.ALARM_LOUDNESS), c)
+            if (isPrey(s, c)) consider(audibility(a, c.position, Species.ALARM_LOUDNESS), c)
         }
         world.animalGrid.forEachNear(a.position, s.hearingRange) { o ->
-            if (o.isAlive && o.species != s) consider(audibility(a, o.position, o.noise), o)
+            if (isPrey(s, o)) consider(audibility(a, o.position, o.noise), o)
         }
         return best
     }
@@ -322,7 +329,7 @@ internal class Brain(private val world: World) {
         if (s.eatsPlants) world.grassGrid.forEachNear(a.position, view) { g -> if (g.isEdible) consider(g.position) }
         if (s.eatsCarcasses) world.carcassGrid.forEachNear(a.position, view) { c -> if (!c.isRemoved) consider(c.position) }
         if (s.eatsCarcasses) world.eggGrid.forEachNear(a.position, view) { e -> if (!e.isRemoved && e.species != s) consider(e.position) }
-        if (s.canHunt) world.animalGrid.forEachNear(a.position, view) { o -> if (o.isAlive && o.species != s) consider(o.position) }
+        if (s.canHunt) world.animalGrid.forEachNear(a.position, view) { o -> if (isPrey(s, o)) consider(o.position) }
         return best
     }
 
@@ -461,7 +468,7 @@ internal class Brain(private val world: World) {
         if (s.eatsCarcasses) world.carcassGrid.forEachNear(a.position, view) { c -> if (!c.isRemoved) add(c, c.position, 1.0) }
         // Eggs of other species are food for meat and carrion eaters; animals leave their own species' eggs alone.
         if (s.eatsCarcasses) world.eggGrid.forEachNear(a.position, view) { e -> if (!e.isRemoved && e.species != s) add(e, e.position, 1.0) }
-        if (s.canHunt) world.animalGrid.forEachNear(a.position, view) { o -> if (o.isAlive && o.species != s) add(o, o.position, HUNT_PENALTY) }
+        if (s.canHunt) world.animalGrid.forEachNear(a.position, view) { o -> if (isPrey(s, o)) add(o, o.position, HUNT_PENALTY) }
         // Trait HEARING: a hunter also goes after prey it only heard, which may be well past what it can see -
         // including anything that gave itself away by raising an alarm (docs/sim/SPECIES.md).
         heardPrey(a)?.let { heard ->

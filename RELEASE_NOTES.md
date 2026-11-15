@@ -13,7 +13,7 @@ Species are defined by traits, animals inherit and mutate their stats, and some 
 - 🦓 **Traits make the species** — 6 trait categories plus 9 freely combinable traits (sprinting, venom, poison, spikes, hard skin, regeneration, alarm calling, night vision, hearing).
 - 🌍 **Living world** — Perlin-noise terrain (fresh water, plain, forest, desert), growing grass and trees, carcasses that rot, eggs that hatch, and a full day–night cycle that changes what animals can see.
 - 📊 **Instrumentation that answers the question** — live population graph, trait radar with an intelligence axis, age-of-death histogram, cause-of-death charts, and deaths per 100 animal-days per species.
-- 🎮 **Four built-in presets** — Default, Paradise, Savanna and Learning lab, plus your own saved presets.
+- 🎮 **Five built-in presets** — Default, Paradise, Savanna, Learning lab and Day & night, plus your own saved presets.
 
 ## What's included
 

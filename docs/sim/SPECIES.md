@@ -32,7 +32,7 @@ This is the animal AI system which will be described more in ANIMAL_AI.MD
 
 CONSUMPTION
 
-CARNIVORE - Eats other animals.
+CARNIVORE - Eats other animals. Hunters (CARNIVORE, OMNIVORE) never hunt other hunting species, but do eat their carcasses and eggs.
 HERBIVORE - Eats plants.
 OMNIVORE - Eats both plants and animals.
 SCAVENGER - Feeds on dead animals does not attack animals.

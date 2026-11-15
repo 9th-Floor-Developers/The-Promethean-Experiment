@@ -4,7 +4,7 @@ import {
 } from './speciesSettings';
 
 /** Which built-in preset a preset started as (so it can be reset to its original); absent for the user's own. */
-export type BuiltInKey = 'default' | 'paradise' | 'savanna' | 'learning';
+export type BuiltInKey = 'default' | 'paradise' | 'savanna' | 'learning' | 'dayNight';
 
 export interface Preset {
     id: string;
@@ -22,7 +22,7 @@ export interface PresetStore {
 }
 
 /** Every built-in preset, in the order they are listed. */
-const BUILT_IN_KEYS: BuiltInKey[] = ['default', 'paradise', 'savanna', 'learning'];
+const BUILT_IN_KEYS: BuiltInKey[] = ['default', 'paradise', 'savanna', 'learning', 'dayNight'];
 
 /**
  * African savanna, a medium (180 tile) world with four species modelled loosely on real animals:
@@ -75,6 +75,35 @@ function learningSettings(): SimSettings {
     return sanitizeSettings({ species, mapSize: 160, water: 1.5, trees: 1.5, grass: 1.5, carcassRotHours: 8 })!;
 }
 
+/**
+ * Day & night, a 200 tile world with two plant eaters and two meat eaters split across the day:
+ * - Gazelle: fast, furry daytime grazer that sprints away, calls alarms and listens for them.
+ * - Pangolin: slow, scaly, armored night forager with night vision and hard skin.
+ * - Wolf: furry, far-sighted dawn-and-dusk hunter with sharp hearing.
+ * - Komodo dragon: tough, scaly, egg-laying night hunter with night vision and a venomous bite.
+ * Relies on hunters leaving other hunters alone (Brain.isPrey); before that rule one meat eater always wiped out the other.
+ * Tested on the JVM (100 days, seeds 1, 2, 3, 7, 42, 100): all four species alive at day 100 on every seed, though
+ * thin on some (seed 100 ended with 1 pangolin, seed 3 with 2 wolves). Starting counts, resources and stats were
+ * tuned together, so small changes can tip one herbivore into outcompeting the other.
+ */
+function dayNightSettings(): SimSettings {
+    const species: Omit<SpeciesSettings, 'look'>[] = [ // looks are filled in by builtInSettings
+        { uid: 0, name: 'Gazelle', count: 30, stats: { maxHp: 90, speed: 0.08, damage: 1, armor: 1, viewRange: 18 },
+            mutationRate: 5,
+            traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'FUR', 'DIURNAL', 'SPRINTING', 'ALARM_CALLING', 'HEARING'] },
+        { uid: 0, name: 'Pangolin', count: 40, stats: { maxHp: 140, speed: 0.06, damage: 1, armor: 30, viewRange: 12 },
+            mutationRate: 5,
+            traits: ['HARD_CODED', 'HERBIVORE', 'LIVE_BIRTH', 'SCALES', 'NOCTURNAL', 'NIGHT_VISION', 'HARD_SKIN'] },
+        { uid: 0, name: 'Wolf', count: 6, stats: { maxHp: 100, speed: 0.09, damage: 3, armor: 1, viewRange: 30 },
+            mutationRate: 5,
+            traits: ['HARD_CODED', 'CARNIVORE', 'LIVE_BIRTH', 'FUR', 'CREPUSCULAR', 'HEARING'] },
+        { uid: 0, name: 'Komodo dragon', count: 6, stats: { maxHp: 160, speed: 0.075, damage: 5, armor: 10, viewRange: 18 },
+            mutationRate: 5,
+            traits: ['HARD_CODED', 'CARNIVORE', 'EGG_BIRTH', 'SCALES', 'NOCTURNAL', 'NIGHT_VISION', 'VENOMOUS'] },
+    ];
+    return sanitizeSettings({ species, mapSize: 200, water: 1, trees: 1, grass: 1, carcassRotHours: CARCASS_ROT_HOURS.default })!;
+}
+
 const STORAGE_KEY = 'prometheus.presets.v1';
 
 /** The settings of a built-in preset, freshly created. Built-in species always get the same (name-based) looks. */
@@ -86,13 +115,14 @@ export function builtInSettings(key: BuiltInKey): SimSettings {
 function builtInSettingsRaw(key: BuiltInKey): SimSettings {
     if (key === 'savanna') return savannaSettings();
     if (key === 'learning') return learningSettings();
+    if (key === 'dayNight') return dayNightSettings();
     if (key === 'paradise') {
         return { species: [{ ...herbivoreTemplate(), name: 'Herbivore', count: 60 }], mapSize: MAP_SIZE.max, water: RESOURCE.max, trees: RESOURCE.max, grass: RESOURCE.max, carcassRotHours: CARCASS_ROT_HOURS.default };
     }
     return { ...defaultSettings(), mapSize: 200 };
 }
 
-const BUILT_IN_NAMES: Record<BuiltInKey, string> = { default: 'Default (predator & prey)', paradise: 'Paradise', savanna: 'Savanna (4 species)', learning: 'Learning lab (neural network)' };
+const BUILT_IN_NAMES: Record<BuiltInKey, string> = { default: 'Default (predator & prey)', paradise: 'Paradise', savanna: 'Savanna (4 species)', learning: 'Learning lab (neural network)', dayNight: 'Day & night (2 hunters, 2 grazers)' };
 
 function builtInPreset(key: BuiltInKey): Preset {
     return { id: `builtin-${key}`, name: BUILT_IN_NAMES[key], settings: builtInSettings(key), builtIn: key };
