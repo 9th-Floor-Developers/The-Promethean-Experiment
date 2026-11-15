@@ -60,7 +60,7 @@ since what it saw depends on where it was
 every tick an animal is in REST it replays 16 remembered decisions through Q-learning (learning rate 0.05, discount 0.9), 30% of them from observed decisions
 
 children inherit the hidden layer shape (from a random parent, sizes averaged where both parents have the layer)
-and weights that are only 25% the parents' average and 75% fresh random (so behaviour is mainly learned, not passed on), both with mutation: +/- 2 neurons per layer (30% chance), add or remove a layer (5% each, 1 to 5 hidden layers, 2 to 64 neurons each); the layer count starts from the shape parent's, so depth builds up over generations
+and weights that are only 25% the parents' average and 75% fresh random (so behaviour is mainly learned, not passed on), both with mutation: +/- 2 neurons per layer (30% chance), add or remove a layer (15% each, equal so mutation alone does not favour deeper brains, 1 to 5 hidden layers, 2 to 64 neurons each); the layer count starts from the shape parent's, so depth builds up over generations
 founders start with one hidden layer of 2 neurons and random weights
 every hidden neuron costs stamina each tick, so a bigger brain has to earn its keep
 'intelligence' (shown in the inspector and the statistics charts) = the number of connections in the network: every weight between neighbouring layers plus one bias per hidden and output neuron,

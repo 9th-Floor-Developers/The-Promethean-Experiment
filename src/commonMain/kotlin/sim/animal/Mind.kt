@@ -58,8 +58,12 @@ class Mind(val net: NeuralNet) {
 
         // The mutation constants below apply at the default mutation rate; Species.mutationRate scales them.
 
-        /** Chance at birth that a hidden layer is added, and separately that one is removed. */
-        const val LAYER_MUTATION_CHANCE = 0.05
+        /**
+         * Chance at birth that a hidden layer is added, and separately that one is removed. High enough that deeper
+         * brains turn up within a run (15% of a one-layer pair's young get a second layer); equal both ways so
+         * mutation itself does not push brains deeper, only selection can.
+         */
+        const val LAYER_MUTATION_CHANCE = 0.15
         /** Chance at birth that each hidden layer gains or loses up to [MAX_NEURON_CHANGE] neurons. */
         const val NEURON_MUTATION_CHANCE = 0.3
         const val MAX_NEURON_CHANGE = 2
