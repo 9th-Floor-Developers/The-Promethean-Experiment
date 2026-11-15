@@ -4,6 +4,9 @@ import './styles/tokens.css';
 import './styles/global.css';
 import './styles/simulation.css';
 import App from './App';
+import { installUiSounds } from './ui/uiSounds';
+
+installUiSounds();
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
