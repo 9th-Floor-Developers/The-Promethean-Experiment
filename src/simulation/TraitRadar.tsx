@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { SimInfo } from '../sim/types';
-import { TRAIT_AXES, type TraitStats } from '../sim/useTraitStats';
+import { TRAIT_AXES, typical, type TraitStats } from '../sim/useTraitStats';
 import { Hint } from '../ui/Hint';
 import { CHART_HELP } from '../ui/helpText';
 
@@ -20,7 +20,8 @@ const fmt = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2).rep
 
 /**
  * Radar of the universal stats of one species, picked from a dropdown. Each axis runs from the lowest to the highest value
- * found among all animals of the species (not from 0); the plotted shape is the average. An axis where every animal is equal sits at mid-range.
+ * found among all animals of the species (not from 0); the plotted shape is the average, or the median on an axis that
+ * keeps one (intelligence). An axis where every animal is equal sits at mid-range.
  */
 export function TraitRadar({ info, stats }: Props) {
     const [picked, setPicked] = useState(0);
@@ -64,7 +65,7 @@ export function TraitRadar({ info, stats }: Props) {
                     ))}
                     {shown.map((_, k) => <line key={k} x1={C} y1={C} x2={pt(k, 1)[0]} y2={pt(k, 1)[1]} stroke="rgba(255,255,255,0.14)" />)}
                     {base && <polygon fill="rgba(94,176,255,0.25)" stroke={START_COLOR} strokeWidth={2} strokeDasharray="5 3" points={poly(frac(base))} />}
-                    <polygon fill="rgba(255,159,90,0.35)" stroke={NOW_COLOR} strokeWidth={2} points={poly(frac(data.traits.map((t) => t.avg)))} />
+                    <polygon fill="rgba(255,159,90,0.35)" stroke={NOW_COLOR} strokeWidth={2} points={poly(frac(data.traits.map(typical)))} />
                     {shown.map((i, k) => {
                         const ax = TRAIT_AXES[i]!;
                         const t = data.traits[i]!;
@@ -73,7 +74,7 @@ export function TraitRadar({ info, stats }: Props) {
                         return (
                             <text key={ax.label} x={x} y={y} textAnchor={anchor} className="radar__label">
                                 <tspan x={x} dy="-0.2em">{ax.label}{ax.invert ? ' (inverted)' : ''}</tspan>
-                                <tspan x={x} dy="1.15em" className="radar__sub">avg {fmt(t.avg)} · {fmt(range(i)[0])}–{fmt(range(i)[1])}</tspan>
+                                <tspan x={x} dy="1.15em" className="radar__sub">{ax.median ? 'median' : 'avg'} {fmt(typical(t))} · {fmt(range(i)[0])}–{fmt(range(i)[1])}</tspan>
                             </text>
                         );
                     })}
@@ -82,10 +83,10 @@ export function TraitRadar({ info, stats }: Props) {
             {data && (
                 <ul className="radar__legend">
                     <li><span className="radar__swatch radar__swatch--start" />{base ? 'Base stats (from Settings)' : 'Base stats unavailable — rebuild Kotlin (npm run kotlin) and reload'}</li>
-                    <li><span className="radar__swatch" style={{ background: NOW_COLOR }} />Average of all animals so far</li>
+                    <li><span className="radar__swatch" style={{ background: NOW_COLOR }} />Average of all animals so far (median for intelligence)</li>
                 </ul>
             )}
-            {data && <p className="radar__note">{data.count} animals seen · axis = lowest to highest value found (including the base value), shape = average; stamina axes inverted (lower use plots further out){n > 8 ? ' · intelligence = hidden neurons in the neural network' : ''}</p>}
+            {data && <p className="radar__note">{data.count} animals seen · axis = lowest to highest value found (including the base value), shape = average, or median for intelligence; stamina axes inverted (lower use plots further out){n > 8 ? ' · intelligence = hidden neurons in the neural network, shown as a median so the low-intelligence founders cannot drag it down' : ''}</p>}
         </section>
     );
 }

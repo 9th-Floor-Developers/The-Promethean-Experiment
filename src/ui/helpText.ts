@@ -111,7 +111,7 @@ export const BRAIN_OUTPUT_HELP: string[] = [
 export const CHART_HELP = {
     population: 'How many animals of each species are alive over time. The dashed line is the total.',
     populationLive: 'Living animals of each species over the last few in-game days. Expand for the whole run.',
-    radar: 'The average body stats of one species compared with the stats it started with, so you can see which way evolution has pushed it.',
+    radar: 'The average body stats of one species compared with the stats it started with, so you can see which way evolution has pushed it. Intelligence is shown as a median rather than an average, since every founder starts small-brained and an average would never shake them off.',
     deathAges: 'How old animals were when they died, so you can see whether most die young or live out a full life.',
     deathCause: 'Whether animals are dying to predators or to natural causes such as starvation and thirst, for the whole run and over time.',
     intelligenceTrend: 'The average brain size (hidden neurons) of the living animals of each neural-network species over the whole run, with the band showing the smallest and largest brain alive. Rising above the dashed founder line means evolution is favouring bigger brains; falling below it means their stamina cost is not paying off. Only shown when at least one species thinks with a neural network.',
