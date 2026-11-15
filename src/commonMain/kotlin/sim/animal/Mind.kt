@@ -30,7 +30,7 @@ class Experience(
 class Mind(val net: NeuralNet) {
     companion object {
         /** Number of sensed inputs (see [sim.animal.Brain.sense]). */
-        const val INPUTS = 13
+        const val INPUTS = 14
         val OUTPUTS = Drive.entries.size
 
         /** Hidden layers of the founders of a species. */

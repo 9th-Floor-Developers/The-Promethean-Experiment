@@ -54,6 +54,12 @@ class Animal(
     /** Whether the animal actually sprinted this tick; set by the movement step. */
     var isSprinting = false
 
+    /** Whether the animal changed position this tick; set by the movement step. Moving animals make noise. */
+    var movedThisTick = false
+
+    /** Trait ALARM_CALLING: whether the animal is raising an alarm right now; set by the sensing step. */
+    var isCalling = false
+
     /** Waypoints around obstacles toward [pathGoal]; empty when walking straight. */
     val path = ArrayDeque<Vector2>()
 
@@ -103,6 +109,16 @@ class Animal(
      */
     val canSprintNow get() = species.canSprint && sprintCharge > 0 && stamina > species.maxStamina * SPRINT_STAMINA_FLOOR
 
+    /**
+     * How much sound the animal is making, 0 (still and silent) to 1 (sprinting). Only animals of a species with
+     * Trait.HEARING can pick this up, and only within [Species.hearingRange] scaled by this (docs/sim/SPECIES.md).
+     */
+    val noise get() = when {
+        isSprinting -> 1.0
+        movedThisTick -> WALKING_NOISE
+        else -> 0.0
+    }
+
     /** Fraction of full speed available at the current stamina (never fully stops). */
     val speedFactor get() = MIN_SPEED_FACTOR + (1 - MIN_SPEED_FACTOR) * stamina / species.maxStamina
 
@@ -129,3 +145,6 @@ private const val MIN_SPEED_FACTOR = 0.3
 
 /** Share of max stamina an animal must have left to keep sprinting. */
 private const val SPRINT_STAMINA_FLOOR = 0.15
+
+/** How loud a walking animal is next to a sprinting one, which is 1.0. */
+private const val WALKING_NOISE = 0.4

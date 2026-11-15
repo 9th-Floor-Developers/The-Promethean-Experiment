@@ -48,6 +48,15 @@ class Species(
     val viewRange: Double = 10.0,
     /** Walking distance (tiles) within which animals know where water is; much larger than [viewRange] because they remember where the water is. */
     val waterSenseRange: Double = 150.0,
+    /**
+     * Trait HEARING: distance (tiles) at which this species picks up sound - alarm calls and the noise of moving
+     * animals. Defaults to a multiple of [viewRange] so hearing always reaches past what the eye can see, however
+     * far-sighted the species is; the noise of a walking animal carries much less far than that (docs/sim/SPECIES.md).
+     * A species setting rather than an inherited stat, like [waterSenseRange].
+     */
+    val hearingRange: Double = viewRange * HEARING_VIEW_MULTIPLE,
+    /** Trait ALARM_CALLING: stamina spent each tick spent raising an alarm, so calling is never free. */
+    val alarmCallStaminaCost: Double = 0.05,
     /** Ticks an animal must stick with an action before it may switch to a different kind of action. */
     val actionCooldownTicks: Int = 20,
     /** Nutrition lost per tick. */
@@ -89,8 +98,15 @@ class Species(
         require(mutationRate in 0.0..AnimalStats.MAX_MUTATION) { "mutationRate must be between 0 and ${AnimalStats.MAX_MUTATION}" }
         require(sprintSpeedMultiplier >= 1.0) { "sprintSpeedMultiplier must be at least 1 (a sprint is never slower than a walk)" }
         require(sprintChargeTicks > 0 && sprintRecharge > 0) { "sprint reserve and recharge must be positive" }
+        require(hearingRange >= 0 && alarmCallStaminaCost >= 0) { "hearing range and alarm call cost must not be negative" }
         require(reproductionNutritionThreshold <= maxNutrition) { "reproduction threshold above max nutrition" }
     }
+
+    /** Trait ALARM_CALLING: whether animals of this species raise an alarm when they flee. */
+    val canCallAlarm get() = Trait.ALARM_CALLING in traits
+
+    /** Trait HEARING: whether animals of this species pick up sound (alarm calls and moving animals). */
+    val canHear get() = Trait.HEARING in traits
 
     /** Trait SPRINTING: whether animals of this species can sprint at all; others always move at a walk. */
     val canSprint get() = Trait.SPRINTING in traits
@@ -116,4 +132,9 @@ class Species(
     fun trait(category: TraitCategory): Trait? = traits.firstOrNull { it.category == category }
 
     override fun toString() = "Species($name)"
+
+    companion object {
+        /** How much further than [viewRange] a species hears by default; sound carries past line of sight. */
+        const val HEARING_VIEW_MULTIPLE = 2.5
+    }
 }

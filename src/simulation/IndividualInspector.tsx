@@ -146,6 +146,13 @@ export function IndividualInspector({ snapshot, info, selectedId, onSelect, obje
                 <Meter label="Hydration" value={row[A.hydration]!} max={species.maxHydration} tone="hydration" />
                 <dl className="inspector__facts">
                     <dt>Age</dt><dd>{row[A.age]!.toFixed(2)} days</dd>
+                    {/* Traits ALARM_CALLING and HEARING: only shown for species that actually have them. */}
+                    {species.traits.includes('ALARM_CALLING') && (
+                        <><dt>Alarm call</dt><dd>{row[A.calling] ? 'raising' : 'quiet'}</dd></>
+                    )}
+                    {species.traits.includes('HEARING') && (
+                        <><dt>Earshot</dt><dd>{species.hearingRange.toFixed(0)} tiles</dd></>
+                    )}
                     <dt>Fear</dt><dd>{row[A.fear]!.toFixed(2)}</dd>
                     <dt>Hunger</dt><dd>{row[A.hunger]!.toFixed(2)}</dd>
                     <dt>Thirst</dt><dd>{row[A.thirst]!.toFixed(2)}</dd>

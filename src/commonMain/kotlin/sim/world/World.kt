@@ -24,6 +24,14 @@ import terrain.Terrain
 /** An exploring animal has arrived when this close (tiles) to its far-away target. */
 internal const val EXPLORE_ARRIVE = 1.5
 
+/**
+ * Trait ALARM_CALLING: one alarm raised this tick by a fleeing [caller], naming the [threat] it is running from
+ * (docs/sim/SPECIES.md). The sound comes from the caller's position, so an animal that hears it learns where the
+ * caller is, not where the predator is. Any species with Trait.HEARING picks it up - predators included, which
+ * is what makes calling a gamble rather than a free warning.
+ */
+internal class Alarm(val caller: Animal, val threat: Animal)
+
 /** Holds the whole simulation state. The species are fixed when the world is created and never change. */
 class World(
     val terrain: Terrain,
@@ -90,6 +98,12 @@ class World(
 
     /** Grass tufts by map cell (grass never moves). */
     internal val grassGrid = SpatialGrid<Grass>(terrain.width, terrain.height)
+
+    /** Alarms raised this tick, by the map cell of the caller; rebuilt at the start of every sensing step. */
+    internal val alarmGrid = SpatialGrid<Alarm>(terrain.width, terrain.height)
+
+    /** Alarms raised this tick (docs/sim/SPECIES.md); rebuilt at the start of every sensing step. */
+    internal val alarms = ArrayList<Alarm>()
 
     /** Where animals can drink and how to walk there. */
     internal val water = shoreField(terrain)
@@ -219,12 +233,15 @@ class World(
 
     private fun decidePhase(log: TickLog) {
         log.phase("2/4 Decide")
+        brain.listeners = 0
         log.step("1/3 Sense")
         hunters = animals.filter { it.isAlive && it.species.canHunt }
         animalGrid.clear(); hunterGrid.clear(); carcassGrid.clear(); eggGrid.clear()
         for (a in animals) if (a.isAlive) { animalGrid.add(a, a.position); if (a.species.canHunt) hunterGrid.add(a, a.position) }
         for (c in carcasses) if (!c.isRemoved) carcassGrid.add(c, c.position)
         for (e in eggs) if (!e.isRemoved) eggGrid.add(e, e.position)
+        raiseAlarms()
+        log.info { "${alarms.size} alarm calls are sounding" }
         var soft = 0
         for (a in animals) a.mind?.let { brain.sense(a, it); soft++ }
         log.info { "$soft SOFT_CODED animals sensed their surroundings" }
@@ -241,6 +258,29 @@ class World(
             log.info { "${a.label}: ${a.action} (fear=${fmt1(f.fear)} hunger=${fmt1(f.hunger)} thirst=${fmt1(f.thirst)} libido=${fmt1(f.libido)}) age=${fmt1(a.age)} hp=${fmt1(a.hp)} nutrition=${fmt1(a.nutrition)} hydration=${fmt1(a.hydration)} stamina=${fmt1(a.stamina)}" }
         }
         log.info { "SOFT_CODED decisions were observed ${brain.observations} times by same-species onlookers" }
+        log.info { "${brain.listeners} animals acted on something they heard rather than saw" }
+    }
+
+    /**
+     * Trait ALARM_CALLING: every animal of a calling species that is running from a predator it can actually see
+     * sounds an alarm, paying [Species.alarmCallStaminaCost] for it. An animal fleeing on hearsay stays quiet, so
+     * one call cannot cascade through a whole population. Callers are read from the action and feelings of last
+     * tick, so an alarm always reaches listeners one tick after the danger was spotted (docs/sim/SPECIES.md).
+     */
+    private fun raiseAlarms() {
+        alarms.clear(); alarmGrid.clear()
+        for (a in animals) {
+            val act = a.action
+            val calling = a.isAlive && a.species.canCallAlarm && act is Action.RunFromPredator && act.predator.isAlive &&
+                !a.feelings.threatHeardOnly
+            a.isCalling = calling
+            if (calling) {
+                val alarm = Alarm(a, (act as Action.RunFromPredator).predator)
+                alarms.add(alarm)
+                alarmGrid.add(alarm, a.position)
+                a.changeStamina(-a.species.alarmCallStaminaCost)
+            }
+        }
     }
 
     // ============================================================ 3/4 Act
@@ -301,7 +341,8 @@ class World(
             a.blockedTicks = 0
         }
         // An animal that got nowhere this tick (blocked, or already at its goal) did not really sprint, so it pays nothing.
-        if (a.position == before) a.isSprinting = false
+        a.movedThisTick = a.position != before
+        if (!a.movedThisTick) a.isSprinting = false
         // Stamina: always regenerates slowly and always drains a base amount; walking adds its usage on top, sprinting its own cost.
         val moveCost = when {
             a.position == before || a.action == Action.Wander -> 0.0

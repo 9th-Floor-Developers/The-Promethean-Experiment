@@ -14,4 +14,9 @@ class Feelings(
     val libido: Double = 0.0,
     /** Nearest predator in sense range, if any. */
     val threat: Animal? = null,
+    /**
+     * Whether the [threat] was only heard, not seen (docs/sim/SPECIES.md). An animal reacting to hearsay does not
+     * raise an alarm of its own, which is what stops one call from cascading through a whole population.
+     */
+    val threatHeardOnly: Boolean = false,
 )

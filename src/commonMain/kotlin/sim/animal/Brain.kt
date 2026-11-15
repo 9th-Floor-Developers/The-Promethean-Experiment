@@ -38,6 +38,12 @@ internal class Brain(private val world: World) {
         const val MAX_REACH_CHECKS = 12
         /** Random far-away spots tried when exploring before giving up and wandering. */
         const val EXPLORE_TRIES = 8
+        /**
+         * Fear from a danger the animal only heard counts this much next to seeing it; hearsay is less urgent than
+         * sight. Deliberately below [CLOSE_FEAR], so a call makes an animal run but never triggers the reflex that
+         * overrides a desperate need - prey that panic at every sound starve instead of eating.
+         */
+        const val HEARD_FEAR_DAMPING = 0.4
     }
 
     /** Decisions seen by onlookers this tick (one count per onlooker), for the tick log; reset by the world. */
@@ -45,6 +51,9 @@ internal class Brain(private val world: World) {
 
     private var scoreBuf = DoubleArray(256)
     private var targetBuf = arrayOfNulls<Any>(256)
+
+    /** Animals that heard something this tick (one count per listener), for the tick log; reset by the world. */
+    var listeners = 0
 
     /** Nearest predator (a hunter of another species) in view range; hunters themselves fear nothing. */
     private fun nearestThreat(a: Animal): Animal? {
@@ -65,6 +74,87 @@ internal class Brain(private val world: World) {
     private fun closeness(a: Animal, o: Vector2?): Double =
         o?.let { (1 - a.position.distanceTo(it) / a.stats.viewRange).coerceIn(0.0, 1.0) } ?: 0.0
 
+    // ------------------------------------------------------------ HEARING and ALARM CALLING
+
+    /**
+     * Something an animal heard (docs/sim/SPECIES.md): how clearly it came through ([audibility], 1 right next to
+     * the animal falling to 0 at the edge of earshot) and which animal it is about - the predator an alarm named,
+     * or the animal whose own movement made the noise.
+     */
+    private class Heard(val audibility: Double, val about: Animal, val heardOnly: Boolean = false)
+
+    /**
+     * How clearly a sound of [loudness] (see [Animal.noise]; an alarm call is a deliberate 1.0) carries from
+     * [from] to the listener: 1 right next to it, falling to 0 at [Species.hearingRange] scaled by the loudness,
+     * so a sprinting animal is heard much further off than a walking one.
+     */
+    private fun audibility(a: Animal, from: Vector2, loudness: Double): Double {
+        if (loudness <= 0.0) return 0.0
+        val earshot = a.species.hearingRange * loudness
+        if (earshot <= 0.0) return 0.0
+        return (1 - a.position.distanceTo(from) / earshot).coerceIn(0.0, 1.0)
+    }
+
+    /**
+     * Trait HEARING: the clearest danger a non-hunting animal heard rather than saw - an alarm call naming a
+     * predator, or a predator it heard moving. Alarms from any species count, so prey of different species warn
+     * each other. The predator must itself be within earshot, so a call never reports danger from across the map.
+     * Returns null for a species without the trait, and for hunters (they fear nothing).
+     */
+    private fun heardThreat(a: Animal): Heard? {
+        val s = a.species
+        if (!s.canHear || s.canHunt) return null
+        var best: Heard? = null
+        fun consider(audibility: Double, about: Animal) {
+            if (audibility > 0.0 && audibility > (best?.audibility ?: 0.0)) best = Heard(audibility, about)
+        }
+        world.alarmGrid.forEachNear(a.position, s.hearingRange) { alarm ->
+            if (alarm.caller !== a && alarm.threat.isAlive &&
+                a.position.distanceTo(alarm.threat.position) <= s.hearingRange
+            ) consider(audibility(a, alarm.caller.position, 1.0), alarm.threat)
+        }
+        world.hunterGrid.forEachNear(a.position, s.hearingRange) { o ->
+            if (o.isAlive && o.species != s) consider(audibility(a, o.position, o.noise), o)
+        }
+        return best
+    }
+
+    /**
+     * Trait HEARING: the clearest animal a hunter heard rather than saw - one it heard moving, or one raising an
+     * alarm (a caller gives its own position away, which is what makes calling a gamble). Returns null for a
+     * species without the trait and for non-hunters.
+     */
+    private fun heardPrey(a: Animal): Heard? {
+        val s = a.species
+        if (!s.canHear || !s.canHunt) return null
+        var best: Heard? = null
+        fun consider(audibility: Double, about: Animal) {
+            if (audibility > 0.0 && audibility > (best?.audibility ?: 0.0)) best = Heard(audibility, about)
+        }
+        world.alarmGrid.forEachNear(a.position, s.hearingRange) { alarm ->
+            val c = alarm.caller
+            if (c.isAlive && c.species != s) consider(audibility(a, c.position, 1.0), c)
+        }
+        world.animalGrid.forEachNear(a.position, s.hearingRange) { o ->
+            if (o.isAlive && o.species != s) consider(audibility(a, o.position, o.noise), o)
+        }
+        return best
+    }
+
+    /**
+     * Fear and the animal it is about, from sight and from sound together: whichever channel is more urgent wins.
+     * A danger that was only heard counts [HEARD_FEAR_DAMPING] of what seeing it would, so an animal reacts to a
+     * call but not as hard as to a predator in plain view.
+     */
+    private fun threatOf(a: Animal): Heard? {
+        val seen = nearestThreat(a)
+        val seenFear = closeness(a, seen?.position)
+        val heard = heardThreat(a)
+        val heardFear = (heard?.audibility ?: 0.0) * HEARD_FEAR_DAMPING
+        if (heard != null && heardFear > seenFear) { listeners++; return Heard(heardFear, heard.about, heardOnly = true) }
+        return seen?.let { Heard(seenFear, it) }
+    }
+
     /** Readiness to reproduce: 0 on cooldown or at/below the nutrition threshold, rising to 1 at full nutrition. */
     private fun libido(a: Animal): Double {
         val s = a.species
@@ -79,16 +169,20 @@ internal class Brain(private val world: World) {
     /** Computes a HARD_CODED animal's current fear, hunger, thirst and libido by fixed rules. */
     fun feel(a: Animal): Feelings {
         val s = a.species
-        val threat = nearestThreat(a)
-        return Feelings(closeness(a, threat?.position), 1 - a.nutrition / s.maxNutrition, 1 - a.hydration / s.maxHydration, libido(a), threat)
+        val threat = threatOf(a)
+        return Feelings(threat?.audibility ?: 0.0, 1 - a.nutrition / s.maxNutrition, 1 - a.hydration / s.maxHydration, libido(a),
+            threat?.about, threat?.heardOnly == true)
     }
 
     // ------------------------------------------------------------ SOFT CODED AI
 
     /**
      * Fills a SOFT_CODED animal's [Mind.inputs] (all roughly 0..1): its own hp, nutrition, hydration, stamina, age and
-     * readiness to breed; how close the nearest predator, food, water and mate are; the time of day; and whether
-     * its activity cycle says it should be awake.
+     * readiness to breed; how close the nearest predator, food, water and mate are; the time of day; whether
+     * its activity cycle says it should be awake; and how clearly it hears something it cannot see.
+     *
+     * The hearing input means opposite things to prey and to a hunter - danger for one, a meal for the other -
+     * so a network has to work out from the rest of its state which it is (docs/sim/SPECIES.md).
      */
     fun sense(a: Animal, m: Mind) {
         val s = a.species
@@ -108,6 +202,7 @@ internal class Brain(private val world: World) {
             kotlin.math.sin(day),
             kotlin.math.cos(day),
             if (s.isActiveAt(world.clock.phase)) 1.0 else 0.0,
+            (heardThreat(a) ?: heardPrey(a))?.audibility ?: 0.0,
         )
     }
 
@@ -121,7 +216,8 @@ internal class Brain(private val world: World) {
         val exp = DoubleArray(m.values.size) { kotlin.math.exp(m.values[it] - top) }
         val sum = exp.sum()
         fun share(d: Drive) = exp[d.ordinal] / sum
-        return Feelings(share(Drive.FLEE), share(Drive.EAT), share(Drive.DRINK), share(Drive.MATE), nearestThreat(a))
+        val threat = threatOf(a)
+        return Feelings(share(Drive.FLEE), share(Drive.EAT), share(Drive.DRINK), share(Drive.MATE), threat?.about, threat?.heardOnly == true)
     }
 
     /**
@@ -311,10 +407,11 @@ internal class Brain(private val world: World) {
         val range = a.stats.viewRange * a.stats.viewRange
         var n = 0
 
-        // Gather in-range candidates into reusable arrays (no per-candidate objects), scored by squared distance.
-        fun add(target: Any, position: Vector2, penalty: Double) {
+        // Gather candidates into reusable arrays (no per-candidate objects), scored by squared distance. Candidates
+        // must be within [maxRange] squared, which is view range for anything seen and unlimited for anything heard.
+        fun add(target: Any, position: Vector2, penalty: Double, maxRange: Double = range) {
             val d = a.position.distanceSquaredTo(position)
-            if (d > range) return
+            if (d > maxRange) return
             if (n == scoreBuf.size) { scoreBuf = scoreBuf.copyOf(n * 2); targetBuf = targetBuf.copyOf(n * 2) }
             scoreBuf[n] = d * penalty * penalty
             targetBuf[n] = target
@@ -327,6 +424,14 @@ internal class Brain(private val world: World) {
         // Eggs of other species are food for meat and carrion eaters; animals leave their own species' eggs alone.
         if (s.eatsCarcasses) world.eggGrid.forEachNear(a.position, view) { e -> if (!e.isRemoved && e.species != s) add(e, e.position, 1.0) }
         if (s.canHunt) world.animalGrid.forEachNear(a.position, view) { o -> if (o.isAlive && o.species != s) add(o, o.position, HUNT_PENALTY) }
+        // Trait HEARING: a hunter also goes after prey it only heard, which may be well past what it can see -
+        // including anything that gave itself away by raising an alarm (docs/sim/SPECIES.md).
+        heardPrey(a)?.let { heard ->
+            if (a.position.distanceSquaredTo(heard.about.position) > range) {
+                listeners++
+                add(heard.about, heard.about.position, HUNT_PENALTY, maxRange = Double.MAX_VALUE)
+            }
+        }
 
         // Nearest first, skipping targets that sit across water (a straight walk must be possible).
         for (attempt in 0 until MAX_REACH_CHECKS) {

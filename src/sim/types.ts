@@ -14,6 +14,8 @@ export interface SpeciesInfo {
     viewRange: number;
     /** Trait SPRINTING: the sprint reserve, in ticks of sprinting, a fully rested animal of this species holds. */
     sprintChargeTicks: number;
+    /** Trait HEARING: distance in tiles at which this species picks up alarm calls and the noise of moving animals. */
+    hearingRange: number;
     /** The species' base (founder) universal stats from Settings, in the order of TRAIT_AXES (max HP, speed, damage, armor, view range, base stamina use, walking stamina use, elderly age). */
     base: number[];
     /** Seed of the species' random appearance (scene/animalLook.ts), attached from Settings when the world is built. */
@@ -42,14 +44,15 @@ export const NO_HEADING = 999;
  * [id, species, x, y, hp, nutrition, hydration, stamina, age, action, fear, hunger, thirst, libido, targetX, targetY, heading] (target is -1,-1 when the animal has no destination; heading is
  * the direction in radians a wandering or fleeing animal moves in, NO_HEADING when it has none; the last eight are the animal's own stats: inherited maxHp, speed, damage, armor, viewRange, then calculated
  * baseStaminaUsage, walkingStaminaUsage, elderlyAge), then intelligence: the size of its neural network in hidden neurons, or -1 when it has none (instinct brain),
- * then sprintCharge: the sprint reserve left in ticks, and sprinting: 1 while the animal is sprinting (both 0 without the SPRINTING trait).
+ * then sprintCharge: the sprint reserve left in ticks, and sprinting: 1 while the animal is sprinting (both 0 without the SPRINTING trait),
+ * then calling: 1 while the animal is raising an alarm (ALARM_CALLING).
  */
 export const A = {
     id: 0, species: 1, x: 2, y: 3, hp: 4, nutrition: 5, hydration: 6, stamina: 7, age: 8,
     action: 9, fear: 10, hunger: 11, thirst: 12, libido: 13, targetX: 14, targetY: 15, heading: 16,
     maxHp: 17, speed: 18, damage: 19, armor: 20, viewRange: 21,
     baseStaminaUsage: 22, walkingStaminaUsage: 23, elderlyAge: 24, intelligence: 25,
-    sprintCharge: 26, sprinting: 27,
+    sprintCharge: 26, sprinting: 27, calling: 28,
 } as const;
 
 /** A neural-network (SOFT_CODED) animal's brain from Kotlin's getAnimalBrain(). */
@@ -68,7 +71,7 @@ export interface BrainInfo {
 }
 
 /** Names of the brain inputs (Kotlin Brain.sense), in order. */
-export const BRAIN_INPUTS = ['Health', 'Food', 'Water', 'Stamina', 'Age', 'Ready to breed', 'Predator near', 'Food near', 'Water near', 'Mate near', 'Time (sin)', 'Time (cos)', 'Awake time'];
+export const BRAIN_INPUTS = ['Health', 'Food', 'Water', 'Stamina', 'Age', 'Ready to breed', 'Predator near', 'Food near', 'Water near', 'Mate near', 'Time (sin)', 'Time (cos)', 'Awake time', 'Heard unseen'];
 /** Names of the brain outputs (Kotlin Drive), in order. */
 export const BRAIN_OUTPUTS = ['Flee', 'Eat', 'Drink', 'Mate', 'Rest', 'Explore'];
 
