@@ -5,8 +5,9 @@
     --color-accent: #ff8a5c;
     --color-accent-ink: #ffffff;
 
-    --font-display: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
-    --font-body: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    /* Manrope (loaded from Google Fonts in index.html); the stack behind it covers the moment before it arrives. */
+    --font-display: 'Manrope', 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
     --space-1: 0.5rem;
     --space-2: 1rem;

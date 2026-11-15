@@ -793,14 +793,18 @@ outgoingLight = diffuseColor.rgb * (fHemi + vec3(fSun)) * RECIPROCAL_PI;
 
     /** Text rendered once to a canvas and shared by every popup with the same text and colour. */
     private textTexture(text: string, color: string): THREE.CanvasTexture {
-        const key = `${color}|${text}`;
+        // Manrope may not have arrived when the first label is drawn, and a texture is cached for the life of the
+        // scene - so the cache key carries which font actually got used, and a fallback texture is simply replaced
+        // by a Manrope one once the font is ready rather than persisting.
+        const manrope = document.fonts?.check('bold 52px Manrope') ?? false;
+        const key = `${color}|${manrope ? 'm' : 'f'}|${text}`;
         let tex = this.textures.get(key);
         if (!tex) {
             const canvas = document.createElement('canvas');
             canvas.width = 384;
             canvas.height = 96;
             const g = canvas.getContext('2d')!;
-            g.font = 'bold 52px system-ui, sans-serif';
+            g.font = `bold 52px ${manrope ? "Manrope, " : ''}system-ui, sans-serif`;
             g.textAlign = 'center';
             g.textBaseline = 'middle';
             g.lineJoin = 'round';
