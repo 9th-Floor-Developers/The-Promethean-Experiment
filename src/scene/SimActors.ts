@@ -103,7 +103,7 @@ const SOUND_RING_OPACITY = 0.85;
 const MAX_SOUND_RINGS = 80;
 /** Loudness of an alarm call (Kotlin Species.ALARM_LOUDNESS) and of a sprint (Animal.noise), as a share of hearing range. */
 const CALL_LOUDNESS = 0.6;
-const SPRINT_LOUDNESS = 1.0;
+const SPRINT_LOUDNESS = 0.4;
 
 /** One expanding sound ring: a flat quad whose shader draws a circle at its edge. */
 interface SoundRing {

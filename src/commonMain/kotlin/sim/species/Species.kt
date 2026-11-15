@@ -49,10 +49,11 @@ class Species(
     /** Walking distance (tiles) within which animals know where water is; much larger than [viewRange] because they remember where the water is. */
     val waterSenseRange: Double = 150.0,
     /**
-     * Trait HEARING: distance (tiles) at which this species picks up sound - alarm calls and the noise of moving
-     * animals. Defaults to a multiple of [viewRange] so hearing always reaches past what the eye can see, however
-     * far-sighted the species is; the noise of a walking animal carries much less far than that (docs/sim/SPECIES.md).
-     * A species setting rather than an inherited stat, like [waterSenseRange].
+     * Trait HEARING: how far (tiles) this species could pick up a sound of full loudness - alarm calls and the noise
+     * of moving animals both reach a fraction of it ([ALARM_LOUDNESS], [sim.animal.Animal.noise]), so nothing in the
+     * world is actually heard this far off. Defaults to a multiple of [viewRange] so the loudest sound always reaches
+     * past what the eye can see, however far-sighted the species is (docs/sim/SPECIES.md). A species setting rather
+     * than an inherited stat, like [waterSenseRange].
      */
     val hearingRange: Double = viewRange * HEARING_VIEW_MULTIPLE,
     /** Trait ALARM_CALLING: stamina spent each tick spent raising an alarm, so calling is never free. */
@@ -189,9 +190,10 @@ class Species(
         const val HEARING_VIEW_MULTIPLE = 2.5
 
         /**
-         * Trait ALARM_CALLING: how loud a call is next to a sprinting animal, which is 1.0 (see [sim.animal.Animal.noise]).
-         * A call therefore reaches [HEARING_VIEW_MULTIPLE] x this = 1.5x the listener's view range: further than the
-         * footsteps of a walking animal, not as far as a full sprint (docs/sim/SPECIES.md).
+         * Trait ALARM_CALLING: how loud a call is, as a share of a listener's [hearingRange] (see
+         * [sim.animal.Animal.noise] for the sounds of moving). A call therefore reaches [HEARING_VIEW_MULTIPLE] x
+         * this = 1.5x the listener's view range, which makes it the loudest thing in the world: a shout carries
+         * further than even a sprint, so warning the herd is worth the stamina (docs/sim/SPECIES.md).
          */
         const val ALARM_LOUDNESS = 0.6
     }

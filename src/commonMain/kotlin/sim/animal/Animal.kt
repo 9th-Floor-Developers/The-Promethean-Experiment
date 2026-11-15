@@ -130,11 +130,13 @@ class Animal(
     val canSprintNow get() = species.canSprint && sprintCharge > 0 && stamina > species.maxStamina * SPRINT_STAMINA_FLOOR
 
     /**
-     * How much sound the animal is making, 0 (still and silent) to 1 (sprinting). Only animals of a species with
-     * Trait.HEARING can pick this up, and only within [Species.hearingRange] scaled by this (docs/sim/SPECIES.md).
+     * How much sound the animal is making, 0 (still and silent) up to [SPRINT_NOISE] (sprinting). Only animals of a
+     * species with Trait.HEARING can pick this up, and only within [Species.hearingRange] scaled by this. Moving is
+     * quiet work next to a deliberate shout ([Species.ALARM_LOUDNESS]), so an animal that wants to be heard has to
+     * call (docs/sim/SPECIES.md).
      */
     val noise get() = when {
-        isSprinting -> 1.0
+        isSprinting -> SPRINT_NOISE
         movedThisTick -> WALKING_NOISE
         else -> 0.0
     }
@@ -209,5 +211,12 @@ private const val MIN_SPEED_FACTOR = 0.3
 /** Share of max stamina an animal must have left to keep sprinting. */
 private const val SPRINT_STAMINA_FLOOR = 0.15
 
-/** How loud a walking animal is next to a sprinting one, which is 1.0. */
-private const val WALKING_NOISE = 0.4
+/**
+ * How loud a sprinting animal is, as a share of a listener's [Species.hearingRange]: a sprint is heard out to the
+ * listener's own view range (hearing reaches [Species.HEARING_VIEW_MULTIPLE] x that), so running past unseen prey
+ * gives a hunter away only once it is already in sight range.
+ */
+private const val SPRINT_NOISE = 0.4
+
+/** How loud a walking animal is: a quarter of a view range, so ordinary milling about is all but inaudible. */
+private const val WALKING_NOISE = 0.1

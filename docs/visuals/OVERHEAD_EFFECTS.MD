@@ -24,6 +24,6 @@ have it be shown as text over the position that pops up and fades out
 ## SOUND RINGS
 When an animal makes a sound, an expanding ring in its species colour (the body colour of its look) shows how far the sound reaches
 sounds with a ring: alarm calls (ALARM_CALLING) and sprinting (SPRINTING); walking noise has none, since nearly every animal walks all the time
-the ring grows to the farthest distance any animal in the world can hear the sound (the largest hearing range among HEARING species x loudness: a sprint 1.0, an alarm call 0.6), then fades
+the ring grows to the farthest distance any animal in the world can hear the sound (the largest hearing range among HEARING species x loudness: an alarm call 0.6, a sprint 0.4), then fades
 no ring is drawn when no species in the world has HEARING, since then the sound affects nothing
 an animal that keeps calling or sprinting sends out a new ring at most every 0.7 seconds
