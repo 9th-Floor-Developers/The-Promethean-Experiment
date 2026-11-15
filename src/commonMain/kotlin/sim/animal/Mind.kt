@@ -40,21 +40,21 @@ class Mind(val net: NeuralNet) {
         val FOUNDER_INTELLIGENCE: Int get() = NeuralNet.connectionsOf(intArrayOf(INPUTS, *FOUNDER_HIDDEN, OUTPUTS))
 
         /** Own decisions remembered per animal; the oldest are forgotten first. */
-        const val MEMORY = 200
+        var MEMORY = 200
         /** Decisions of others (same species, in view) remembered per animal; the oldest are forgotten first. */
-        const val OBSERVED_MEMORY = 100
+        var OBSERVED_MEMORY = 100
         /** Share of replays drawn from [observed] decisions (when there are any); the rest come from the animal's own. */
-        const val OBSERVED_REPLAY_SHARE = 0.3
+        var OBSERVED_REPLAY_SHARE = 0.3
         /** Discount on the value of the next decision. */
-        const val GAMMA = 0.9
-        const val LEARNING_RATE = 0.05
+        var GAMMA = 0.9
+        var LEARNING_RATE = 0.05
         /** Remembered decisions replayed per tick while resting. */
-        const val REPLAYS_PER_TICK = 16
+        var REPLAYS_PER_TICK = 16
         /** Chance a decision is a random drive instead of the strongest one, so the animal keeps trying new things. */
-        const val EXPLORATION = 0.1
+        var EXPLORATION = 0.1
 
         /** Stamina spent per tick for every hidden neuron, so bigger brains must earn their keep. */
-        const val NEURON_STAMINA_COST = 0.0003
+        var NEURON_STAMINA_COST = 0.0003
 
         // The mutation constants below apply at the default mutation rate; Species.mutationRate scales them.
 
@@ -63,9 +63,9 @@ class Mind(val net: NeuralNet) {
          * brains turn up within a run (15% of a one-layer pair's young get a second layer); equal both ways so
          * mutation itself does not push brains deeper, only selection can.
          */
-        const val LAYER_MUTATION_CHANCE = 0.15
+        var LAYER_MUTATION_CHANCE = 0.15
         /** Chance at birth that each hidden layer gains or loses up to [MAX_NEURON_CHANGE] neurons. */
-        const val NEURON_MUTATION_CHANCE = 0.3
+        var NEURON_MUTATION_CHANCE = 0.3
         const val MAX_NEURON_CHANGE = 2
         const val MIN_LAYER_SIZE = 2
         const val MAX_LAYER_SIZE = 64
@@ -75,12 +75,12 @@ class Mind(val net: NeuralNet) {
         /** Size of a hidden layer added by mutation. */
         const val NEW_LAYER_SIZE = 4
         /** Largest random change to each inherited weight. */
-        const val WEIGHT_MUTATION = 0.05
+        var WEIGHT_MUTATION = 0.05
         /**
          * Share of a newborn's starting weights that comes from its parents; the rest is fresh random, so behaviour
          * is mainly learned in each life rather than passed on.
          */
-        const val PARENT_WEIGHT_SHARE = 0.25
+        var PARENT_WEIGHT_SHARE = 0.25
 
         /** A founder's mind: [FOUNDER_HIDDEN] layers with random weights. */
         fun founder(rng: Random) = Mind(NeuralNet.random(intArrayOf(INPUTS, *FOUNDER_HIDDEN, OUTPUTS), rng))

@@ -58,7 +58,7 @@ private class RunResult(val seed: Long, val deaths: Map<String, List<Death>>, va
  * Runs one world for [days] in-game days and records every death of a SOFT_CODED animal. Deaths are found the way the
  * frontend finds them: an animal present before a tick and gone after it has died.
  */
-private fun runSeed(seed: Long, days: Int, size: Int, config: String, resources: Resources, founderShapes: List<IntArray>?, all: Boolean): RunResult {
+private fun runSeed(seed: Long, days: Int, size: Int, config: String, resources: Resources, founderShapes: List<IntArray>?, all: Boolean, diag: MutableMap<String, Int>? = null): RunResult {
     val setups = parseSpeciesConfig(config)
     val world = createWorld(seed, size, setups, resources)
     val soft = setups.map { it.species }.filter { all || Trait.SOFT_CODED in it.traits }.toSet()
@@ -83,6 +83,12 @@ private fun runSeed(seed: Long, days: Int, size: Int, config: String, resources:
             deaths[a.species.name]!!.add(Death(a.age, a.mind?.net?.connections ?: -1, world.clock.tick.toDouble() / TICKS_PER_DAY, causeKind(a.causeOfDeath)))
         }
         before = world.animals.toList()
+        if (diag != null) for (a in world.animals) if (a.mind != null) {
+            val key = a.action::class.simpleName ?: "?"
+            diag.merge(key, 1, Int::plus)
+            if (a.hydration < 30) diag.merge("thirsty:" + key, 1, Int::plus)
+            if (a.nutrition < 30) diag.merge("hungry:" + key, 1, Int::plus)
+        }
         if (world.animals.none { it.species in soft }) {
             return RunResult(seed, deaths, setups.associate { s -> s.species.name to world.animals.count { it.species == s.species } }, world.clock.tick.toDouble() / TICKS_PER_DAY)
         }
@@ -123,10 +129,25 @@ fun main(args: Array<String>) {
     val shapes = args.firstOrNull { it.startsWith("--shapes=") }?.removePrefix("--shapes=")?.split(";")
         ?.map { l -> l.split(",").map { it.trim().toInt() }.toIntArray() }
 
+    // EXPERIMENT ONLY: --set=NAME=value overrides a Mind learning constant for this run.
+    for (a in args.filter { it.startsWith("--set=") }) {
+        val (k, v) = a.removePrefix("--set=").split("=")
+        when (k) {
+            "MEMORY" -> Mind.MEMORY = v.toInt(); "OBSERVED_MEMORY" -> Mind.OBSERVED_MEMORY = v.toInt()
+            "OBSERVED_REPLAY_SHARE" -> Mind.OBSERVED_REPLAY_SHARE = v.toDouble(); "GAMMA" -> Mind.GAMMA = v.toDouble()
+            "LEARNING_RATE" -> Mind.LEARNING_RATE = v.toDouble(); "REPLAYS_PER_TICK" -> Mind.REPLAYS_PER_TICK = v.toInt()
+            "EXPLORATION" -> Mind.EXPLORATION = v.toDouble(); "NEURON_STAMINA_COST" -> Mind.NEURON_STAMINA_COST = v.toDouble()
+            "PARENT_WEIGHT_SHARE" -> Mind.PARENT_WEIGHT_SHARE = v.toDouble(); "WEIGHT_MUTATION" -> Mind.WEIGHT_MUTATION = v.toDouble()
+            "LAYER_MUTATION_CHANCE" -> Mind.LAYER_MUTATION_CHANCE = v.toDouble(); "NEURON_MUTATION_CHANCE" -> Mind.NEURON_MUTATION_CHANCE = v.toDouble()
+            else -> error("unknown constant $k")
+        }
+    }
     val out = System.out
     System.setOut(PrintStream(OutputStream.nullOutputStream())) // simEvent prints every birth and death
+    // --diag tallies, over every tick, what the neural animals are doing (also when thirsty or hungry).
+    val diag: MutableMap<String, Int>? = if ("--diag" in args) java.util.concurrent.ConcurrentHashMap() else null
     val pool = Executors.newFixedThreadPool(threads)
-    val results = seeds.map { s -> pool.submit<RunResult> { runSeed(s, days, size, config, resources, shapes, "--all" in args) } }.map { it.get() }
+    val results = seeds.map { s -> pool.submit<RunResult> { runSeed(s, days, size, config, resources, shapes, "--all" in args, diag) } }.map { it.get() }
     pool.shutdown()
 
     out.println("########## PROCESS: Intelligence experiment (${args[0]}, $days days, map $size, seeds $seeds) ##########")
@@ -146,6 +167,10 @@ fun main(args: Array<String>) {
         }
     }
     for ((name, rs) in summary) out.println("==> $name mean r=${"%.3f".format(rs.average())} min r=${"%.3f".format(rs.min())} over ${rs.size} seeds")
+    diag?.let { d ->
+        val total = d.filterKeys { ':' !in it }.values.sum().toDouble()
+        out.println("DIAG " + d.entries.sortedBy { it.key }.joinToString(" ") { "${it.key}=${"%.1f".format(100 * it.value / total)}%" })
+    }
     // One machine-readable line per neural species, for parameter searches: mean r, min r, mean deaths, seeds where it died out.
     for (name in results.first().deaths.keys) {
         val rs = results.map { pearson(it.deaths[name]!!) ?: 0.0 }
